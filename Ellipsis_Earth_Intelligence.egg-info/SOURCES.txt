@@ -1,0 +1,6 @@
+README.md
+setup.py
+Ellipsis_Earth_Intelligence.egg-info/PKG-INFO
+Ellipsis_Earth_Intelligence.egg-info/SOURCES.txt
+Ellipsis_Earth_Intelligence.egg-info/dependency_links.txt
+Ellipsis_Earth_Intelligence.egg-info/top_level.txt
