@@ -8,10 +8,10 @@ setuptools.setup(
     version="0.1.5",
     author="Daniel van der Maas",
     author_email="daniel@ellipsis-earth.com",
-    description="package to interact with the Ellipsis API",
+    description="Package to interact with the Ellipsis API",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/ellipsis-earth/PythonPackage",
+    url="https://github.com/ellipsis-earth/ellipsis-python-package",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
