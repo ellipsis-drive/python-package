@@ -16,6 +16,7 @@ import math
 import threading
 import multiprocessing
 from shapely.geometry import Polygon
+from shapely.geometry import MultiPolygon
 from rasterio.features import rasterize
 from geopy.distance import geodesic
 
@@ -437,7 +438,7 @@ def chunks(l, n = 3000):
 
 def cover(area,  w):
     
-    if len(area) == 0:
+    if area.shape[0] == 0:
         return(gpd.GeoDataFrame())
     
     x1 = area.bounds['minx'].min()
@@ -476,9 +477,6 @@ def cover(area,  w):
     return(coords)
 
 
-
-
-#global queues
 
 def parallel(function, args, per_minute):
        
@@ -521,5 +519,86 @@ def parallel(function, args, per_minute):
         
     return(result)
 
+
+
+
+def OSMcover(area, zoom ):
+    def cover(area, zoom):
+        if len(area) == 0:
+            return(gpd.GeoDataFrame())
+        x1, y1, x2, y2  = area.bounds
+    
+        #find the x osm tiles involved   
+        x1_osm =  math.floor((x1 +180 ) * 2**zoom / 360 )
+        x2_osm =  math.floor( (x2 +180 ) * 2**zoom / 360 +1)
+        y2_osm = math.floor( 2**zoom / (2* math.pi) * ( math.pi - math.log( math.tan(math.pi / 4 + y1/360 * math.pi  ) ) ) + 1)
+        y1_osm = math.floor( 2**zoom / (2* math.pi) * ( math.pi - math.log( math.tan(math.pi / 4 + y2/360 * math.pi  ) ) ))
+        
+        parts_x =  (x2_osm - x1_osm) + 1
+        xosm_vec = [i for i in range(x1_osm, x2_osm + 1) ]
+        parts_y = y2_osm - y1_osm + 1
+        yosm_vec = [i for i in range(y1_osm, y2_osm + 1) ]
+    
+        #calculate the boundingbox coordinates of the tiles
+        x1_vec = [ i * 360/2**zoom - 180  for i in np.arange( x1_osm, x2_osm +1 )  ]
+        x2_vec = [i * 360/2**zoom - 180 for i in np.arange( x1_osm +1, x2_osm+2 )  ]
+    
+        y2_vec = [ (2* math.atan( math.e**(math.pi - (i) * 2*math.pi / 2**zoom) ) - math.pi/2) * 360/ (2* math.pi)     for i in np.arange(y1_osm, y2_osm+1) ]
+        y1_vec = [ (2* math.atan( math.e**(math.pi - (i) * 2*math.pi / 2**zoom) ) - math.pi/2) * 360/ (2* math.pi)     for i in np.arange(y1_osm+1, y2_osm +2) ]
+    
+        #make a dataframe out of these boundingbox coordinates
+        coords = pd.DataFrame()
+        for n in np.arange( parts_y ):
+           y1_sq = np.repeat(y1_vec[n], parts_x )
+           y2_sq = np.repeat(y2_vec[n], parts_x )
+           x1_sq = x1_vec
+           x2_sq = x2_vec
+           yosm_sq = np.repeat(yosm_vec[n], parts_x)
+           xosm_sq = xosm_vec
+           coords_temp = {'x1': x1_sq, 'x2': x2_sq, 'y1': y1_sq, 'y2':y2_sq, 'xosm': xosm_sq, 'yosm': yosm_sq }
+           coords = coords.append(pd.DataFrame(coords_temp))
+    
+        #make a geopandas out of this dataframe    
+        covering = []
+        for i in np.arange(coords.shape[0]):
+            covering.append(Polygon([ (coords['x1'].iloc[i] , coords['y1'].iloc[i]), (coords['x2'].iloc[i], coords['y1'].iloc[i]), (coords['x2'].iloc[i], coords['y2'].iloc[i]), (coords['x1'].iloc[i], coords['y2'].iloc[i])]))
+        covering = MultiPolygon(covering)    
+        
+        coords = gpd.GeoDataFrame({'geometry': covering, 'x_osm': coords['xosm'].values, 'y_osm':coords['yosm'].values})
+    
+        #remove all tiles that do not intersect with the orgingal area    
+        keep = [area.intersects(covering[j]) for j in np.arange(len(covering))]    
+        coords = coords[pd.Series(keep, name = 'bools').values]
+        
+        
+        return(coords)
+
+
+    total_covering = gpd.GeoDataFrame()
+    for i in np.arange(area.shape[0]):
+        area = area['geometry'].values[i]
+    
+        #convert to multipolygon in case of a polygon
+        if str(type(area)) == "<class 'shapely.geometry.polygon.Polygon'>":
+            area = MultiPolygon([area])
+    
+        covering = gpd.GeoDataFrame()
+        
+        #split the area in a western and eastern halve 
+        west = Polygon([ (-180, -90), (0,-90), (0,90), (-180,90)])
+        east = Polygon([ (180, -90), (0,-90), (0,90), (180,90)])
+        eastern = MultiPolygon([poly.difference(west) for poly in area])
+        western = MultiPolygon([poly.difference(east) for poly in area])
+    
+        #cover the area with tiles
+        covering = covering.append(cover( western, zoom ))
+        covering = covering.append(cover( eastern, zoom))               
+        covering['zoom'] = zoom    
+
+        total_covering = total_covering.append(covering)        
+
+    total_covering['id'] = np.arange(total_covering.shape[0])
+
+    return(total_covering)
 
 
