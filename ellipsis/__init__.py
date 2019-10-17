@@ -20,7 +20,7 @@ from shapely.geometry import MultiPolygon
 from rasterio.features import rasterize
 from geopy.distance import geodesic
 
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 url = 'https://api.ellipsis-earth.com/v2'
 s = requests.Session()
 
@@ -161,18 +161,18 @@ def dataTiles(mapId, timestampNumber, element, dataType, className = 'all classe
 
 
 
-def geometryIds(mapId, Type,limit = None, layer = None, xMin = None, xMax = None, yMin=None, yMax=None,  token = None):
+def geometryIds(mapId, Type,limit = None, layer = None, xmin = None, xmax = None, ymin=None, ymax=None,  token = None):
 
     body = {"mapId":  mapId, 'type': Type}
 
-    if xMin != None:
-        body['xMin'] = xMin
-    if xMax != None:
-        body['xMax'] = xMax
-    if yMin != None:
-        body['yMin'] = yMin
-    if yMax != None:
-        body['yMax'] = yMax
+    if xmin != None:
+        body['xMin'] = xmin
+    if xmax != None:
+        body['xMax'] = xmax
+    if ymin != None:
+        body['yMin'] = ymin
+    if ymax != None:
+        body['yMax'] = ymax
     if layer != None:
         body['layer'] = layer
     if limit != None:
@@ -360,10 +360,10 @@ def rasterGet(mapId, element, channels, timestamp, token = None):
     return({'data':r, 'crs':crs, 'bounds':bounds, 'transform':transform})
 
 
-def visualBounds(mapId, timestampMin, timestampMax, layerName, xMin,xMax,yMin, yMax , token = None):
+def visualBounds(mapId, timestampMin, timestampMax, layerName, xmin,xmax,ymin, ymax , token = None):
 
     
-    body = {'mapId':mapId, 'timestampMin':timestampMin, 'timestampMax':timestampMax, 'layerName':layerName, 'xMin':xMin, 'xMax':xMax, 'yMin':yMin, 'yMax':yMax}
+    body = {'mapId':mapId, 'timestampMin':timestampMin, 'timestampMax':timestampMax, 'layerName':layerName, 'xMin':xmin, 'xMax':xmax, 'yMin':ymin, 'yMax':ymax}
     if token ==None:
         r = s.post(url + '/visual/bounds',
                      json = body )        
@@ -433,49 +433,6 @@ def chunks(l, n = 3000):
     for i in range(0, len(l), n):
         result.append(l[i:i+n])
     return(result)
-
-
-
-def cover(area,  w):
-    
-    if area.shape[0] == 0:
-        return(gpd.GeoDataFrame())
-    
-    x1 = area.bounds['minx'].min()
-    x2 = area.bounds['maxx'].max()
-    y1 = area.bounds['miny'].min()
-    y2 = area.bounds['maxy'].max()
-         
-    #calculate the y1 and y2 of all squares
-    step_y =  w/geodesic((y1,x1), (y1 + 1,x1)).meters
-    
-    parts_y = math.floor((y2 - y1)/ step_y + 1)
-    
-    y1_vec = y1 + np.arange(0, parts_y )*step_y
-    y2_vec = y1 + np.arange(1, parts_y +1 )*step_y
-    
-    #make a dataframe of these bounding boxes
-    steps_x = [    w/geodesic((y,x1), (y,x1+1)).meters  for y in y1_vec  ]
-    parts_x = [math.floor( (x2-x1) /step +1 ) for step in steps_x ]      
-    coords = pd.DataFrame()
-    for n in np.arange(len(parts_x)):
-        x1_sq = [ x1 + j*steps_x[n] for j in np.arange(0,parts_x[n]) ]
-        x2_sq = [ x1 + j*steps_x[n] for j in np.arange(1, parts_x[n]+1) ]
-        coords_temp = {'x1': x1_sq, 'x2': x2_sq, 'y1': y1_vec[n], 'y2':y2_vec[n]}
-        coords = coords.append(pd.DataFrame(coords_temp))
-    
-    #make a geopandas of this covering dataframe
-    cover = [Polygon([ (coords['x1'].iloc[j] , coords['y1'].iloc[j]) , (coords['x2'].iloc[j] , coords['y1'].iloc[j]), (coords['x2'].iloc[j] , coords['y2'].iloc[j]), (coords['x1'].iloc[j] , coords['y2'].iloc[j]) ]) for j in np.arange(coords.shape[0])]
-    
-    coords = gpd.GeoDataFrame({'geometry': cover, 'x1':coords['x1'], 'x2':coords['x2'], 'y1':coords['y1'], 'y2':coords['y2'] })
-
-    #remove all tiles that do not intersect the area that needed covering    
-    keep = [area.intersects(coords['geometry'].values[j]) for j in np.arange(coords.shape[0])]
-    coords = coords[keep]
-    coords['id'] = np.arange(coords.shape[0])
-        
-    return(coords)
-
 
 
 def parallel(function, args, per_minute):
@@ -573,6 +530,124 @@ def OSMcover(area, zoom ):
         
         return(coords)
 
+    total_covering = gpd.GeoDataFrame()
+    for i in np.arange(area.shape[0]):
+        area = area['geometry'].values[i]
+    
+        #convert to multipolygon in case of a polygon
+        if str(type(area)) == "<class 'shapely.geometry.polygon.Polygon'>":
+            area = MultiPolygon([area])
+    
+        covering = gpd.GeoDataFrame()
+        
+        #split the area in a western and eastern halve 
+        west = Polygon([ (-180, -90), (0,-90), (0,90), (-180,90)])
+        east = Polygon([ (180, -90), (0,-90), (0,90), (180,90)])
+        eastern = MultiPolygon([poly.difference(west) for poly in area])
+        western = MultiPolygon([poly.difference(east) for poly in area])
+    
+        #cover the area with tiles
+        covering = covering.append(cover( western, zoom ))
+        covering = covering.append(cover( eastern, zoom))               
+        covering['zoom'] = zoom    
+
+        total_covering = total_covering.append(covering)        
+
+    total_covering = total_covering.drop_duplicates(['x_osm','y_osm'])
+    total_covering['id'] = np.arange(total_covering.shape[0])
+
+    return(total_covering)
+
+def cover(area,  w):
+    
+    if area.shape[0] == 0:
+        return(gpd.GeoDataFrame())
+    
+    x1 = area.bounds['minx'].min()
+    x2 = area.bounds['maxx'].max()
+    y1 = area.bounds['miny'].min()
+    y2 = area.bounds['maxy'].max()
+         
+    #calculate the y1 and y2 of all squares
+    step_y =  w/geodesic((y1,x1), (y1 + 1,x1)).meters
+    
+    parts_y = math.floor((y2 - y1)/ step_y + 1)
+    
+    y1_vec = y1 + np.arange(0, parts_y )*step_y
+    y2_vec = y1 + np.arange(1, parts_y +1 )*step_y
+    
+    #make a dataframe of these bounding boxes
+    steps_x = [    w/geodesic((y,x1), (y,x1+1)).meters  for y in y1_vec  ]
+    parts_x = [math.floor( (x2-x1) /step +1 ) for step in steps_x ]      
+    coords = pd.DataFrame()
+    for n in np.arange(len(parts_x)):
+        x1_sq = [ x1 + j*steps_x[n] for j in np.arange(0,parts_x[n]) ]
+        x2_sq = [ x1 + j*steps_x[n] for j in np.arange(1, parts_x[n]+1) ]
+        coords_temp = {'x1': x1_sq, 'x2': x2_sq, 'y1': y1_vec[n], 'y2':y2_vec[n]}
+        coords = coords.append(pd.DataFrame(coords_temp))
+    
+    #make a geopandas of this covering dataframe
+    cover = [Polygon([ (coords['x1'].iloc[j] , coords['y1'].iloc[j]) , (coords['x2'].iloc[j] , coords['y1'].iloc[j]), (coords['x2'].iloc[j] , coords['y2'].iloc[j]), (coords['x1'].iloc[j] , coords['y2'].iloc[j]) ]) for j in np.arange(coords.shape[0])]
+    
+    coords = gpd.GeoDataFrame({'geometry': cover, 'x1':coords['x1'], 'x2':coords['x2'], 'y1':coords['y1'], 'y2':coords['y2'] })
+
+    #remove all tiles that do not intersect the area that needed covering    
+    keep = [area.intersects(coords['geometry'].values[j]) for j in np.arange(coords.shape[0])]
+    coords = coords[keep]
+    coords['id'] = np.arange(coords.shape[0])
+        
+    return(coords)
+
+
+def coverBounds(xmin, xmax,ymin, ymax, zoom):
+    def cover(area, zoom):
+        if len(area) == 0:
+            return(gpd.GeoDataFrame())
+        x1, y1, x2, y2  = area.bounds
+    
+        #find the x osm tiles involved   
+        x1_osm =  math.floor((x1 +180 ) * 2**zoom / 360 )
+        x2_osm =  math.floor( (x2 +180 ) * 2**zoom / 360 +1)
+        y2_osm = math.floor( 2**zoom / (2* math.pi) * ( math.pi - math.log( math.tan(math.pi / 4 + y1/360 * math.pi  ) ) ) + 1)
+        y1_osm = math.floor( 2**zoom / (2* math.pi) * ( math.pi - math.log( math.tan(math.pi / 4 + y2/360 * math.pi  ) ) ))
+        
+        parts_x =  (x2_osm - x1_osm) + 1
+        xosm_vec = [i for i in range(x1_osm, x2_osm + 1) ]
+        parts_y = y2_osm - y1_osm + 1
+        yosm_vec = [i for i in range(y1_osm, y2_osm + 1) ]
+    
+        #calculate the boundingbox coordinates of the tiles
+        x1_vec = [ i * 360/2**zoom - 180  for i in np.arange( x1_osm, x2_osm +1 )  ]
+        x2_vec = [i * 360/2**zoom - 180 for i in np.arange( x1_osm +1, x2_osm+2 )  ]
+    
+        y2_vec = [ (2* math.atan( math.e**(math.pi - (i) * 2*math.pi / 2**zoom) ) - math.pi/2) * 360/ (2* math.pi)     for i in np.arange(y1_osm, y2_osm+1) ]
+        y1_vec = [ (2* math.atan( math.e**(math.pi - (i) * 2*math.pi / 2**zoom) ) - math.pi/2) * 360/ (2* math.pi)     for i in np.arange(y1_osm+1, y2_osm +2) ]
+    
+        #make a dataframe out of these boundingbox coordinates
+        coords = pd.DataFrame()
+        for n in np.arange( parts_y ):
+           y1_sq = np.repeat(y1_vec[n], parts_x )
+           y2_sq = np.repeat(y2_vec[n], parts_x )
+           x1_sq = x1_vec
+           x2_sq = x2_vec
+           yosm_sq = np.repeat(yosm_vec[n], parts_x)
+           xosm_sq = xosm_vec
+           coords_temp = {'x1': x1_sq, 'x2': x2_sq, 'y1': y1_sq, 'y2':y2_sq, 'xosm': xosm_sq, 'yosm': yosm_sq }
+           coords = coords.append(pd.DataFrame(coords_temp))
+    
+        #make a geopandas out of this dataframe    
+        covering = []
+        for i in np.arange(coords.shape[0]):
+            covering.append(Polygon([ (coords['x1'].iloc[i] , coords['y1'].iloc[i]), (coords['x2'].iloc[i], coords['y1'].iloc[i]), (coords['x2'].iloc[i], coords['y2'].iloc[i]), (coords['x1'].iloc[i], coords['y2'].iloc[i])]))
+        covering = MultiPolygon(covering)    
+        
+        coords = gpd.GeoDataFrame({'geometry': covering, 'x_osm': coords['xosm'].values, 'y_osm':coords['yosm'].values})        
+        
+        return(coords)
+
+
+
+    area = gpd.GeoDataFrame( {'geometry': [Polygon([(xmin,ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax)])]} )
 
     total_covering = gpd.GeoDataFrame()
     for i in np.arange(area.shape[0]):
@@ -597,8 +672,29 @@ def OSMcover(area, zoom ):
 
         total_covering = total_covering.append(covering)        
 
+    total_covering = total_covering.drop_duplicates(['x_osm','y_osm'])
     total_covering['id'] = np.arange(total_covering.shape[0])
 
     return(total_covering)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
