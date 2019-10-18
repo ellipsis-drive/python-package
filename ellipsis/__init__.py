@@ -6,6 +6,7 @@ import matplotlib.image as mpimg
 from PIL import Image
 import geopandas as gpd
 import base64
+import progressbar
 import numpy as np
 from io import BytesIO
 from io import StringIO
@@ -20,7 +21,7 @@ from shapely.geometry import MultiPolygon
 from rasterio.features import rasterize
 from geopy.distance import geodesic
 
-__version__ = '0.1.8'
+__version__ = '0.1.10'
 url = 'https://api.ellipsis-earth.com/v2'
 s = requests.Session()
 
@@ -113,7 +114,7 @@ def dataTimestamps(mapId, element, dataType, className = 'all classes', token = 
         element['tileY'] = int(element['tileY'])
         element['zoom'] = int(element['zoom'])
     if str(type(element)) == "<class 'shapely.geometry.polygon.Polygon'>":
-        Type = 'custom_polygon'
+        Type = 'customPolygon'
         element = gpd.GeoSeries([element]).__geo_interface__['features'][0]
             
     body = {'mapId':  mapId, 'dataType': dataType, 'type':Type, 'element': element, 'className': className}
@@ -173,7 +174,7 @@ def dataTiles(mapId, timestampNumber, element, dataType, className = 'all classe
         element['tileY'] = int(element['tileY'])
         element['zoom'] = int(element['zoom'])
     if str(type(element)) == "<class 'shapely.geometry.polygon.Polygon'>":
-        Type = 'custom_polygon'
+        Type = 'customPolygon'
         element = gpd.GeoSeries([element]).__geo_interface__['features'][0]
     
     body = {'mapId':  mapId, 'dataType': dataType, 'type':Type, 'timestampNumber':timestampNumber , 'element': element, 'className':className}
@@ -192,19 +193,20 @@ def dataTiles(mapId, timestampNumber, element, dataType, className = 'all classe
 
 
 
-def geometryIds(mapId, layer, limit = None, xmin = None, xmax = None, ymin=None, ymax=None,  token = None):
-    limit = int(limit)
+def geometryIds(mapId, layer, limit = None, xMin = None, xMax = None, yMin=None, yMax=None,  token = None):
+
     body = {"mapId":  mapId}
 
-    if xmin != None:
-        body['xMin'] = float(xmin)
-    if xmax != None:
-        body['xMax'] = float(xmax)
-    if ymin != None:
-        body['yMin'] = float(ymin)
-    if ymax != None:
-        body['yMax'] = float(ymax)
+    if xMin != None:
+        body['xMin'] = float(xMin)
+    if xMax != None:
+        body['xMax'] = float(xMax)
+    if yMin != None:
+        body['yMin'] = float(yMin)
+    if yMax != None:
+        body['yMax'] = float(yMax)
     if limit != None:
+        limit = int(limit)
         body['limit'] = layer
     if layer == 'tile':
         body['type'] = 'tile'
@@ -280,9 +282,9 @@ def geometryAdd(mapId, layer, feature, token, properties = None):
         raise ValueError(r.text)
     
 def geoMessageIds( mapId, Type, filters = None, limit = None, token = None):
-    limit = int(limit)
     body = {'mapId':mapId, 'type':Type}
     if limit != None:
+        limit = int(limit)
         body['limit'] = limit
     if filters != None:
         body['filters'] = filters
@@ -314,9 +316,8 @@ def geoMessageGet(mapId, Type, messageIds, token = None):
     
     return( r.json())
 
-def geoMessageAdd(mapId, elementId,token, replyTo = None, message = None, private= None, form = None, image=None, lon=None, lat=None, timestamp = 0):    
-    lon = float(lon)
-    lat = float(lat)
+def geoMessageAdd(mapId, elementId,token, replyTo = None, message = None, private= None, form = None, image=None, lon=None, lat=None, timestamp = 0): 
+    
     if str(type(elementId)) == "<class 'int'>":
         Type = 'polygon'
         elementId = int(elementId)
@@ -328,6 +329,10 @@ def geoMessageAdd(mapId, elementId,token, replyTo = None, message = None, privat
 
 
     body = {'mapId':mapId, 'type':Type, 'elementId':elementId, 'timestamp':timestamp}
+    if lon != None:
+        lon = float(lon)
+    if lat != None:
+        lat = float(lat)
     if replyTo != None:
         body['replyTo'] = replyTo
     if message != None:
@@ -388,7 +393,7 @@ def rasterGet(mapId, element, channels, timestamp, token = None):
         element['zoom'] = int(element['zoom'])
 
     if str(type(element)) == "<class 'shapely.geometry.polygon.Polygon'>":
-        Type = 'custom_polygon'
+        Type = 'customPolygon'
         element = gpd.GeoSeries([element]).__geo_interface__['features'][0]
     
     body = {'mapId':mapId, 'type':Type, 'element':element, 'channels':channels, 'timestamp':timestamp}
@@ -410,10 +415,10 @@ def rasterGet(mapId, element, channels, timestamp, token = None):
     return({'data':r, 'crs':crs, 'bounds':bounds, 'transform':transform})
 
 
-def visualBounds(mapId, timestampMin, timestampMax, layerName, xmin,xmax,ymin, ymax , token = None):
+def visualBounds(mapId, timestampMin, timestampMax, layerName, xMin,xMax,yMin, yMax , token = None):
 
     
-    body = {'mapId':mapId, 'timestampMin':timestampMin, 'timestampMax':timestampMax, 'layerName':layerName, 'xMin':xmin, 'xMax':xmax, 'yMin':ymin, 'yMax':ymax}
+    body = {'mapId':mapId, 'timestampMin':timestampMin, 'timestampMax':timestampMax, 'layerName':layerName, 'xMin':float(xMin), 'xMax':float(xMax), 'yMin':float(yMin), 'yMax':float(yMax)}
     if token ==None:
         r = s.post(url + '/visual/bounds',
                      json = body )        
@@ -446,36 +451,40 @@ def visualTile(mapId, tileId, zoom, timestampNumber, layer, token= None):
     
 ##################################################################################################################
 
-def plotPolys(polys, xmin,xmax,ymin,ymax, alpha = None, im = None, colors = {0:(0,0,1)} , column= None):
+def plotPolys(polys, xMin,xMax,yMin,yMax, alpha = None, image = None, colors = {0:(0,0,1)} , column= None):
     polys.crs = {'init': 'epsg:4326'}
     polys = polys.to_crs({'init': 'epsg:3785'})
     
-    bbox = gpd.GeoDataFrame( {'geometry': [Polygon([(xmin,ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax)])]} )
+    bbox = gpd.GeoDataFrame( {'geometry': [Polygon([(xMin,yMin), (xMax, yMin), (xMax, yMax), (xMin, yMax)])]} )
     bbox.crs = {'init': 'epsg:4326'}
     bbox = bbox.to_crs({'init': 'epsg:3785'})
 
-    if str(type(im)) == "<class 'NoneType'>":
-        im = np.zeros((1024,1024,4))
+    if str(type(image)) == "<class 'NoneType'>":
+        image = np.zeros((1024,1024,4))
+    image = image/255
     if column == None:
         column = 'extra'
         polys[column] = 0
     
-    transform = rasterio.transform.from_bounds(bbox.bounds['minx'], bbox.bounds['miny'], bbox.bounds['maxx'], bbox.bounds['maxy'], im.shape[1], im.shape[0])
-    rasters = np.zeros(im.shape)
+    transform = rasterio.transform.from_bounds(bbox.bounds['minx'], bbox.bounds['miny'], bbox.bounds['maxx'], bbox.bounds['maxy'], image.shape[1], image.shape[0])
+    rasters = np.zeros(image.shape)
     for key in colors.keys():
         sub_polys = polys.loc[polys[column] == key]
         if sub_polys.shape[0] >0:
-            raster = rasterize( shapes = [ (sub_polys['geometry'].values[m], 1) for m in np.arange(sub_polys.shape[0]) ] , fill = 0, transform = transform, out_shape = (im.shape[0], im.shape[1]), all_touched = True )
+            raster = rasterize( shapes = [ (sub_polys['geometry'].values[m], 1) for m in np.arange(sub_polys.shape[0]) ] , fill = 0, transform = transform, out_shape = (image.shape[0], image.shape[1]), all_touched = True )
             raster = np.stack([raster * colors[key][0], raster*colors[key][1],raster*colors[key][2], raster ], axis = 2)
             rasters = np.add(rasters, raster)
      
     rasters = np.clip(rasters, 0,1)
-    if alpha == None:
-        image = rasters
-        image[image[:,:,3] == 0, :] = im [image[:,:,3] == 0, :]
-    else:
-        image = im * (1 - alpha) + rasters*alpha 
-    return(image)
+
+    image_out = rasters
+    image_out[image_out[:,:,3] == 0, :] = image [image_out[:,:,3] == 0, :]
+    if alpha != None:
+        image_out = image * (1 - alpha) + image_out*alpha 
+
+    image_out = image_out *255
+    image_out = image_out.astype('uint8')
+    return(image_out)
 
 
 def chunks(l, n = 3000):
@@ -483,9 +492,10 @@ def chunks(l, n = 3000):
     for i in range(0, len(l), n):
         result.append(l[i:i+n])
     return(result)
+    
+    
 
-
-def parallel(function, args, per_minute):
+def parallel(function, args, callsPerMinute):
        
     
     q_result = multiprocessing.Queue()
@@ -493,6 +503,9 @@ def parallel(function, args, per_minute):
 
     for i in np.arange(len(args)):
         q_todo.put({'args':args[i], 'key':i})
+
+    amount = len(args)
+    bar = progressbar.ProgressBar(max_value = amount)
 
 
     def single_request(function, wait):
@@ -503,12 +516,16 @@ def parallel(function, args, per_minute):
             args_new = args_new['args']
             r = function(*args_new)
             q_result.put({'result':r, 'key':key})
-            if q_todo.qsize() > 0:
+            
+            qsize = q_todo.qsize()
+
+            if qsize > 0:
+                bar.update(amount - qsize)
                 time.sleep(60)
 
     trs = []
-    for n in np.arange(per_minute):
-        wait = 60/per_minute * n
+    for n in np.arange(callsPerMinute):
+        wait = 60/callsPerMinute * n
         tr = threading.Thread(target = single_request, args = (function, wait) )
         trs = trs + [tr]
         tr.start()
@@ -516,6 +533,7 @@ def parallel(function, args, per_minute):
     for tr in trs:
         tr.join()
     
+    print('joining results')
     
     result = [1 for j in np.arange(q_result.qsize())]
     for j in np.arange(q_result.qsize()):
@@ -649,7 +667,7 @@ def cover(area,  w):
     return(coords)
 
 
-def coverBounds(xmin, xmax,ymin, ymax, zoom):
+def coverBounds(xMin, xMax,yMin, yMax, zoom):
     def cover(area, zoom):
         if len(area) == 0:
             return(gpd.GeoDataFrame())
@@ -697,7 +715,7 @@ def coverBounds(xmin, xmax,ymin, ymax, zoom):
 
 
 
-    area = gpd.GeoDataFrame( {'geometry': [Polygon([(xmin,ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax)])]} )
+    area = gpd.GeoDataFrame( {'geometry': [Polygon([(xMin,yMin), (xMax, yMin), (xMax, yMax), (xMin, yMax)])]} )
 
     total_covering = gpd.GeoDataFrame()
     for i in np.arange(area.shape[0]):
