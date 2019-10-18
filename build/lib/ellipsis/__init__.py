@@ -106,12 +106,8 @@ def dataTimestamps(mapId, element, dataType, className = 'all classes', token = 
     
     if str(type(element)) == "<class 'int'>":
         Type = 'polygon'
-        element = int(element)
     if str(type(element)) ==  "<class 'dict'>":
         Type = 'tile'
-        element['tileX'] = int(element['tileX'])
-        element['tileY'] = int(element['tileY'])
-        element['zoom'] = int(element['zoom'])
     if str(type(element)) == "<class 'shapely.geometry.polygon.Polygon'>":
         Type = 'custom_polygon'
         element = gpd.GeoSeries([element]).__geo_interface__['features'][0]
@@ -133,19 +129,12 @@ def dataTimestamps(mapId, element, dataType, className = 'all classes', token = 
 
 
 def dataIds(mapId, elementIds, dataType, timestampNumber, className = 'all classes', token = None):
-    timestampNumber = int(timestampNumber)
     if len(elementIds) ==0:
             raise ValueError('elementIds has length 0')
     if str(type(elementIds[0])) == "<class 'int'>":
         Type = 'polygon'
-        for i in np.arange(len(elementIds)):
-            elementIds[i] = int(elementIds[i])
     if str(type(elementIds[0])) ==  "<class 'dict'>":
         Type = 'tile'
-        for i in np.arange(len(elementIds)):
-            elementIds[i]['tileX'] = int(elementIds[i]['tileX'])
-            elementIds[i]['tileY'] = int(elementIds[i]['tileY'])
-            elementIds[i]['zoom'] = int(elementIds[i]['zoom'])
         
     body = {'mapId':  mapId, 'dataType': dataType, 'type':Type, 'timestampNumber': timestampNumber, 'elementIds': elementIds, 'className':className}
     if token == None:
@@ -163,15 +152,11 @@ def dataIds(mapId, elementIds, dataType, timestampNumber, className = 'all class
 
 
 def dataTiles(mapId, timestampNumber, element, dataType, className = 'all classes', token = None):
-    timestampNumber = int(timestampNumber)
+
     if str(type(element)) == "<class 'int'>":
         Type = 'polygon'
-        element = int(element)
     if str(type(element)) ==  "<class 'dict'>":
         Type = 'tile'
-        element['tileX'] = int(element['tileX'])
-        element['tileY'] = int(element['tileY'])
-        element['zoom'] = int(element['zoom'])
     if str(type(element)) == "<class 'shapely.geometry.polygon.Polygon'>":
         Type = 'custom_polygon'
         element = gpd.GeoSeries([element]).__geo_interface__['features'][0]
@@ -193,17 +178,17 @@ def dataTiles(mapId, timestampNumber, element, dataType, className = 'all classe
 
 
 def geometryIds(mapId, layer, limit = None, xmin = None, xmax = None, ymin=None, ymax=None,  token = None):
-    limit = int(limit)
+
     body = {"mapId":  mapId}
 
     if xmin != None:
-        body['xMin'] = float(xmin)
+        body['xMin'] = xmin
     if xmax != None:
-        body['xMax'] = float(xmax)
+        body['xMax'] = xmax
     if ymin != None:
-        body['yMin'] = float(ymin)
+        body['yMin'] = ymin
     if ymax != None:
-        body['yMax'] = float(ymax)
+        body['yMax'] = ymax
     if limit != None:
         body['limit'] = layer
     if layer == 'tile':
@@ -232,14 +217,8 @@ def geometryGet(mapId, elementIds, token = None):
             raise ValueError('elementIds has length 0')
     if str(type(elementIds[0])) == "<class 'int'>":
         Type = 'polygon'
-        for i in np.arange(len(elementIds)):
-            elementIds[i] = int(elementIds[i])
     if str(type(elementIds[0])) ==  "<class 'dict'>":
         Type = 'tile'
-        for i in np.arange(len(elementIds)):
-            elementIds[i]['tileX'] = int(elementIds[i]['tileX'])
-            elementIds[i]['tileY'] = int(elementIds[i]['tileY'])
-            elementIds[i]['zoom'] = int(elementIds[i]['zoom'])
 
     if token == None:
         r = s.post(url + '/geometry/get', headers = {"Authorization":token},
@@ -255,7 +234,6 @@ def geometryGet(mapId, elementIds, token = None):
 
 
 def geometryDelete(mapId, polygonId, token):
-    polygonId = int(polygonId)
     r= s.post(url + '/geometry/delete', headers = {"Authorization":token},
                      json = {"mapId":  mapId, 'polygonId':polygonId})
     if int(str(r).split('[')[1].split(']')[0]) != 200:
@@ -280,7 +258,7 @@ def geometryAdd(mapId, layer, feature, token, properties = None):
         raise ValueError(r.text)
     
 def geoMessageIds( mapId, Type, filters = None, limit = None, token = None):
-    limit = int(limit)
+    
     body = {'mapId':mapId, 'type':Type}
     if limit != None:
         body['limit'] = limit
@@ -315,16 +293,11 @@ def geoMessageGet(mapId, Type, messageIds, token = None):
     return( r.json())
 
 def geoMessageAdd(mapId, elementId,token, replyTo = None, message = None, private= None, form = None, image=None, lon=None, lat=None, timestamp = 0):    
-    lon = float(lon)
-    lat = float(lat)
+
     if str(type(elementId)) == "<class 'int'>":
         Type = 'polygon'
-        elementId = int(elementId)
     if str(type(elementId)) ==  "<class 'dict'>":
         Type = 'tile'
-        elementId['tileX'] = int(elementId['tileX'])
-        elementId['tileY'] = int(elementId['tileY'])
-        elementId['zoom'] = int(elementId['zoom'])
 
 
     body = {'mapId':mapId, 'type':Type, 'elementId':elementId, 'timestamp':timestamp}
@@ -383,10 +356,6 @@ def rasterGet(mapId, element, channels, timestamp, token = None):
 
     if str(type(element)) ==  "<class 'dict'>":
         Type = 'tile'
-        element['tileX'] = int(element['tileX'])
-        element['tileY'] = int(element['tileY'])
-        element['zoom'] = int(element['zoom'])
-
     if str(type(element)) == "<class 'shapely.geometry.polygon.Polygon'>":
         Type = 'custom_polygon'
         element = gpd.GeoSeries([element]).__geo_interface__['features'][0]
@@ -429,9 +398,9 @@ def visualBounds(mapId, timestampMin, timestampMax, layerName, xmin,xmax,ymin, y
     return(im)
 
 def visualTile(mapId, tileId, zoom, timestampNumber, layer, token= None):
-    tileX = int(tileId['tileX'])
-    tileY = int(tileId['tileY'])
-    zoom = int(tileId['zoom'])
+    tileX = tileId['tileX']
+    tileY = tileId['tileY']
+    zoom = tileId['zoom']
     location = 'https://api.ellipsis-earth.com/v2/tileService/' + mapId
     if token == None:
         r = s.get(location + '/'  + str(timestampNumber) + '/'  + layer + '/' + str(zoom) + '/' + str(tileX) + '/' + str(tileY))
