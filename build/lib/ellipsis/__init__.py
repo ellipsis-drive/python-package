@@ -26,7 +26,7 @@ from rasterio.features import rasterize
 from geopy.distance import geodesic
 import json
 
-__version__ = '0.2.0'
+__version__ = '0.1.13'
 url = 'https://api.ellipsis-earth.com/v2'
 s = requests.Session()
 
@@ -394,24 +394,20 @@ def geoMessageImage(mapId, Type, geoMessageId, token = None):
 
 
 
-def rasterRaw(mapId, channels, timestamp, tileId = None, xMin = None, xMax = None, yMin = None, yMax = None, token = None):
-    if str(type(tileId)) !=  "<class 'NoneType'>":
+def rasterGet(mapId, element, channels, timestamp, token = None):
+
+
+    if str(type(element)) ==  "<class 'dict'>":
         Type = 'tile'
-        tileId['tileX'] = int(tileId['tileX'])
-        tileId['tileY'] = int(tileId['tileY'])
-        tileId['zoom'] = int(tileId['zoom'])
-        body = {'mapId':mapId, 'type':Type, 'tileId':tileId , 'channels':channels, 'timestamp':timestamp}
+        element['tileX'] = int(element['tileX'])
+        element['tileY'] = int(element['tileY'])
+        element['zoom'] = int(element['zoom'])
 
-    else:
-        if str(type(xMin)) == "<class 'NoneType'>" or str(type(xMax)) == "<class 'NoneType'>" or str(type(yMin)) == "<class 'NoneType'>" or str(type(yMax)) == "<class 'NoneType'>" :
-            raise ValueError('Either bounding box coordinates or tileId is required')
-        xMin = float(xMin)
-        xMax = float(xMax)
-        yMin = float(yMin)
-        yMax = float(yMax)
-        Type = 'bbox'
-        body = {'mapId':mapId, 'type':Type, 'xMin':xMin, 'xMax':xMax, 'yMin':yMin, 'yMax':yMax, 'channels':channels, 'timestamp':timestamp}
-
+    if str(type(element)) == "<class 'shapely.geometry.polygon.Polygon'>":
+        Type = 'customPolygon'
+        element = gpd.GeoSeries([element]).__geo_interface__['features'][0]
+    
+    body = {'mapId':mapId, 'type':Type, 'element':element, 'channels':channels, 'timestamp':timestamp}
     if token ==None:
         r = s.post(url + '/raster/get',
                      json = body )        
@@ -427,48 +423,42 @@ def rasterRaw(mapId, channels, timestamp, tileId = None, xMin = None, xMax = Non
     r = np.array(r['data'])
     transform = rasterio.transform.from_bounds(bounds['x1'], bounds['y1'], bounds['x2'], bounds['y2'], r.shape[1], r.shape[0])
 
-    return({'data':r, 'crs':crs, 'bounds':bounds, 'projection':transform})
+    return({'data':r, 'crs':crs, 'bounds':bounds, 'transform':transform})
 
 
-def rasterVisual(mapId, timestampMin, timestampMax, layerName, xMin= None,xMax= None,yMin=None, yMax=None , tileId=None, token = None):
+def visualBounds(mapId, timestampMin, timestampMax, layerName, xMin,xMax,yMin, yMax , token = None):
 
-    if str(type(xMin)) != "<class 'NoneType'>":
-        xMin = float(xMin)
-        xMax = float(xMax)
-        yMin = float(yMin)
-        yMax = float(yMax)
-        body = {'mapId':mapId, 'timestampMin':timestampMin, 'timestampMax':timestampMax, 'layerName':layerName, 'xMin':float(xMin), 'xMax':float(xMax), 'yMin':float(yMin), 'yMax':float(yMax)}
-        if token ==None:
-            r = s.post(url + '/visual/bounds',
-                         json = body )        
-        else:
-            r = s.post(url + '/visual/bounds', headers = {"Authorization":token},
-                         json = body )
     
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
-            raise ValueError(r.text)
-        im = np.array(Image.open(BytesIO(r.content)))
-    
-    
-    if str(type(tileId)) == "<class 'dict'>":
-        tileX = int(tileId['tileX'])
-        tileY = int(tileId['tileY'])
-        zoom = int(tileId['zoom'])
-        location = 'https://api.ellipsis-earth.com/v2/tileService/' + mapId
-        im = np.zeros((256,256,4))
-        timestamps = list(np.arange(timestampMin, timestampMax +1))
-        timestamps.reverse()
-        for timestamp in timestamps:
-           if token == None:
-                r = s.get(location + '/'  + str(timestamp) + '/'  + layerName + '/' + str(zoom) + '/' + str(tileX) + '/' + str(tileY))
-           else:
-                r = s.get(headers = {"Authorization":token}, url = location + '/'  + str(timestamp) + '/'  + layerName + '/' + str(zoom) + '/' + str(tileX) + '/' + str(tileY))            
-           im_new = np.array(Image.open(BytesIO(r.content)))
-           im[im[:,:,3] == 0,:] = im_new[im[:,:,3] == 0,:]
+    body = {'mapId':mapId, 'timestampMin':timestampMin, 'timestampMax':timestampMax, 'layerName':layerName, 'xMin':float(xMin), 'xMax':float(xMax), 'yMin':float(yMin), 'yMax':float(yMax)}
+    if token ==None:
+        r = s.post(url + '/visual/bounds',
+                     json = body )        
     else:
-        raise ValueError("Either bounding box as float or tileId as dictionary is required")
+        r = s.post(url + '/visual/bounds', headers = {"Authorization":token},
+                     json = body )
 
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+
+
+    im = np.array(Image.open(BytesIO(r.content)))
     return(im)
+
+def visualTile(mapId, tileId, zoom, timestamp, layer, token= None):
+    tileX = int(tileId['tileX'])
+    tileY = int(tileId['tileY'])
+    zoom = int(tileId['zoom'])
+    location = 'https://api.ellipsis-earth.com/v2/tileService/' + mapId
+    if token == None:
+        r = s.get(location + '/'  + str(timestamp) + '/'  + layer + '/' + str(zoom) + '/' + str(tileX) + '/' + str(tileY))
+    else:
+        r = s.get(headers = {"Authorization":token}, url = location + '/'  + str(timestamp) + '/'  + layer + '/' + str(zoom) + '/' + str(tileX) + '/' + str(tileY))
+        
+
+    r = np.array( mpimg.imread(BytesIO(r.content)))
+    return(r)
+
+    
     
 ##################################################################################################################
 
