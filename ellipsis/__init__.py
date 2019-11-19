@@ -25,6 +25,7 @@ from shapely.geometry import MultiPolygon
 from rasterio.features import rasterize
 from geopy.distance import geodesic
 import json
+from skimage.transform import resize
 
 __version__ = '0.2.0'
 url = 'https://api.ellipsis-earth.com/v2'
@@ -470,6 +471,66 @@ def rasterVisual(mapId, timestampMin, timestampMax, layerName, xMin= None,xMax= 
 
     return(im)
     
+def rasterSubmit(mapId, r, xMin, xMax, yMin, yMax, bands, timestamp, token = None):
+    
+    if len(bands) != r.shape[2]:
+        raise ValueError('length of bands must be same as channels of r')
+        
+    bbox = gpd.GeoDataFrame( {'geometry': [Polygon([(xMin,yMin), (xMax, yMin), (xMax, yMax), (xMin, yMax)])]} )
+    
+    timestamp = int(timestamp)
+    zoom = int(metadata(mapId, 'mapInfo')['zoom'])
+
+    
+    cover = OSMcover(bbox, zoom)
+    
+    xMaxNew = cover.bounds['maxx'].max()
+    xMinNew = cover.bounds['minx'].min()
+    yMaxNew = cover.bounds['maxy'].max()
+    yMinNew = cover.bounds['miny'].min()
+    
+    w = int(round( r.shape[1] * (xMaxNew - xMinNew) / (xMax- xMin )))
+    h = int(round( r.shape[0] * (yMaxNew - yMinNew) / (yMax- yMin )))
+
+    xpixmin = int(round(w - w * (xMaxNew - xMin)/ (xMaxNew - xMinNew )))
+    ypixmin = int(round(h - h * (yMaxNew - yMin)/ (yMaxNew - yMinNew )))
+
+    r_new = np.zeros((h,w,len(bands)))
+    r_new[ypixmin:(ypixmin+r.shape[0]),xpixmin:(xpixmin+ r.shape[1]),:] = r
+
+    r = r_new
+    del r_new
+    
+    for i in np.arange(cover.shape[0]):
+        tileX = int(cover['tileX'].values[i])
+        tileY = int(cover['tileY'].values[i])
+
+        xmin = tileX * 360/2**zoom - 180
+        xmax = (tileX+1) * 360/2**zoom - 180
+        ymin = (2* math.atan( math.e**(math.pi - (tileY+1) * 2*math.pi / 2**zoom) ) - math.pi/2) * 360/ (2* math.pi)
+        ymax = (2* math.atan( math.e**(math.pi - (tileY) * 2*math.pi / 2**zoom) ) - math.pi/2) * 360/ (2* math.pi)
+
+        xpixmin = int(min(round(r.shape[1] - r.shape[1] * (xMaxNew - xmin)/ (xMaxNew - xMinNew )),0))
+        xpixmax = int( max(round(r.shape[1] - r.shape[1] * (xMaxNew - xmax)/ (xMaxNew - xMinNew )) +1,r.shape[1]))
+        ypixmin = int( min(round(r.shape[0] - r.shape[0] * (yMaxNew - ymin)/ (yMaxNew - yMinNew )),0))
+        ypixmax = int( max(round(r.shape[0] - r.shape[0] * (yMaxNew - ymax)/ (yMaxNew - yMinNew )) +1, r.shape[0]))
+
+        r_sub = r[ypixmin:ypixmax,xpixmin:xpixmax,:]
+        r_sub = resize(r_sub, (256, 256), order = 1, mode = 'edge',preserve_range=True)
+
+        for j in np.arange(r_sub.shape[1]):
+            body = {'mapId':mapId, 'tileId':{'tileX':tileX, 'tileY':tileY, 'zoom':zoom}, 'timestamp':timestamp, 'Type':bands[j], 'newData': r_sub[:,:,j].tolist() }
+            body = json.dumps(body)
+            body = json.loads(body)
+
+            if token ==None:
+                r = s.post(url + '/raster/submit',
+                             json = body )        
+            else:
+                r = s.post(url + '/raster/submit', headers = {"Authorization":token},
+                             json = body )
+            
+        
 ##################################################################################################################
 
 def plotPolys(polys, xMin,xMax,yMin,yMax, alpha = None, image = None, colors = {0:(0,0,1)} , column= None):
