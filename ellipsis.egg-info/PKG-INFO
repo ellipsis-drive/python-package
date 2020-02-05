@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: ellipsis
-Version: 0.2.9
+Version: 0.2.20
 Summary: Package to interact with the Ellipsis API
 Home-page: https://github.com/ellipsis-earth/ellipsis-python-package
 Author: Daniel van der Maas

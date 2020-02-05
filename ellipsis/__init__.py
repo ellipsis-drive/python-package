@@ -10,7 +10,6 @@ from PIL import Image
 import geopandas as gpd
 from pyproj import Proj, transform
 import base64
-import progressbar
 import numpy as np
 from io import BytesIO
 from io import StringIO
@@ -25,9 +24,11 @@ from shapely.geometry import MultiPolygon
 from rasterio.features import rasterize
 from geopy.distance import geodesic
 import json
-from skimage.transform import resize
+import cv2
+import sys
+from shapely.ops import cascaded_union
 
-__version__ = '0.2.9'
+__version__ = '0.2.20'
 url = 'https://api.ellipsis-earth.com/v2'
 s = requests.Session()
 
@@ -45,7 +46,7 @@ def logIn(username, password):
 
 
 
-def myMaps(token = None):
+def myMaps(atlas,token = None):
     if token == None:
         r = s.get(url + '/account/mymaps')
     else:
@@ -55,6 +56,11 @@ def myMaps(token = None):
         raise ValueError(r.text)
         
     r = r.json()
+    
+    r = [m for m in r if atlas in m['atlases']]
+    
+    
+    
     return(r)
 
 def getMapId(name, token = None):
@@ -102,9 +108,8 @@ def metadata(mapId, Type, token = None):
                              json = {"mapId":  mapId, 'type':Type})
         if int(str(r).split('[')[1].split(']')[0]) != 200:
             raise ValueError(r.text)
-                
-        r = r.json()
         
+        r = r.json()
     
     return(r)
 
@@ -112,7 +117,7 @@ def metadata(mapId, Type, token = None):
 
 def dataTimestamps(mapId, element, dataType, className = 'all classes', token = None, unit = 'km2'):
     
-    if str(type(element)) == "<class 'int'>":
+    if str(type(element)) == "<class 'int'>" or str(type(element)) == "<class 'numpy.int64'>":
         Type = 'polygon'
         element = int(element)
     if str(type(element)) ==  "<class 'dict'>":
@@ -141,13 +146,13 @@ def dataTimestamps(mapId, element, dataType, className = 'all classes', token = 
     r = pd.read_csv(StringIO(r.text))
     
     if unit == 'ha':
-        if dataType != 'class':
+        if dataType == 'class':
             columns = list( set(r.columns)  - set(['timestamp','date_from', 'date_to']) )
         else:
             columns = ['area']
         r[columns] = r[columns] * 100
     elif unit == 'm2':
-        if dataType != 'class':
+        if dataType == 'class':
             columns = list( set(r.columns)  - set(['timestamp','date_from', 'date_to']) )
         else:
             columns = ['area']
@@ -172,6 +177,7 @@ def dataIds(mapId, elementIds, dataType, timestamp, className = 'all classes', t
             elementIds[i]['zoom'] = int(elementIds[i]['zoom'])
         
     body = {'mapId':  mapId, 'dataType': dataType, 'type':Type, 'timestamp': timestamp, 'elementIds': elementIds, 'className':className}
+
     if token == None:
         r = s.post(url + '/data/ids',
                          json = body)
@@ -184,13 +190,13 @@ def dataIds(mapId, elementIds, dataType, timestamp, className = 'all classes', t
     
     r = pd.read_csv(StringIO(r.text))
     if unit == 'ha':
-        if dataType != 'class':
+        if dataType == 'class':
             columns = list( set(r.columns)  - set(['id']) )
         else:
             columns = ['area']
         r[columns] = r[columns] * 100
     elif unit == 'm2':
-        if dataType != 'class':
+        if dataType == 'class':
             columns = list( set(r.columns)  - set(['id']) )
         else:
             columns = ['area']
@@ -245,7 +251,7 @@ def dataTiles(mapId, timestamp, element, dataType, className = 'all classes', to
 
 
 
-def geometryIds(mapId, layer, limit = None, xMin = None, xMax = None, yMin=None, yMax=None,  token = None):
+def geometryIds(mapId, layer, filters = None, limit = None, xMin = None, xMax = None, yMin=None, yMax=None,  token = None):
 
     body = {"mapId":  mapId}
 
@@ -259,12 +265,18 @@ def geometryIds(mapId, layer, limit = None, xMin = None, xMax = None, yMin=None,
         body['yMax'] = float(yMax)
     if limit != None:
         limit = int(limit)
-        body['limit'] = layer
+        body['limit'] = limit
+    if filters != None:
+        body['filters'] = filters
     if layer == 'tile':
         body['type'] = 'tile'
     else:
         body['type'] = 'polygon'
         body['layer'] = layer
+
+    body = json.dumps(body)
+    body = json.loads(body)
+
             
     if token == None:
         r = s.post(url + '/geometry/ids',
@@ -296,15 +308,17 @@ def geometryGet(mapId, elementIds, token = None):
             elementIds[i]['zoom'] = int(elementIds[i]['zoom'])
 
     if token == None:
-        r = s.post(url + '/geometry/get', headers = {"Authorization":token},
+        r = s.post(url + '/geometry/get',
                          json = {"mapId":  mapId, 'type':Type, 'elementIds':elementIds})
     else:
-        r = s.post(url + '/geometry/get',
+        r = s.post(url + '/geometry/get', headers = {"Authorization":token},
                          json = {"mapId":  mapId, 'type':Type, 'elementIds':elementIds})
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
     
     r  = gpd.GeoDataFrame.from_features(r.json()['features'])
+    r.crs = {'init': 'epsg:4326'}
+
     return(r)
 
 
@@ -315,9 +329,38 @@ def geometryDelete(mapId, polygonId, token):
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
 
-def geometryAlter(mapId, polygonId, properties, newLayerName, token):
+def geometryAlter(mapId, polygonId, token, newLayerName = None, newProperties = {}, removeProperties = [], removeAllProperties = False):
+
+    geometry = geometryGet(mapId = mapId, elementIds = [polygonId], token  = token)
+    columns = set(geometry.columns) - set(['geometry', 'id', 'layer', 'user'])
+    columns = list(columns - set(removeProperties))
+
+    if newLayerName == None:
+        newLayerName = geometry['layer'].values[0]
+
+    properties = {}
+    if not removeAllProperties:
+        for column in columns:
+            properties[column] = geometry[column].values[0]
+    
+        for key in newProperties.keys():
+            properties[key] =newProperties[key]
+
+    
+    keys = properties.keys()
+    for key in keys:
+        try:
+            properties[key] = float(properties[key])
+            if int(properties[key]) == float(properties[key]):
+                properties[key] = int(properties[key])
+            if math.isnan(properties[key]):
+                properties[key] = 'NaN'
+        except:
+            properties[key] = str(properties[key])
+            
+    
     r = s.post(url + '/geometry/alter', headers = {"Authorization":token},
-                     json = {"mapId":  mapId, 'polygonId':polygonId, 'newLayerName':newLayerName, 'properties':properties})
+                     json = {"mapId":  mapId, 'polygonId':polygonId, 'newLayerName':newLayerName, 'newProperties':properties})
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
 
@@ -326,16 +369,16 @@ def geometryAdd(mapId, layer, features, token):
     if not str(type(features)) ==  "<class 'geopandas.geodataframe.GeoDataFrame'>":
         raise ValueError('features must be of type geopandas dataframe')
 
-    bar = progressbar.ProgressBar(max_value = features.shape[0])
-
     for i in np.arange(features.shape[0]):
-        bar.update(i)
+        loadingBar(i,features.shape[0])
 
         property_names = set(features.columns) - set(['geometry'])
         properties = {}
         for property_name in property_names:
             try:
                 properties[property_name] = float(features[property_name].values[i])
+                if int(properties[property_name]) == float(properties[property_name]):
+                    properties[property_name] = int(properties[property_name])
                 if math.isnan(properties[property_name]):
                     properties[property_name] = 'NaN'
             except:
@@ -375,14 +418,14 @@ def geoMessageIds( mapId, Type, filters = None, limit = None, token = None):
     ids = r.json()
     return(ids)
     
-def geoMessageGet(mapId, Type, messageIds, token = None):    
+def geoMessageGet(mapId, Type, messageIds, token = None):
 
     body = {'mapId':mapId, 'type':Type, 'messageIds':messageIds}
     if token == None:
-        r = s.post(url + '/geomessage/ids',
+        r = s.post(url + '/geomessage/get',
                      json = body )        
     else:
-        r = s.post(url + '/geomessage/ids', headers = {"Authorization":token},
+        r = s.post(url + '/geomessage/get', headers = {"Authorization":token},
                      json = body )
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
@@ -402,27 +445,28 @@ def geoMessageAdd(mapId, elementId,token, replyTo = None, message = None, privat
 
 
     body = {'mapId':mapId, 'type':Type, 'elementId':elementId, 'timestamp':timestamp}
-    if lon != None:
+    if str(type(lon)) != "<class 'NoneType'>":
         lon = float(lon)
-    if lat != None:
+    if str(type(lat)) != "<class 'NoneType'>":
         lat = float(lat)
-    if replyTo != None:
+    if str(type(replyTo)) != "<class 'NoneType'>":
         body['replyTo'] = replyTo
-    if message != None:
+    if str(type(message)) != "<class 'NoneType'>":
         body['message'] = message
-    if private != None:
+    if str(type(private)) != "<class 'NoneType'>":
         body['private'] = private
-    if form != None:
+    if str(type(form)) != "<class 'NoneType'>":
         body['form'] = form
-    if image != None:
+    if str(type(image)) != "<class 'NoneType'>":
+        image = Image.fromarray(image.astype('uint8'))
         buffered = BytesIO()
         image.save(buffered, format="JPEG")
         img_str = str(base64.b64encode(buffered.getvalue()))
         img_str = 'data:image/jpeg;base64,' + img_str[2:-1]
         body['image'] = img_str
-    if lon != None:
+    if str(type(lon)) != "<class 'NoneType'>":
         body['x'] = lon
-    if lat != None:
+    if str(type(lat)) != "<class 'NoneType'>":
         body['y'] = lat
         
     r = s.post(url + '/geomessage/add', headers = {"Authorization":token},
@@ -443,15 +487,19 @@ def geoMessageDelete(mapId, Type, messageId, token):
 def geoMessageImage(mapId, Type, geoMessageId, token = None):
     body = {'mapId':mapId, 'type':Type, 'geoMessageId':geoMessageId}
     if token ==None:
-        r = s.post(url + '/geomessage/ids',
+        r = s.post(url + '/geomessage/image',
                      json = body )        
     else:
-        r = s.post(url + '/geomessage/ids', headers = {"Authorization":token},
+        r = s.post(url + '/geomessage/image', headers = {"Authorization":token},
                      json = body )
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
-
-    im = Image.open(BytesIO(r.content))    
+        
+    try:
+        im = Image.open(BytesIO(r.content))
+    except:
+           raise ValueError('No image or invalid image in geoMessage')
+ 
     return(im)
 
 
@@ -507,15 +555,16 @@ def rasterRaw(mapId, channels, timestamp, tileId = None, xMin = None, xMax = Non
             x_tiles = np.arange(min_x_osm, max_x_osm+1)
             y_tiles = np.arange(min_y_osm, max_y_osm +1)
 
-            bar = progressbar.ProgressBar(max_value = len(x_tiles)* len(y_tiles))
-
             r_total = np.zeros((256*(max_y_osm - min_y_osm + 1) ,256*(max_x_osm - min_x_osm + 1),len(channels)+1), dtype = dtype)
             
             for tileX in x_tiles:
                 for tileY in y_tiles:
                     x_index = tileX - min_x_osm
                     y_index = tileY - min_y_osm
-                    bar.update(x_index * len(y_tiles) + y_index)
+
+                    loadingBar(x_index * len(y_tiles) + y_index,len(x_tiles)* len(y_tiles))
+
+
                     tileId = {'tileX':float(tileX), 'tileY':float(tileY),'zoom':float(zoom)}
                     body = {'mapId':mapId, 'tileId':tileId , 'channels':channels, 'timestamp':timestamp}
                     if token ==None:
@@ -558,7 +607,7 @@ def rasterVisual(mapId, timestampMin, timestampMax, layerName, xMin= None,xMax= 
         tileY = int(tileId['tileY'])
         zoom = int(tileId['zoom'])
         location = 'https://api.ellipsis-earth.com/v2/tileService/' + mapId
-        im = np.zeros((256,256,4))
+        im = np.zeros((256,256,4), dtype = 'uint8')
         timestamps = list(np.arange(timestampMin, timestampMax +1))
         timestamps.reverse()
         for timestamp in timestamps:
@@ -631,7 +680,6 @@ def rasterVisual(mapId, timestampMin, timestampMax, layerName, xMin= None,xMax= 
             x_tiles = np.arange(min_x_osm, max_x_osm+1)
             y_tiles = np.arange(min_y_osm, max_y_osm +1)
 
-            bar = progressbar.ProgressBar(max_value = len(x_tiles)* len(y_tiles))
 
             r_total = np.zeros((256*(max_y_osm - min_y_osm + 1) ,256*(max_x_osm - min_x_osm + 1),4), dtype = 'uint8')
             timestamps = list(np.arange(timestampMin, timestampMax +1))
@@ -641,7 +689,9 @@ def rasterVisual(mapId, timestampMin, timestampMax, layerName, xMin= None,xMax= 
                 for tileY in y_tiles:
                     x_index = tileX - min_x_osm
                     y_index = tileY - min_y_osm
-                    bar.update(x_index * len(y_tiles) + y_index)
+                    loadingBar(x_index * len(y_tiles) + y_index + 1,len(x_tiles)* len(y_tiles))
+
+
                     im = np.zeros((256,256,4))
                     for timestamp in timestamps:
                        if token == None:
@@ -674,36 +724,32 @@ def rasterVisual(mapId, timestampMin, timestampMax, layerName, xMin= None,xMax= 
     
     return(result)
     
-def rasterSubmit(mapId, r,  channels, timestamp, xMin = None, xMax = None, yMin = None, yMax= None, tileId = None, mask = None, token = None):
+def rasterSubmit(mapId, r,  channels, timestamp, token, xMin = None, xMax = None, yMin = None, yMax= None, tileId = None, mask = None):
     
     if len(channels) != r.shape[2]:
         raise ValueError('length of bands must be same as channels of r')        
 
     if str(type(mask)) == "<class 'NoneType'>":
         mask = np.ones((r.shape[0],r.shape[1]))
-
+    
     if str(type(tileId)) == "<class 'dict'>":
             tileX = int(tileId['tileX'])
             tileY = int(tileId['tileY'])
             zoom = int(tileId['zoom'])
-
+            
             for j in np.arange(len(channels)):
                 if channels[j] == 'label':
-                    body = {'mapId':mapId, 'tileId':{'tileX':tileX, 'tileY':tileY, 'zoom':zoom}, 'timestamp':timestamp, 'Type':channels[j], 'newLabel': r[:,:,j].tolist() }
+                    body = {'mapId':mapId, 'tileId':{'tileX':tileX, 'tileY':tileY, 'zoom':zoom}, 'timestamp':timestamp, 'type':channels[j], 'newLabel': r[:,:,j].tolist(), 'store':False }
                 else:
-                    body = {'mapId':mapId, 'tileId':{'tileX':tileX, 'tileY':tileY, 'zoom':zoom}, 'timestamp':timestamp, 'Type':channels[j], 'newLabel': mask.tolist(), 'newData':r[:,:,j].tolist() }
-            
+                    body = {'mapId':mapId, 'tileId':{'tileX':tileX, 'tileY':tileY, 'zoom':zoom}, 'timestamp':timestamp, 'type':channels[j], 'newLabel': mask.tolist(), 'newData':r[:,:,j].tolist(), 'store': False }
+                
                 body = json.dumps(body)
                 body = json.loads(body)
     
-                if token ==None:
-                    r = s.post(url + '/raster/submit',
-                                 json = body )        
-                else:
-                    r = s.post(url + '/raster/submit', headers = {"Authorization":token},
-                                 json = body )
-                if int(str(r).split('[')[1].split(']')[0]) != 200:
-                    raise ValueError(r.text)
+                reply = s.post(url + '/raster/submit', headers = {"Authorization":token},
+                             json = body )
+                if int(str(reply).split('[')[1].split(']')[0]) != 200:
+                    raise ValueError(reply.text)
     elif str(type(xMin)) == "<class 'NoneType'>" or str(type(xMax)) == "<class 'NoneType'>" or str(type(yMin)) == "<class 'NoneType'>" or str(type(yMax)) == "<class 'NoneType'>" :
             raise ValueError('Either bounding box coordinates or tileId is required')
     else:
@@ -711,30 +757,23 @@ def rasterSubmit(mapId, r,  channels, timestamp, xMin = None, xMax = None, yMin 
         xMax = float(xMax)
         yMin = float(yMin)
         yMax = float(yMax)
-
-        if token == None:
-           zoom = int(metadata(mapId, 'mapInfo')['zoom'])
-        else:
-           zoom = int(metadata(mapId, 'mapInfo', token = token)['zoom'])               
+        
+        zoom = int(metadata(mapId, 'mapInfo', token = token)['zoom'])               
         
         min_x_osm_precise =  (xMin +180 ) * 2**zoom / 360 
         max_x_osm_precise =   (xMax +180 ) * 2**zoom / 360
         max_y_osm_precise = 2**zoom / (2* math.pi) * ( math.pi - math.log( math.tan(math.pi / 4 + yMin/360 * math.pi  ) ) )
         min_y_osm_precise = 2**zoom / (2* math.pi) * ( math.pi - math.log( math.tan(math.pi / 4 + yMax/360 * math.pi  ) ) )
-    
+        
         min_x_osm =  math.floor(min_x_osm_precise )
         max_x_osm =  math.floor( max_x_osm_precise)
         max_y_osm = math.floor( max_y_osm_precise)
         min_y_osm = math.floor( min_y_osm_precise)
-    
+        
         x_tiles = np.arange(min_x_osm, max_x_osm+1)
         y_tiles = np.arange(min_y_osm, max_y_osm +1)
-
-        bar = progressbar.ProgressBar(max_value = len(x_tiles)* len(y_tiles))
         
-        r_new = np.zeros(( (max_y_osm - min_y_osm+1)*256, (max_x_osm - min_x_osm+1)*256 ,len(channels)))
-        mask_new = np.zeros(( (max_y_osm - min_y_osm+1)*256, (max_x_osm - min_x_osm+1)*256 ))
-        
+                
         min_pixy =  round((min_y_osm_precise - min_y_osm)*256)
         max_pixy = round((max_y_osm_precise - min_y_osm)*256)
         min_pixx = round((min_x_osm_precise - min_x_osm)*256)
@@ -742,9 +781,14 @@ def rasterSubmit(mapId, r,  channels, timestamp, xMin = None, xMax = None, yMin 
         
         max_pixx = min(max_pixx, max_x_osm * 256 - 1)
         max_pixy = min(max_pixy, max_y_osm * 256 - 1)
-        
-        r = resize(r, (max_pixy - min_pixy,max_pixx - min_pixx), order = 0, mode = 'edge', preserve_range=True)
-        mask = resize(mask, (max_pixy - min_pixy,max_pixx - min_pixx), order = 0, mode = 'edge', preserve_range=True)        
+
+        r = [ cv2.resize(r[:,:,i], dsize=(max_pixx - min_pixx,max_pixy - min_pixy), interpolation=cv2.INTER_NEAREST) for i in np.arange(r.shape[-1])]        
+        r = np.stack(r, axis = -1)
+        mask = cv2.resize(mask, dsize=(max_pixx - min_pixx,max_pixy - min_pixy), interpolation=cv2.INTER_NEAREST)
+
+        r_new = np.zeros(( (max_y_osm - min_y_osm+1)*256, (max_x_osm - min_x_osm+1)*256 ,len(channels)))
+        mask_new = np.zeros(( (max_y_osm - min_y_osm+1)*256, (max_x_osm - min_x_osm+1)*256 ))
+
         
         r_new[ min_pixy : max_pixy , min_pixx : max_pixx , :] = r
         mask_new[ min_pixy : max_pixy , min_pixx : max_pixx ] = mask
@@ -759,29 +803,84 @@ def rasterSubmit(mapId, r,  channels, timestamp, xMin = None, xMax = None, yMin 
                 x_index = tileX - min_x_osm
                 y_index = tileY - min_y_osm
                 
-                bar.update(x_index * len(y_tiles) + y_index)
+                loadingBar(x_index * len(y_tiles) + y_index+1,len(x_tiles)* len(y_tiles))
                 
                 r_sub = r[y_index*256:(y_index+1)*256,x_index*256:(x_index+1)*256, : ]
-                mask_sub = mask[y_index*256:(y_index+1)*256,x_index*256:(x_index+1)*256, : ]
+                mask_sub = mask[y_index*256:(y_index+1)*256,x_index*256:(x_index+1)*256]
                 
-                for j in np.arange(r_sub.shape[1]):
+                for j in np.arange(r_sub.shape[2]):
                     if channels[j] == 'label':
-                        body = {'mapId':mapId, 'tileId':{'tileX':tileX, 'tileY':tileY, 'zoom':zoom}, 'timestamp':timestamp, 'Type':channels[j], 'newLabel': r_sub[:,:,j].tolist() }
+                        body = {'mapId':mapId, 'tileId':{'tileX':int(tileX), 'tileY':int(tileY), 'zoom':int(zoom)}, 'timestamp':int(timestamp), 'type':channels[j], 'newLabel': r_sub[:,:,j].tolist(), 'store': False }
                     else:
-                        body = {'mapId':mapId, 'tileId':{'tileX':tileX, 'tileY':tileY, 'zoom':zoom}, 'timestamp':timestamp, 'Type':channels[j], 'newData':r_sub[:,:,j].tolist(), 'newLabel':mask_sub.tolist() }
+                        body = {'mapId':mapId, 'tileId':{'tileX':int(tileX), 'tileY':int(tileY), 'zoom':int(zoom)}, 'timestamp':int(timestamp), 'type':channels[j], 'newData':r_sub[:,:,j].tolist(), 'newLabel':mask_sub.tolist(), 'store': False }
                     body = json.dumps(body)
                     body = json.loads(body)
                     
                     if token ==None:
-                        r = s.post(url + '/raster/submit',
+                        reply = s.post(url + '/raster/submit',
                                      json = body )        
                     else:
-                        r = s.post(url + '/raster/submit', headers = {"Authorization":token},
+                        reply = s.post(url + '/raster/submit', headers = {"Authorization":token},
                                      json = body )
-                    if int(str(r).split('[')[1].split(']')[0]) != 200:
-                        raise ValueError(r.text)
+                    if int(str(reply).split('[')[1].split(']')[0]) != 200:
+                        raise ValueError(reply.text)
                 
 
+
+
+
+
+def projectsNewArea(area, name, dryRun, token):
+    if not str(type(area)) ==  "<class 'geopandas.geodataframe.GeoDataFrame'>":
+        raise ValueError('features must be of type geopandas dataframe')
+    
+    area = cascaded_union(area['geometry'].values)
+    
+    
+    feature = gpd.GeoSeries([area]).__geo_interface__['features'][0]
+    
+    body = {'dryRun':  dryRun, 'name': name, 'geoJson':feature}
+    body = json.dumps(body)
+    body = json.loads(body)
+    
+    reply = requests.post( url = url + '/settings/projects/newArea', json = body, 
+                         headers = {"Authorization":token})
+
+    if int(str(reply).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(reply.text)
+
+    if dryRun ==  True:
+        return(reply.json()['price'])
+
+
+def projectsNewMap(mapName, dataSourceName, area, timeSeries, token, dryRun = False, useMask = False, model = None, saveHistoric = None, measurements = None, visualizations = None, aggregationZoom = None ):
+    body = {'name':mapName, 'dataSource':dataSourceName, 'area':area, 'timeSeries': timeSeries, 'dryRun':dryRun, 'useMask':useMask }
+    
+    if not str(type(saveHistoric)) == "<class 'NoneType'>":
+        body['saveHistoric'] = saveHistoric
+    if not str(type(model)) == "<class 'NoneType'>":
+        body['model'] = model
+    if not str(type(measurements)) == "<class 'NoneType'>":
+        body['measurements'] = measurements
+    if not str(type(visualizations)) == "<class 'NoneType'>":
+        body['visualizations'] = measurements
+    if not str(type(aggregationZoom)) == "<class 'NoneType'>":
+        body['aggregationZoom'] = aggregationZoom
+    
+    body = json.dumps(body)
+    body = json.loads(body)
+    
+    
+    
+    reply = requests.post( url = url + '/settings/projects/newMap', json = body, 
+                         headers = {"Authorization":token})
+    
+    
+    if int(str(reply).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(reply.text)
+    
+    if dryRun ==  True:
+        return(reply.json()['price'])
 
 ##################################################################################################################
 
@@ -838,8 +937,6 @@ def parallel(function, args, callsPerMinute):
     for i in np.arange(len(args)):
         q_todo.put({'args':args[i], 'key':i})
 
-    bar = progressbar.ProgressBar(max_value = len(args))
-
 
     def single_request(function, wait):
         time.sleep(wait)
@@ -862,7 +959,7 @@ def parallel(function, args, callsPerMinute):
         
     while q_result.qsize() != len(args):
         time.sleep(1)
-        bar.update(q_result.qsize())
+        loadingBar(q_result.qsize(),len(args))
 
 
     for n in np.arange(callsPerMinute):
@@ -886,131 +983,73 @@ def parallel(function, args, callsPerMinute):
 
 
 def OSMcover(zoom, area = None, xMin= None, xMax = None,yMin = None, yMax = None ):
-    if str(type(area)) != str(type(None)):
-        def cover(area, zoom):
-            if len(area) == 0:
-                return(gpd.GeoDataFrame())
-            x1, y1, x2, y2  = area.bounds
-        
-            #find the x osm tiles involved   
-            x1_osm =  math.floor((x1 +180 ) * 2**zoom / 360 )
-            x2_osm =  math.floor( (x2 +180 ) * 2**zoom / 360 +1)
-            y2_osm = math.floor( 2**zoom / (2* math.pi) * ( math.pi - math.log( math.tan(math.pi / 4 + y1/360 * math.pi  ) ) ) + 1)
-            y1_osm = math.floor( 2**zoom / (2* math.pi) * ( math.pi - math.log( math.tan(math.pi / 4 + y2/360 * math.pi  ) ) ))
-            
-            parts_x =  (x2_osm - x1_osm) + 1
-            xosm_vec = [i for i in range(x1_osm, x2_osm + 1) ]
-            parts_y = y2_osm - y1_osm + 1
-            yosm_vec = [i for i in range(y1_osm, y2_osm + 1) ]
-        
-            #calculate the boundingbox coordinates of the tiles
-            x1_vec = [ i * 360/2**zoom - 180  for i in np.arange( x1_osm, x2_osm +1 )  ]
-            x2_vec = [i * 360/2**zoom - 180 for i in np.arange( x1_osm +1, x2_osm+2 )  ]
-        
-            y2_vec = [ (2* math.atan( math.e**(math.pi - (i) * 2*math.pi / 2**zoom) ) - math.pi/2) * 360/ (2* math.pi)     for i in np.arange(y1_osm, y2_osm+1) ]
-            y1_vec = [ (2* math.atan( math.e**(math.pi - (i) * 2*math.pi / 2**zoom) ) - math.pi/2) * 360/ (2* math.pi)     for i in np.arange(y1_osm+1, y2_osm +2) ]
-        
-            #make a dataframe out of these boundingbox coordinates
-            coords = pd.DataFrame()
-            for n in np.arange( parts_y ):
-               y1_sq = np.repeat(y1_vec[n], parts_x )
-               y2_sq = np.repeat(y2_vec[n], parts_x )
-               x1_sq = x1_vec
-               x2_sq = x2_vec
-               yosm_sq = np.repeat(yosm_vec[n], parts_x)
-               xosm_sq = xosm_vec
-               coords_temp = {'x1': x1_sq, 'x2': x2_sq, 'y1': y1_sq, 'y2':y2_sq, 'xosm': xosm_sq, 'yosm': yosm_sq }
-               coords = coords.append(pd.DataFrame(coords_temp))
-        
-            #make a geopandas out of this dataframe    
-            covering = []
-            for i in np.arange(coords.shape[0]):
-                covering.append(Polygon([ (coords['x1'].iloc[i] , coords['y1'].iloc[i]), (coords['x2'].iloc[i], coords['y1'].iloc[i]), (coords['x2'].iloc[i], coords['y2'].iloc[i]), (coords['x1'].iloc[i], coords['y2'].iloc[i])]))
-            covering = MultiPolygon(covering)    
-            
-            coords = gpd.GeoDataFrame({'geometry': covering, 'tileX': coords['xosm'].values, 'tileY':coords['yosm'].values})
-        
-            #remove all tiles that do not intersect with the orgingal area    
-            keep = [area.intersects(covering[j]) for j in np.arange(len(covering))]    
-            coords = coords[pd.Series(keep, name = 'bools').values]
-            
-            
-            return(coords)
+
+    def cover(area, zoom):
+        x1, y1, x2, y2  = area.bounds
     
-        total_covering = gpd.GeoDataFrame()
-        for i in np.arange(area.shape[0]):
-            area = area['geometry'].values[i]
+        #find the x osm tiles involved   
+        x1_osm =  math.floor((x1 +180 ) * 2**zoom / 360 )
+        x2_osm =  math.floor( (x2 +180 ) * 2**zoom / 360 +1)
+        y2_osm = math.floor( 2**zoom / (2* math.pi) * ( math.pi - math.log( math.tan(math.pi / 4 + y1/360 * math.pi  ) ) ) + 1)
+        y1_osm = math.floor( 2**zoom / (2* math.pi) * ( math.pi - math.log( math.tan(math.pi / 4 + y2/360 * math.pi  ) ) ))
         
-            #convert to multipolygon in case of a polygon
-            if str(type(area)) == "<class 'shapely.geometry.polygon.Polygon'>":
-                area = MultiPolygon([area])
-        
-            covering = gpd.GeoDataFrame()
-            
-            #split the area in a western and eastern halve 
-            west = Polygon([ (-180, -90), (0,-90), (0,90), (-180,90)])
-            east = Polygon([ (180, -90), (0,-90), (0,90), (180,90)])
-            eastern = MultiPolygon([poly.difference(west) for poly in area])
-            western = MultiPolygon([poly.difference(east) for poly in area])
-        
-            #cover the area with tiles
-            covering = covering.append(cover( western, zoom ))
-            covering = covering.append(cover( eastern, zoom))               
-            covering['zoom'] = zoom    
+        parts_x =  (x2_osm - x1_osm) + 1
+        xosm_vec = [i for i in range(x1_osm, x2_osm + 1) ]
+        parts_y = y2_osm - y1_osm + 1
+        yosm_vec = [i for i in range(y1_osm, y2_osm + 1) ]
     
-            total_covering = total_covering.append(covering)        
+        #calculate the boundingbox coordinates of the tiles
+        x1_vec = [ i * 360/2**zoom - 180  for i in np.arange( x1_osm, x2_osm +1 )  ]
+        x2_vec = [i * 360/2**zoom - 180 for i in np.arange( x1_osm +1, x2_osm+2 )  ]
     
-        total_covering = total_covering.drop_duplicates(['tileX','tileY'])
-        total_covering['id'] = np.arange(total_covering.shape[0])
+        y2_vec = [ (2* math.atan( math.e**(math.pi - (i) * 2*math.pi / 2**zoom) ) - math.pi/2) * 360/ (2* math.pi)     for i in np.arange(y1_osm, y2_osm+1) ]
+        y1_vec = [ (2* math.atan( math.e**(math.pi - (i) * 2*math.pi / 2**zoom) ) - math.pi/2) * 360/ (2* math.pi)     for i in np.arange(y1_osm+1, y2_osm +2) ]
     
-        return(total_covering)
-    elif str(type(xMin)) == "<class 'NoneType'>" or str(type(xMax)) == "<class 'NoneType'>" or str(type(yMin)) == "<class 'NoneType'>" or str(type(yMax)) == "<class 'NoneType'>" :
-            raise ValueError('Either bounding box coordinates or area is required')
-    else:
-        def cover(area, zoom):
-            if len(area) == 0:
-                return(gpd.GeoDataFrame())
-            x1, y1, x2, y2  = area.bounds
+        #make a dataframe out of these boundingbox coordinates
+        coords = pd.DataFrame()
+        for n in np.arange( parts_y ):
+           y1_sq = np.repeat(y1_vec[n], parts_x )
+           y2_sq = np.repeat(y2_vec[n], parts_x )
+           x1_sq = x1_vec
+           x2_sq = x2_vec
+           yosm_sq = np.repeat(yosm_vec[n], parts_x)
+           xosm_sq = xosm_vec
+           coords_temp = {'x1': x1_sq, 'x2': x2_sq, 'y1': y1_sq, 'y2':y2_sq, 'xosm': xosm_sq, 'yosm': yosm_sq }
+           coords = coords.append(pd.DataFrame(coords_temp))
+    
+        #make a geopandas out of this dataframe    
+        covering = []
+        for i in np.arange(coords.shape[0]):
+            covering.append(Polygon([ (coords['x1'].iloc[i] , coords['y1'].iloc[i]), (coords['x2'].iloc[i], coords['y1'].iloc[i]), (coords['x2'].iloc[i], coords['y2'].iloc[i]), (coords['x1'].iloc[i], coords['y2'].iloc[i])]))
+        covering = MultiPolygon(covering)    
         
-            #find the x osm tiles involved   
-            x1_osm =  math.floor((x1 +180 ) * 2**zoom / 360 )
-            x2_osm =  math.floor( (x2 +180 ) * 2**zoom / 360 +1)
-            y2_osm = math.floor( 2**zoom / (2* math.pi) * ( math.pi - math.log( math.tan(math.pi / 4 + y1/360 * math.pi  ) ) ) + 1)
-            y1_osm = math.floor( 2**zoom / (2* math.pi) * ( math.pi - math.log( math.tan(math.pi / 4 + y2/360 * math.pi  ) ) ))
-            
-            parts_x =  (x2_osm - x1_osm) + 1
-            xosm_vec = [i for i in range(x1_osm, x2_osm + 1) ]
-            parts_y = y2_osm - y1_osm + 1
-            yosm_vec = [i for i in range(y1_osm, y2_osm + 1) ]
+        coords = gpd.GeoDataFrame({'geometry': covering, 'tileX': coords['xosm'].values, 'tileY':coords['yosm'].values})
+    
+        #remove all tiles that do not intersect with the orgingal area    
+        keep = [area.intersects(covering[j]) for j in np.arange(len(covering))]    
+        coords = coords[pd.Series(keep, name = 'bools').values]
         
-            #calculate the boundingbox coordinates of the tiles
-            x1_vec = [ i * 360/2**zoom - 180  for i in np.arange( x1_osm, x2_osm +1 )  ]
-            x2_vec = [i * 360/2**zoom - 180 for i in np.arange( x1_osm +1, x2_osm+2 )  ]
         
-            y2_vec = [ (2* math.atan( math.e**(math.pi - (i) * 2*math.pi / 2**zoom) ) - math.pi/2) * 360/ (2* math.pi)     for i in np.arange(y1_osm, y2_osm+1) ]
-            y1_vec = [ (2* math.atan( math.e**(math.pi - (i) * 2*math.pi / 2**zoom) ) - math.pi/2) * 360/ (2* math.pi)     for i in np.arange(y1_osm+1, y2_osm +2) ]
-        
-            #make a dataframe out of these boundingbox coordinates
-            coords = pd.DataFrame()
-            for n in np.arange( parts_y ):
-               y1_sq = np.repeat(y1_vec[n], parts_x )
-               y2_sq = np.repeat(y2_vec[n], parts_x )
-               x1_sq = x1_vec
-               x2_sq = x2_vec
-               yosm_sq = np.repeat(yosm_vec[n], parts_x)
-               xosm_sq = xosm_vec
-               coords_temp = {'x1': x1_sq, 'x2': x2_sq, 'y1': y1_sq, 'y2':y2_sq, 'xosm': xosm_sq, 'yosm': yosm_sq }
-               coords = coords.append(pd.DataFrame(coords_temp))
-        
-            #make a geopandas out of this dataframe    
-            covering = []
-            for i in np.arange(coords.shape[0]):
-                covering.append(Polygon([ (coords['x1'].iloc[i] , coords['y1'].iloc[i]), (coords['x2'].iloc[i], coords['y1'].iloc[i]), (coords['x2'].iloc[i], coords['y2'].iloc[i]), (coords['x1'].iloc[i], coords['y2'].iloc[i])]))
-            covering = MultiPolygon(covering)    
-            
-            coords = gpd.GeoDataFrame({'geometry': covering, 'tileX': coords['xosm'].values, 'tileY':coords['yosm'].values})        
-            
-            return(coords)
+        return(coords)
+
+    
+    if str(type(area)) == str(type(None)):
+        geometry = Polygon( [(xMin,yMin), (xMin, yMax), (xMax,yMax), (xMax,yMin)])
+        area = gpd.GeoDataFrame({'geometry':[geometry]})
+
+    
+    total_covering = gpd.GeoDataFrame()
+    for i in np.arange(area.shape[0]):
+        print(i/area.shape[0])
+        sub_area = area['geometry'].values[i]
+        covering = cover( sub_area, zoom )
+        covering['zoom'] = zoom
+        total_covering = total_covering.append(covering)
+
+    total_covering['id'] = np.arange(total_covering.shape[0])
+    total_covering = total_covering.drop_duplicates(['tileX', 'tileY'])
+    
+    return(total_covering)
 
 
 
@@ -1048,7 +1087,7 @@ def OSMcover(zoom, area = None, xMin= None, xMax = None,yMin = None, yMax = None
 
 
 def cover(w, area = None, xMin= None, xMax = None, yMin = None, yMax = None):
-    if str(type(area)) != str(type(None)):    
+    if str(type(area)) == str(type(None)):    
         if area.shape[0] == 0:
             return(gpd.GeoDataFrame())
         
@@ -1124,7 +1163,7 @@ def cover(w, area = None, xMin= None, xMax = None, yMin = None, yMax = None):
 
 
 
-
-
-
+def loadingBar(count,total):
+    percent = float(count)/float(total)*100
+    sys.stdout.write("\r" + str(int(count)).rjust(3,'0')+"/"+str(int(total)).rjust(3,'0') + ' [' + '='*int(percent/2) + ' '*(100-int(percent/2)) + ']')
 
