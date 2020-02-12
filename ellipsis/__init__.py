@@ -28,7 +28,7 @@ import cv2
 import sys
 from shapely.ops import cascaded_union
 
-__version__ = '0.2.20'
+__version__ = '0.2.24'
 url = 'https://api.ellipsis-earth.com/v2'
 s = requests.Session()
 
@@ -46,7 +46,7 @@ def logIn(username, password):
 
 
 
-def myMaps(atlas,token = None):
+def myMaps(atlas = None,token = None):
     if token == None:
         r = s.get(url + '/account/mymaps')
     else:
@@ -56,10 +56,8 @@ def myMaps(atlas,token = None):
         raise ValueError(r.text)
         
     r = r.json()
-    
-    r = [m for m in r if atlas in m['atlases']]
-    
-    
+    if not str(type(atlas)) == str(type(None)):
+        r = [m for m in r if atlas in m['atlases']]
     
     return(r)
 
@@ -125,7 +123,7 @@ def dataTimestamps(mapId, element, dataType, className = 'all classes', token = 
         element['tileX'] = int(element['tileX'])
         element['tileY'] = int(element['tileY'])
         element['zoom'] = int(element['zoom'])
-    if str(type(element)) == "<class 'shapely.geometry.polygon.Polygon'>":
+    else:
         Type = 'customPolygon'
         element = gpd.GeoSeries([element]).__geo_interface__['features'][0]
             
@@ -215,7 +213,7 @@ def dataTiles(mapId, timestamp, element, dataType, className = 'all classes', to
         element['tileX'] = int(element['tileX'])
         element['tileY'] = int(element['tileY'])
         element['zoom'] = int(element['zoom'])
-    if str(type(element)) == "<class 'shapely.geometry.polygon.Polygon'>":
+    else:
         Type = 'customPolygon'
         element = gpd.GeoSeries([element]).__geo_interface__['features'][0]
     
@@ -249,12 +247,34 @@ def dataTiles(mapId, timestamp, element, dataType, className = 'all classes', to
 
     return(r)
 
+def geometryArea(mapId= None, areaName = None, token = None ):
+    if str(type(mapId)) != str(type(None)):
+        body = {"mapId": mapId}
+    if str(type(areaName)) != str(type(None)):
+        body = {"areaName": areaName}
 
-
-def geometryIds(mapId, layer, filters = None, limit = None, xMin = None, xMax = None, yMin=None, yMax=None,  token = None):
-
-    body = {"mapId":  mapId}
-
+    if token == None:
+        r = s.post(url + '/geometry/area',
+                         json = body)
+    else:
+        r = s.post(url + '/geometry/area', headers = {"Authorization":token},
+                         json = body)
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+    r = r.json()
+    r['id'] = 0
+    r  = gpd.GeoDataFrame.from_features([r])
+    r.crs = {'init': 'epsg:4326'}
+    return(r)
+        
+        
+def geometryIds( layer, mapId = None, areaName = None, filters = None, limit = None, xMin = None, xMax = None, yMin=None, yMax=None,  token = None):
+    
+    if str(type(mapId)) != str(type(None)):
+        body = {"mapId":  mapId}
+    else:
+        body = {"areaName":  areaName}
+        
     if xMin != None:
         body['xMin'] = float(xMin)
     if xMax != None:
@@ -292,27 +312,34 @@ def geometryIds(mapId, layer, filters = None, limit = None, xMin = None, xMax = 
 
 
 
-def geometryGet(mapId, elementIds, token = None):
+def geometryGet(elementIds, mapId = None, areaName = None, token = None):
+    if str(type(mapId)) != str(type(None)):
+        body = {"mapId":  mapId}
+    else:
+        body = {"areaName":  areaName}
+
     
     if len(elementIds) ==0:
             raise ValueError('elementIds has length 0')
     if str(type(elementIds[0])) == "<class 'int'>":
-        Type = 'polygon'
+        body['type'] = 'polygon'
         for i in np.arange(len(elementIds)):
             elementIds[i] = int(elementIds[i])
+        body['elementIds'] = elementIds
     if str(type(elementIds[0])) ==  "<class 'dict'>":
-        Type = 'tile'
+        body['type'] = 'tile'
         for i in np.arange(len(elementIds)):
             elementIds[i]['tileX'] = int(elementIds[i]['tileX'])
             elementIds[i]['tileY'] = int(elementIds[i]['tileY'])
             elementIds[i]['zoom'] = int(elementIds[i]['zoom'])
+        body['elementIds'] = elementIds
 
     if token == None:
         r = s.post(url + '/geometry/get',
-                         json = {"mapId":  mapId, 'type':Type, 'elementIds':elementIds})
+                         json = body)
     else:
         r = s.post(url + '/geometry/get', headers = {"Authorization":token},
-                         json = {"mapId":  mapId, 'type':Type, 'elementIds':elementIds})
+                         json = body)
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
     
@@ -322,14 +349,25 @@ def geometryGet(mapId, elementIds, token = None):
     return(r)
 
 
-def geometryDelete(mapId, polygonId, token):
-    polygonId = int(polygonId)
+def geometryDelete(polygonId, token, mapId = None, areaName = None):
+    if str(type(mapId)) != str(type(None)):
+        body = {"mapId":  mapId}
+    else:
+        body = {"areaName":  areaName}
+
+    body['polygonId'] = int(polygonId)
     r= s.post(url + '/geometry/delete', headers = {"Authorization":token},
-                     json = {"mapId":  mapId, 'polygonId':polygonId})
+                     json = body)
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
 
-def geometryAlter(mapId, polygonId, token, newLayerName = None, newProperties = {}, removeProperties = [], removeAllProperties = False):
+def geometryAlter(polygonId, token, newLayerName = None, newProperties = {}, removeProperties = [], mapId = None, areaName = None, removeAllProperties = False):
+    if str(type(mapId)) != str(type(None)):
+        body = {"mapId":  mapId}
+    else:
+        body = {"areaName":  areaName}
+        
+    body['polygonId'] = polygonId
 
     geometry = geometryGet(mapId = mapId, elementIds = [polygonId], token  = token)
     columns = set(geometry.columns) - set(['geometry', 'id', 'layer', 'user'])
@@ -337,6 +375,7 @@ def geometryAlter(mapId, polygonId, token, newLayerName = None, newProperties = 
 
     if newLayerName == None:
         newLayerName = geometry['layer'].values[0]
+    body['newLayerName'] = newLayerName
 
     properties = {}
     if not removeAllProperties:
@@ -357,7 +396,7 @@ def geometryAlter(mapId, polygonId, token, newLayerName = None, newProperties = 
                 properties[key] = 'NaN'
         except:
             properties[key] = str(properties[key])
-            
+    body['newProperties'] = properties            
     
     r = s.post(url + '/geometry/alter', headers = {"Authorization":token},
                      json = {"mapId":  mapId, 'polygonId':polygonId, 'newLayerName':newLayerName, 'newProperties':properties})
@@ -365,7 +404,12 @@ def geometryAlter(mapId, polygonId, token, newLayerName = None, newProperties = 
         raise ValueError(r.text)
 
 
-def geometryAdd(mapId, layer, features, token):
+def geometryAdd(layer, features, token, mapId = None, areaName = None):
+    if str(type(mapId)) != str(type(None)):
+        body = {"mapId":  mapId}
+    else:
+        body = {"areaName":  areaName}
+
     if not str(type(features)) ==  "<class 'geopandas.geodataframe.GeoDataFrame'>":
         raise ValueError('features must be of type geopandas dataframe')
 
@@ -389,7 +433,9 @@ def geometryAdd(mapId, layer, features, token):
         if properties != None:
             feature['properties'] = properties
 
-        body = {"mapId":  mapId, 'layer': layer,  'feature': feature}
+        body['layer'] = layer
+        body['feature'] =  feature
+        
         body = json.dumps(body)
         body = json.loads(body)
         r = s.post(url + '/geometry/add', headers = {"Authorization":token},
@@ -863,7 +909,7 @@ def projectsNewMap(mapName, dataSourceName, area, timeSeries, token, dryRun = Fa
     if not str(type(measurements)) == "<class 'NoneType'>":
         body['measurements'] = measurements
     if not str(type(visualizations)) == "<class 'NoneType'>":
-        body['visualizations'] = measurements
+        body['visualizations'] = visualizations
     if not str(type(aggregationZoom)) == "<class 'NoneType'>":
         body['aggregationZoom'] = aggregationZoom
     
@@ -884,16 +930,31 @@ def projectsNewMap(mapName, dataSourceName, area, timeSeries, token, dryRun = Fa
 
 ##################################################################################################################
 
-def plotPolys(polys, xMin,xMax,yMin,yMax, alpha = None, image = None, colors = {0:(0,0,1)} , column= None):
+
+
+
+def plotPolys(polys, xMin = None,xMax = None,yMin=None,yMax= None, alpha = None, image = None, colors = {0:(0,0,255)} , column= None):
     polys.crs = {'init': 'epsg:4326'}
-    polys = polys.to_crs({'init': 'epsg:3785'})
-    
+
+    if str(type(xMin)) == str(type(None)):
+        polys_union = polys.unary_union
+        bbox = gpd.GeoDataFrame({'geometry':[polys_union]})
+        xMin = bbox.bounds['minx'].values[0]
+        yMin = bbox.bounds['miny'].values[0]
+        xMax = bbox.bounds['maxx'].values[0]
+        yMax = bbox.bounds['maxy'].values[0]
+        
     bbox = gpd.GeoDataFrame( {'geometry': [Polygon([(xMin,yMin), (xMax, yMin), (xMax, yMax), (xMin, yMax)])]} )
     bbox.crs = {'init': 'epsg:4326'}
     bbox = bbox.to_crs({'init': 'epsg:3785'})
+    polys = polys.to_crs({'init': 'epsg:3785'})
 
     if str(type(image)) == "<class 'NoneType'>":
-        image = np.zeros((1024,1024,4))
+        if (xMax-xMin) > (yMax - yMin):
+            image = np.zeros((1024,1024* int((xMax-xMin)/(yMax-yMin)),4))
+        else:
+            image = np.zeros((1024* int((yMax-yMin)/(xMax-xMin)),1024,4))
+            
     image = image/255
     if column == None:
         column = 'extra'
@@ -905,7 +966,7 @@ def plotPolys(polys, xMin,xMax,yMin,yMax, alpha = None, image = None, colors = {
         sub_polys = polys.loc[polys[column] == key]
         if sub_polys.shape[0] >0:
             raster = rasterize( shapes = [ (sub_polys['geometry'].values[m], 1) for m in np.arange(sub_polys.shape[0]) ] , fill = 0, transform = transform, out_shape = (image.shape[0], image.shape[1]), all_touched = True )
-            raster = np.stack([raster * colors[key][0], raster*colors[key][1],raster*colors[key][2], raster ], axis = 2)
+            raster = np.stack([raster * colors[key][0]/255, raster*colors[key][1]/255,raster*colors[key][2]/255, raster ], axis = 2)
             rasters = np.add(rasters, raster)
      
     rasters = np.clip(rasters, 0,1)
@@ -1161,9 +1222,7 @@ def cover(w, area = None, xMin= None, xMax = None, yMin = None, yMax = None):
 
         return(coords)
 
-
-
 def loadingBar(count,total):
     percent = float(count)/float(total)*100
-    sys.stdout.write("\r" + str(int(count)).rjust(3,'0')+"/"+str(int(total)).rjust(3,'0') + ' [' + '='*int(percent/2) + ' '*(100-int(percent/2)) + ']')
+    sys.stdout.write("\r" + str(int(count)).rjust(3,'0')+"/"+str(int(total)).rjust(3,'0') + ' [' + '='*int(percent) + ' '*(100-int(percent)) + ']')
 
