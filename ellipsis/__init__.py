@@ -18,6 +18,7 @@ import requests
 import rasterio
 import math
 import threading
+import datetime
 import multiprocessing
 from shapely.geometry import Polygon
 from shapely.geometry import MultiPolygon
@@ -26,9 +27,8 @@ from geopy.distance import geodesic
 import json
 import cv2
 import sys
-from shapely.ops import cascaded_union
 
-__version__ = '0.2.24'
+__version__ = '0.2.29'
 url = 'https://api.ellipsis-earth.com/v2'
 s = requests.Session()
 
@@ -61,6 +61,23 @@ def myMaps(atlas = None,token = None):
     
     return(r)
 
+
+def myAreas(atlas = None,token = None):
+    if token == None:
+        r = s.get(url + '/account/myareas')
+    else:
+        r = s.get(url + '/account/myareas', 
+                     headers = {"Authorization":token} )
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+        
+    r = r.json()
+    if not str(type(atlas)) == str(type(None)):
+        r = [m for m in r if atlas in m['atlases']]
+    
+    return(r)
+
+
 def getMapId(name, token = None):
     
     if token == None:
@@ -79,6 +96,23 @@ def getMapId(name, token = None):
 
     return(mapId)
 
+def getAreaId(name, token = None):
+    
+    if token == None:
+        r = s.get(url + '/account/myareas')        
+    else:
+        r = s.get(url + '/account/myareas', 
+                     headers = {"Authorization":token} )
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+
+    mapId = [map['id'] for map in r.json() if map['name'] == name]
+    if len(mapId)>0:
+        mapId = mapId[0]
+    else:
+        raise ValueError('Area not found')
+
+    return(mapId)
     
     
 def metadata(mapId, Type, token = None):
@@ -90,7 +124,7 @@ def metadata(mapId, Type, token = None):
             r = s.get(url + '/account/mymaps', headers = {"Authorization":token})
         if int(str(r).split('[')[1].split(']')[0]) != 200:
             raise ValueError(r.text)
-                
+            
         r = r.json()
         mapData = [mapData for mapData in r if mapData['id'] == mapId]
         if len(mapData)==0:
@@ -100,14 +134,35 @@ def metadata(mapId, Type, token = None):
     else:
         if token == None:
             r = s.post(url + '/metadata',
-                             json = {"mapId":  mapId, 'type':Type})
+                             json = {"mapId":  mapId})
         else:
             r = s.post(url + '/metadata', headers = {"Authorization":token},
-                             json = {"mapId":  mapId, 'type':Type})
+                             json = {"mapId":  mapId})
         if int(str(r).split('[')[1].split(']')[0]) != 200:
             raise ValueError(r.text)
         
         r = r.json()
+
+        if Type == 'classes':
+            r = r['classes']
+        if Type == 'measurements':
+            r = r['measurements']
+        if Type == 'polygonLayers':
+            r = r['polygonLayers']
+        if Type == 'bands':
+            r = r['bands']
+        if Type == 'forms':
+            r = r['forms']
+        if Type == 'tileLayers':
+            r = r['mapLayers']
+        if Type == 'dataSources':
+            r = r['dataSources']
+        if Type == 'timestamps':
+            r = r['timestamps']
+            for i in np.arange(len(r)):
+                r[i]['dateFrom'] = datetime.datetime.strptime(r[i]['dateFrom'].split('T')[0],"%Y-%m-%d" )
+                r[i]['dateTo'] = datetime.datetime.strptime(r[i]['dateTo'].split('T')[0],"%Y-%m-%d" )
+                
     
     return(r)
 
@@ -118,7 +173,7 @@ def dataTimestamps(mapId, element, dataType, className = 'all classes', token = 
     if str(type(element)) == "<class 'int'>" or str(type(element)) == "<class 'numpy.int64'>":
         Type = 'polygon'
         element = int(element)
-    if str(type(element)) ==  "<class 'dict'>":
+    elif str(type(element)) ==  "<class 'dict'>":
         Type = 'tile'
         element['tileX'] = int(element['tileX'])
         element['tileY'] = int(element['tileY'])
@@ -155,6 +210,14 @@ def dataTimestamps(mapId, element, dataType, className = 'all classes', token = 
         else:
             columns = ['area']
         r[columns] = r[columns] * 1000000
+
+    dates_start = []
+    dates_end = []
+    for i in np.arange(r.shape[0]):
+        dates_end = datetime.datetime.strptime(r['date_from'].values[i],"%Y-%m-%d" )
+        dates_start = datetime.datetime.strptime(r['date_to'].values[i],"%Y-%m-%d" )
+    r['date_from'] = dates_start
+    r['date_to'] = dates_end
     
     return(r)
 
@@ -247,11 +310,8 @@ def dataTiles(mapId, timestamp, element, dataType, className = 'all classes', to
 
     return(r)
 
-def geometryArea(mapId= None, areaName = None, token = None ):
-    if str(type(mapId)) != str(type(None)):
-        body = {"mapId": mapId}
-    if str(type(areaName)) != str(type(None)):
-        body = {"areaName": areaName}
+def geometryArea(mapId, token = None ):
+    body = {"mapId": mapId}
 
     if token == None:
         r = s.post(url + '/geometry/area',
@@ -268,12 +328,9 @@ def geometryArea(mapId= None, areaName = None, token = None ):
     return(r)
         
         
-def geometryIds( layer, mapId = None, areaName = None, filters = None, limit = None, xMin = None, xMax = None, yMin=None, yMax=None,  token = None):
+def geometryIds(mapId, layer, filters = None, limit = None, xMin = None, xMax = None, yMin=None, yMax=None,  token = None):
     
-    if str(type(mapId)) != str(type(None)):
-        body = {"mapId":  mapId}
-    else:
-        body = {"areaName":  areaName}
+    body = {"mapId":  mapId}
         
     if xMin != None:
         body['xMin'] = float(xMin)
@@ -312,26 +369,23 @@ def geometryIds( layer, mapId = None, areaName = None, filters = None, limit = N
 
 
 
-def geometryGet(elementIds, mapId = None, areaName = None, token = None):
-    if str(type(mapId)) != str(type(None)):
-        body = {"mapId":  mapId}
-    else:
-        body = {"areaName":  areaName}
+def geometryGet(mapId, elementIds, token = None):
+    body = {"mapId":  mapId}
 
     
     if len(elementIds) ==0:
             raise ValueError('elementIds has length 0')
-    if str(type(elementIds[0])) == "<class 'int'>":
-        body['type'] = 'polygon'
-        for i in np.arange(len(elementIds)):
-            elementIds[i] = int(elementIds[i])
-        body['elementIds'] = elementIds
     if str(type(elementIds[0])) ==  "<class 'dict'>":
         body['type'] = 'tile'
         for i in np.arange(len(elementIds)):
             elementIds[i]['tileX'] = int(elementIds[i]['tileX'])
             elementIds[i]['tileY'] = int(elementIds[i]['tileY'])
             elementIds[i]['zoom'] = int(elementIds[i]['zoom'])
+        body['elementIds'] = elementIds
+    else:
+        body['type'] = 'polygon'
+        for i in np.arange(len(elementIds)):
+            elementIds[i] = int(elementIds[i])
         body['elementIds'] = elementIds
 
     if token == None:
@@ -349,11 +403,8 @@ def geometryGet(elementIds, mapId = None, areaName = None, token = None):
     return(r)
 
 
-def geometryDelete(polygonId, token, mapId = None, areaName = None):
-    if str(type(mapId)) != str(type(None)):
-        body = {"mapId":  mapId}
-    else:
-        body = {"areaName":  areaName}
+def geometryDelete(mapId, polygonId, token):
+    body = {"mapId":  mapId}
 
     body['polygonId'] = int(polygonId)
     r= s.post(url + '/geometry/delete', headers = {"Authorization":token},
@@ -361,13 +412,12 @@ def geometryDelete(polygonId, token, mapId = None, areaName = None):
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
 
-def geometryAlter(polygonId, token, newLayerName = None, newProperties = {}, removeProperties = [], mapId = None, areaName = None, removeAllProperties = False):
-    if str(type(mapId)) != str(type(None)):
-        body = {"mapId":  mapId}
-    else:
-        body = {"areaName":  areaName}
-        
+def geometryAlter(mapId, polygonId, token, newLayerName = None, newProperties = {}, removeProperties = [], removeAllProperties = False):
+    body = {"mapId":  mapId}
+
+    polygonId = int(polygonId)
     body['polygonId'] = polygonId
+
 
     geometry = geometryGet(mapId = mapId, elementIds = [polygonId], token  = token)
     columns = set(geometry.columns) - set(['geometry', 'id', 'layer', 'user'])
@@ -404,19 +454,20 @@ def geometryAlter(polygonId, token, newLayerName = None, newProperties = {}, rem
         raise ValueError(r.text)
 
 
-def geometryAdd(layer, features, token, mapId = None, areaName = None):
-    if str(type(mapId)) != str(type(None)):
-        body = {"mapId":  mapId}
-    else:
-        body = {"areaName":  areaName}
+def geometryAdd(mapId, layer, features, token, timestamp = None):
+    body = {"mapId":  mapId}
+
+    if str(type(timestamp)) != str(type(None)):
+        body["timestamp"]=  timestamp
 
     if not str(type(features)) ==  "<class 'geopandas.geodataframe.GeoDataFrame'>":
         raise ValueError('features must be of type geopandas dataframe')
 
+    property_names = set(features.columns) - set(['geometry'])
+
     for i in np.arange(features.shape[0]):
         loadingBar(i,features.shape[0])
 
-        property_names = set(features.columns) - set(['geometry'])
         properties = {}
         for property_name in property_names:
             try:
@@ -430,8 +481,6 @@ def geometryAdd(layer, features, token, mapId = None, areaName = None):
 
 
         feature = gpd.GeoSeries([features['geometry'].values[i]]).__geo_interface__['features'][0]
-        if properties != None:
-            feature['properties'] = properties
 
         body['layer'] = layer
         body['feature'] =  feature
@@ -876,16 +925,13 @@ def rasterSubmit(mapId, r,  channels, timestamp, token, xMin = None, xMax = None
 
 
 
-def projectsNewArea(area, name, dryRun, token):
-    if not str(type(area)) ==  "<class 'geopandas.geodataframe.GeoDataFrame'>":
+def projectsNewArea(area, name, dryRun, token, overwrite = False):
+    if not (str(type(area)) ==  "<class 'shapely.geometry.multipolygon.MultiPolygon'>" or "<class 'shapely.geometry.polygon.Polygon'>"):
         raise ValueError('features must be of type geopandas dataframe')
-    
-    area = cascaded_union(area['geometry'].values)
-    
-    
+        
     feature = gpd.GeoSeries([area]).__geo_interface__['features'][0]
     
-    body = {'dryRun':  dryRun, 'name': name, 'geoJson':feature}
+    body = {'dryRun':  dryRun, 'name': name, 'geoJson':feature, 'overwrite':overwrite}
     body = json.dumps(body)
     body = json.loads(body)
     
@@ -898,35 +944,6 @@ def projectsNewArea(area, name, dryRun, token):
     if dryRun ==  True:
         return(reply.json()['price'])
 
-
-def projectsNewMap(mapName, dataSourceName, area, timeSeries, token, dryRun = False, useMask = False, model = None, saveHistoric = None, measurements = None, visualizations = None, aggregationZoom = None ):
-    body = {'name':mapName, 'dataSource':dataSourceName, 'area':area, 'timeSeries': timeSeries, 'dryRun':dryRun, 'useMask':useMask }
-    
-    if not str(type(saveHistoric)) == "<class 'NoneType'>":
-        body['saveHistoric'] = saveHistoric
-    if not str(type(model)) == "<class 'NoneType'>":
-        body['model'] = model
-    if not str(type(measurements)) == "<class 'NoneType'>":
-        body['measurements'] = measurements
-    if not str(type(visualizations)) == "<class 'NoneType'>":
-        body['visualizations'] = visualizations
-    if not str(type(aggregationZoom)) == "<class 'NoneType'>":
-        body['aggregationZoom'] = aggregationZoom
-    
-    body = json.dumps(body)
-    body = json.loads(body)
-    
-    
-    
-    reply = requests.post( url = url + '/settings/projects/newMap', json = body, 
-                         headers = {"Authorization":token})
-    
-    
-    if int(str(reply).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(reply.text)
-    
-    if dryRun ==  True:
-        return(reply.json()['price'])
 
 ##################################################################################################################
 
@@ -1075,7 +1092,7 @@ def OSMcover(zoom, area = None, xMin= None, xMax = None,yMin = None, yMax = None
            x2_sq = x2_vec
            yosm_sq = np.repeat(yosm_vec[n], parts_x)
            xosm_sq = xosm_vec
-           coords_temp = {'x1': x1_sq, 'x2': x2_sq, 'y1': y1_sq, 'y2':y2_sq, 'xosm': xosm_sq, 'yosm': yosm_sq }
+           coords_temp = {'x1': x1_sq, 'x2': x2_sq, 'y1': y1_sq, 'y2':y2_sq, 'x_osm': xosm_sq, 'y_osm': yosm_sq }
            coords = coords.append(pd.DataFrame(coords_temp))
     
         #make a geopandas out of this dataframe    
@@ -1084,7 +1101,7 @@ def OSMcover(zoom, area = None, xMin= None, xMax = None,yMin = None, yMax = None
             covering.append(Polygon([ (coords['x1'].iloc[i] , coords['y1'].iloc[i]), (coords['x2'].iloc[i], coords['y1'].iloc[i]), (coords['x2'].iloc[i], coords['y2'].iloc[i]), (coords['x1'].iloc[i], coords['y2'].iloc[i])]))
         covering = MultiPolygon(covering)    
         
-        coords = gpd.GeoDataFrame({'geometry': covering, 'tileX': coords['xosm'].values, 'tileY':coords['yosm'].values})
+        coords = gpd.GeoDataFrame({'geometry': covering, 'tileX': coords['x_osm'].values, 'tileY':coords['y_osm'].values})
     
         #remove all tiles that do not intersect with the orgingal area    
         keep = [area.intersects(covering[j]) for j in np.arange(len(covering))]    
@@ -1100,74 +1117,62 @@ def OSMcover(zoom, area = None, xMin= None, xMax = None,yMin = None, yMax = None
 
     
     total_covering = gpd.GeoDataFrame()
-    for i in np.arange(area.shape[0]):
-        print(i/area.shape[0])
-        sub_area = area['geometry'].values[i]
-        covering = cover( sub_area, zoom )
+    if str(type(area)) == "<class 'shapely.geometry.polygon.Polygon'>" or str(type(area)) == "<class 'shapely.geometry.line.Line'>" or str(type(area)) == "<class 'shapely.geometry.point.Point'>":
+        areas = [area]
+    else:
+        areas = area
+
+    for area in areas:
+        covering = cover( area, zoom )
         covering['zoom'] = zoom
         total_covering = total_covering.append(covering)
 
     total_covering['id'] = np.arange(total_covering.shape[0])
     total_covering = total_covering.drop_duplicates(['tileX', 'tileY'])
     
+    
     return(total_covering)
 
 
-
-    area = gpd.GeoDataFrame( {'geometry': [Polygon([(xMin,yMin), (xMax, yMin), (xMax, yMax), (xMin, yMax)])]} )
-
-    total_covering = gpd.GeoDataFrame()
-    for i in np.arange(area.shape[0]):
-        area = area['geometry'].values[i]
-    
-        #convert to multipolygon in case of a polygon
-        if str(type(area)) == "<class 'shapely.geometry.polygon.Polygon'>":
-            area = MultiPolygon([area])
-    
-        covering = gpd.GeoDataFrame()
-        
-        #split the area in a western and eastern halve 
-        west = Polygon([ (-180, -90), (0,-90), (0,90), (-180,90)])
-        east = Polygon([ (180, -90), (0,-90), (0,90), (180,90)])
-        eastern = MultiPolygon([poly.difference(west) for poly in area])
-        western = MultiPolygon([poly.difference(east) for poly in area])
-    
-        #cover the area with tiles
-        covering = covering.append(cover( western, zoom ))
-        covering = covering.append(cover( eastern, zoom))               
-        covering['zoom'] = zoom    
-
-        total_covering = total_covering.append(covering)        
-
-    total_covering = total_covering.drop_duplicates(['tileX','tileY'])
-    total_covering['id'] = np.arange(total_covering.shape[0])
-
-    return(total_covering)
 
 
 
 
 def cover(w, area = None, xMin= None, xMax = None, yMin = None, yMax = None):
-    if str(type(area)) == str(type(None)):    
-        if area.shape[0] == 0:
+    def UTMcover(area,  w,v, hemisphere):
+        
+        if len(area) == 0:
             return(gpd.GeoDataFrame())
         
-        x1 = area.bounds['minx'].min()
-        x2 = area.bounds['maxx'].max()
-        y1 = area.bounds['miny'].min()
-        y2 = area.bounds['maxy'].max()
+        x1, y1, x2, y2  = area.bounds
              
         #calculate the y1 and y2 of all squares
-        step_y =  w/geodesic((y1,x1), (y1 + 1,x1)).meters
-        
-        parts_y = math.floor((y2 - y1)/ step_y + 1)
-        
-        y1_vec = y1 + np.arange(0, parts_y )*step_y
-        y2_vec = y1 + np.arange(1, parts_y +1 )*step_y
-        
-        #make a dataframe of these bounding boxes
-        steps_x = [    w/geodesic((y,x1), (y,x1+1)).meters  for y in y1_vec  ]
-        parts_x = [math.floor( (x2-x1) /step +1 ) for step in steps_x ]      
+        if hemisphere == 'north':
+            step_y =  v/geodesic((y1,x1), (y1 - 1,x1)).meters
+            parts_y = math.floor((y2 - y1)/ step_y + 1)
+            
+            y1_vec = y1 + np.arange(0, parts_y )*step_y
+            y2_vec = y1 + np.arange(1, parts_y +1 )*step_y
+            
+            if x1 < 179:
+                steps_x = [   w/geodesic((y,x1), (y,x1+1)).meters for y in y1_vec  ]
+            else:
+                steps_x = [   w/geodesic((y,x1), (y,x1-1)).meters for y in y1_vec  ]            
+            parts_x = [math.floor( (x2-x1) /step +1 ) for step in steps_x ]      
+        if hemisphere == 'south':
+            step_y =  v/geodesic((y1,x1), (y1 + 1,x1)).meters        
+            parts_y = math.floor((y2 - y1)/ step_y + 1)
+            
+            y2_vec = y2 - np.arange(0, parts_y )*step_y
+            y1_vec = y2 - np.arange(1, parts_y +1 )*step_y
+            
+            if x1<179:
+                steps_x = [   w/geodesic((y,x1), (y,x1+1)).meters for y in y2_vec  ]
+            else:
+                steps_x = [   w/geodesic((y,x1), (y,x1-1)).meters for y in y2_vec  ]            
+            parts_x = [math.floor( (x2-x1) /step +1 ) for step in steps_x ]      
+            
+    
         coords = pd.DataFrame()
         for n in np.arange(len(parts_x)):
             x1_sq = [ x1 + j*steps_x[n] for j in np.arange(0,parts_x[n]) ]
@@ -1179,49 +1184,45 @@ def cover(w, area = None, xMin= None, xMax = None, yMin = None, yMax = None):
         cover = [Polygon([ (coords['x1'].iloc[j] , coords['y1'].iloc[j]) , (coords['x2'].iloc[j] , coords['y1'].iloc[j]), (coords['x2'].iloc[j] , coords['y2'].iloc[j]), (coords['x1'].iloc[j] , coords['y2'].iloc[j]) ]) for j in np.arange(coords.shape[0])]
         
         coords = gpd.GeoDataFrame({'geometry': cover, 'x1':coords['x1'], 'x2':coords['x2'], 'y1':coords['y1'], 'y2':coords['y2'] })
-    
+        
         #remove all tiles that do not intersect the area that needed covering    
         keep = [area.intersects(coords['geometry'].values[j]) for j in np.arange(coords.shape[0])]
-        coords = coords[keep]
+        coords = coords[pd.Series(keep, name = 'bools').values]
         coords['id'] = np.arange(coords.shape[0])
-            
+        
         return(coords)
 
-    elif str(type(xMin)) == "<class 'NoneType'>" or str(type(xMax)) == "<class 'NoneType'>" or str(type(yMin)) == "<class 'NoneType'>" or str(type(yMax)) == "<class 'NoneType'>" :
-            raise ValueError('Either bounding box coordinates or area is required')
+    total_covering = gpd.GeoDataFrame()
+
+    if str(type(area)) == "<class 'shapely.geometry.polygon.Polygon'>" or str(type(area)) == "<class 'shapely.geometry.line.Line'>" or str(type(area)) == "<class 'shapely.geometry.point.Point'>":
+        areas = [area]
     else:
-        x1 = xMin
-        x2 = xMax
-        y1 = yMin
-        y2 = yMax
+        areas = area
 
-        #calculate the y1 and y2 of all squares
-        step_y =  w/geodesic((y1,x1), (y1 + 1,x1)).meters
-        
-        parts_y = math.floor((y2 - y1)/ step_y + 1)
-        
-        y1_vec = y1 + np.arange(0, parts_y )*step_y
-        y2_vec = y1 + np.arange(1, parts_y +1 )*step_y
-        
-        #make a dataframe of these bounding boxes
-        steps_x = [    w/geodesic((y,x1), (y,x1+1)).meters  for y in y1_vec  ]
-        parts_x = [math.floor( (x2-x1) /step +1 ) for step in steps_x ]      
-        coords = pd.DataFrame()
-        for n in np.arange(len(parts_x)):
-            x1_sq = [ x1 + j*steps_x[n] for j in np.arange(0,parts_x[n]) ]
-            x2_sq = [ x1 + j*steps_x[n] for j in np.arange(1, parts_x[n]+1) ]
-            coords_temp = {'x1': x1_sq, 'x2': x2_sq, 'y1': y1_vec[n], 'y2':y2_vec[n]}
-            coords = coords.append(pd.DataFrame(coords_temp))
-        
-        #make a geopandas of this covering dataframe
-        cover = [Polygon([ (coords['x1'].iloc[j] , coords['y1'].iloc[j]) , (coords['x2'].iloc[j] , coords['y1'].iloc[j]), (coords['x2'].iloc[j] , coords['y2'].iloc[j]), (coords['x1'].iloc[j] , coords['y2'].iloc[j]) ]) for j in np.arange(coords.shape[0])]
-        
-        coords = gpd.GeoDataFrame({'geometry': cover, 'x1':coords['x1'], 'x2':coords['x2'], 'y1':coords['y1'], 'y2':coords['y2'] })
+
+    for area in areas:
     
-        coords['id'] = np.arange(coords.shape[0])
+        #convert to multipolygon in case of a polygon
+        if str(type(area)) == "<class 'shapely.geometry.polygon.Polygon'>":
+            area = MultiPolygon([area])
+    
+        #split the area in a western and eastern halve 
+        south = Polygon([ (-180, -90), (180,-90), (180,0), (-180,0)])
+        north = Polygon([ (-180, 90), (180,90), (180,0), (-180,0)])
+        southern = MultiPolygon([poly.difference(north) for poly in area ])
+        northern = MultiPolygon([poly.difference(south) for poly in area])
+    
+        #cover the area with tiles
+        covering = gpd.GeoDataFrame()
+        covering = covering.append(UTMcover(area = southern, w=w,v=w, hemisphere = 'south' ))
+        covering = covering.append(UTMcover( area = northern, w =w,v=w, hemisphere ='north'))
+               
+        total_covering = total_covering.append(covering)        
 
-        return(coords)
-
+    total_covering['id'] = np.arange(total_covering.shape[0])
+    return(total_covering)
+    
+    
 def loadingBar(count,total):
     percent = float(count)/float(total)*100
     sys.stdout.write("\r" + str(int(count)).rjust(3,'0')+"/"+str(int(total)).rjust(3,'0') + ' [' + '='*int(percent) + ' '*(100-int(percent)) + ']')
