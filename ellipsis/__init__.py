@@ -29,10 +29,9 @@ from owslib.wms import WebMapService
 import os
 from requests_toolbelt import MultipartEncoder
 
-__version__ = '1.1.3'
+__version__ = '1.1.5'
+url = 'https://dev.api.ellipsis-earth.com/v1'
 url = 'https://dev.api.ellipsis-earth.com/v2'
-
-url = 'https://api.ellipsis-drive.com/v1'
 s = requests.Session()
 
 
@@ -158,15 +157,13 @@ def metadata(mapId, Type, token = None):
             r = r['forms']
         elif Type == 'tileLayers':
             r = r['mapLayers']
-        elif Type == 'dataSources':
-            r = r['dataSources']
         elif Type == 'timestamps':
             r = r['timestamps']
             for i in np.arange(len(r)):
                 r[i]['dateFrom'] = datetime.datetime.strptime(r[i]['dateFrom'].split('T')[0],"%Y-%m-%d" )
                 r[i]['dateTo'] = datetime.datetime.strptime(r[i]['dateTo'].split('T')[0],"%Y-%m-%d" )
         else:
-            raise ValueError('Type must be either, classes, measurements, polygonLayers, bands, forms, tileLayers, dataSources or timestamps')
+            raise ValueError('Type must be either, classes, measurements, polygonLayers, bands, forms, tileLayers or timestamps')
     
     return(r)
 
@@ -218,8 +215,8 @@ def dataTimestamps(mapId, element, dataType, className = 'all classes', token = 
     dates_start = []
     dates_end = []
     for i in np.arange(r.shape[0]):
-        dates_end = datetime.datetime.strptime(r['date_from'].values[i],"%Y-%m-%d" )
-        dates_start = datetime.datetime.strptime(r['date_to'].values[i],"%Y-%m-%d" )
+        dates_end = dates_end + [datetime.datetime.strptime(r['date_from'].values[i],"%Y-%m-%d" )]
+        dates_start = dates_start + [datetime.datetime.strptime(r['date_to'].values[i],"%Y-%m-%d" )]
     r['date_from'] = dates_start
     r['date_to'] = dates_end
     
@@ -320,7 +317,6 @@ def dataPoint(mapId, x, y, dataType, timestamp=0, token = None):
     else:
         r = s.post(url + '/data/point', headers = {"Authorization":token},
                          json = body)
-    print(body)
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
     r = r.json()
@@ -335,7 +331,7 @@ def dataPoint(mapId, x, y, dataType, timestamp=0, token = None):
 
     
 
-def geometryArea(mapId, token = None ):
+def getBounds(mapId, timestamp = 0, token = None ):
     body = {"mapId": mapId}
 
     if token == None:
@@ -349,48 +345,98 @@ def geometryArea(mapId, token = None ):
     r = r.json()
     r['id'] = 0
     r  = gpd.GeoDataFrame.from_features([r])
-    r.crs = {'init': 'epsg:4326'}
+    r = r.unary_union
     return(r)
         
         
-def geometryIds(mapId, layer, filters = None, limit = None, xMin = None, xMax = None, yMin=None, yMax=None,  token = None):
+def geometryGet(mapId, layer, geometryIds = None, history = None, filters = None, limit = None, xMin = None, xMax = None, yMin=None, yMax=None, wait = 0, token = None):
     
-    body = {"mapId":  mapId}
+    body = {"mapId":  mapId, 'layer':layer, 'returnType':'all'}
         
-    if xMin != None:
-        body['xMin'] = float(xMin)
-    if xMax != None:
-        body['xMax'] = float(xMax)
-    if yMin != None:
-        body['yMin'] = float(yMin)
-    if yMax != None:
-        body['yMax'] = float(yMax)
-    if limit != None:
-        limit = int(limit)
-        body['limit'] = limit
-    if filters != None:
-        body['filters'] = filters
-    if layer == 'tile':
-        body['type'] = 'tile'
-    else:
-        body['type'] = 'polygon'
-        body['layer'] = layer
+    if str(type(xMin)) != str(type(None)):
+        body['bounds'] = {'Xmin': float(xMin) , 'xMax':float(xMax), 'yMin':float(yMin), 'yMax':float(yMax)}
+    if str(type(geometryIds)) != str(type(None)):
+        body['geometryIds'] = geometryIds
+    if str(type(filters)) != str(type(None)):
+        for i in np.arange(len(filters)):
+            if filters[i]['property'] == 'creationDate':
+                filters[i]['value'] = filters[i]['value'].strftime('%Y-%m-%d %H:%M:%S') 
+        body['filters'] = filters        
+    if str(type(history)) != str(type(None)):
+        if 'dateFrom' in history.keys():
+                history[i]['dateFrom'] = history[i]['dateFrom'].strftime('%Y-%m-%d %H:%M:%S')
+        if  'dateTo' in history.keys():
+                history[i]['dateTo'] = history[i]['dateTo'].strftime('%Y-%m-%d %H:%M:%S') 
+        body['history'] = history
 
     body = json.dumps(body)
     body = json.loads(body)
 
-            
-    if token == None:
-        r = s.post(url + '/geometry/ids',
-                         json = body)    
-    else:
-        r = s.post(url + '/geometry/ids', headers = {"Authorization":token},
-                         json = body)    
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
+    keepGoing = True
+
+    sh = gpd.GeoDataFrame()
+    while (keepGoing):
+
+        if token == None:
+            r = s.post(url + '/geometry/get',
+                             json = body)
+        else:
+            r = s.post(url + '/geometry/get', headers = {"Authorization":token},
+                             json = body)
+        if int(str(r).split('[')[1].split(']')[0]) != 200:
+            raise ValueError(r.text)
         
-    ids = r.json()
-    return(ids)
+        r = r.json()['result']
+        if len(r['features']) ==0:
+            keepGoing = False
+        else:
+            sh  = sh.append(gpd.GeoDataFrame.from_features(r['features']))
+            time.sleep(wait)
+        if str(type(limit)) != str(type(None)) and sh.shape[0] > limit:
+            keepGoing = False
+            sh = sh.iloc[0:limit]
+        
+    sh.crs = {'init': 'epsg:4326'}
+
+    return(sh)
+
+
+def getTiles(mapId, timestamp = 0, xMin = None, xMax = None, yMin=None, yMax=None, wait = 0, token = None):
+    
+    body = {"mapId":mapId, 'timestamp':int(timestamp), 'returnType':'geometry'}
+        
+    if str(type(xMin)) != str(type(None)):
+        body['bounds'] = {'Xmin': float(xMin) , 'xMax':float(xMax), 'yMin':float(yMin), 'yMax':float(yMax)}
+
+
+    body = json.dumps(body)
+    body = json.loads(body)
+
+    keepGoing = True
+
+    sh = gpd.GeoDataFrame()
+    while (keepGoing):
+
+        if token == None:
+            r = s.post(url + '/geometry/tiles',
+                             json = body)
+        else:
+            r = s.post(url + '/geometry/tiles', headers = {"Authorization":token},
+                             json = body)
+        if int(str(r).split('[')[1].split(']')[0]) != 200:
+            raise ValueError(r.text)
+        
+        r = r.json()['result']
+        if len(r['features']) ==0:
+            keepGoing = False
+        else:
+            sh  = sh.append(gpd.GeoDataFrame.from_features(r['features']))
+            time.sleep(wait)
+        
+    sh.crs = {'init': 'epsg:4326'}
+
+    return(sh)
+        
 
 def geometryVersions(mapId, geometryId, token = None):
     body = {"mapId":  mapId, 'polygonId':geometryId}
@@ -424,38 +470,7 @@ def geometryVersions(mapId, geometryId, token = None):
     sh.crs = {'init': 'epsg:4326'}
     return(sh)
 
-def geometryGet(mapId, elementIds, token = None):
-    body = {"mapId":  mapId}
-
     
-    if len(elementIds) ==0:
-            raise ValueError('elementIds has length 0')
-    if str(type(elementIds[0])) ==  "<class 'dict'>":
-        body['type'] = 'tile'
-        for i in np.arange(len(elementIds)):
-            elementIds[i]['tileX'] = int(elementIds[i]['tileX'])
-            elementIds[i]['tileY'] = int(elementIds[i]['tileY'])
-            elementIds[i]['zoom'] = int(elementIds[i]['zoom'])
-        body['elementIds'] = elementIds
-    else:
-        body['type'] = 'polygon'
-        for i in np.arange(len(elementIds)):
-            elementIds[i] = int(elementIds[i])
-        body['elementIds'] = elementIds
-
-    if token == None:
-        r = s.post(url + '/geometry/get',
-                         json = body)
-    else:
-        r = s.post(url + '/geometry/get', headers = {"Authorization":token},
-                         json = body)
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
-    
-    r  = gpd.GeoDataFrame.from_features(r.json()['features'])
-    r.crs = {'init': 'epsg:4326'}
-
-    return(r)
 
 
 def geometryDelete(mapId, polygonId, token):
@@ -578,22 +593,8 @@ def geometryAdd(mapId, layer, features, token):
         
     return(addedIds)
 
-def geometryVersions(mapId, geometryId, token):
-
-    body = {'mapId':mapId, 'geometryId':geometryId}
-    if token == None:
-        r = s.post(url + '/geomessage/ids',
-                     json = body )        
-    else:
-        r = s.post(url + '/geomessage/ids', headers = {"Authorization":token},
-                     json = body )
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
-
-
-
         
-def geoMessageIds( mapId, Type, filters = None, limit = None, token = None):
+def messageIds( mapId, Type, filters = None, limit = None, token = None):
     body = {'mapId':mapId, 'type':Type}
     if limit != None:
         limit = int(limit)
@@ -614,7 +615,7 @@ def geoMessageIds( mapId, Type, filters = None, limit = None, token = None):
     ids = r.json()
     return(ids)
     
-def geoMessageGet(mapId, Type, messageIds, token = None):
+def messageGet(mapId, Type, messageIds, token = None):
 
     body = {'mapId':mapId, 'type':Type, 'messageIds':messageIds}
     if token == None:
@@ -628,7 +629,7 @@ def geoMessageGet(mapId, Type, messageIds, token = None):
     
     return( r.json())
 
-def geoMessageAdd(mapId, elementId,token, replyTo = None, message = None, private= None, form = None, image=None, lon=None, lat=None, timestamp = 0): 
+def messageAdd(mapId, elementId,token, replyTo = None, message = None, private= None, form = None, image=None, lon=None, lat=None, timestamp = 0): 
     
     if str(type(elementId)) == "<class 'str'>":
         Type = 'polygon'
@@ -671,7 +672,7 @@ def geoMessageAdd(mapId, elementId,token, replyTo = None, message = None, privat
         raise ValueError(r.text)
     
 
-def geoMessageDelete(mapId, Type, messageId, token):    
+def messageDelete(mapId, Type, messageId, token):    
     body = {'mapId':mapId, 'type':Type, 'messageId':messageId}
     r = s.post(url + '/geomessage/delete', headers = {"Authorization":token},
                  json = body )
@@ -680,7 +681,7 @@ def geoMessageDelete(mapId, Type, messageId, token):
     
 
 
-def geoMessageImage(mapId, Type, geoMessageId, token = None):
+def messageImage(mapId, Type, geoMessageId, token = None):
     body = {'mapId':mapId, 'type':Type, 'geoMessageId':geoMessageId}
     if token ==None:
         r = s.post(url + '/geomessage/image',
@@ -700,16 +701,16 @@ def geoMessageImage(mapId, Type, geoMessageId, token = None):
 
 
 
-def rasterRaw(mapId, bands, timestamp, tileId = None, xMin = None, xMax = None, yMin = None, yMax = None, useThreading = False, callsPerMinute = 30 , token = None):
+def rasterRaw(mapId, bands, timestamp, tileId = None, xMin = None, xMax = None, yMin = None, yMax = None, geometry = None, useThreading = False, callsPerMinute = 30 , token = None):
 
-    if token == None:
-       dtype = metadata(mapId = mapId, Type = 'dataSources')[timestamp]['dataType']
-    else:
-       dtype = metadata(mapId = mapId, Type = 'dataSources', token = token)[timestamp]['dataType']
+    dtype = 'float32'
        
     if len(bands) == 1 and bands[0] == 'label':
         dtype = 'int8'
-    
+    if (not 'transparent' in bands) and str(type(geometry)) != str(type(None)):
+        raise ValueError("In case of a geometry 'transparent' band must be included in the band array")
+    if 'transparent' in bands:
+        transparent_band = bands.index('transparent')
     timestamp = int(timestamp)
     if str(type(tileId)) !=  "<class 'NoneType'>":
         tileId['tileX'] = int(tileId['tileX'])
@@ -731,10 +732,12 @@ def rasterRaw(mapId, bands, timestamp, tileId = None, xMin = None, xMax = None, 
         bounds = r['bounds']
         r_total = np.array(r['data'], dtype = dtype)
         trans = rasterio.transform.from_bounds(bounds['x1'], bounds['y1'], bounds['x2'], bounds['y2'], r_total.shape[1], r_total.shape[0])
-
-    elif str(type(xMin)) == "<class 'NoneType'>" or str(type(xMax)) == "<class 'NoneType'>" or str(type(yMin)) == "<class 'NoneType'>" or str(type(yMax)) == "<class 'NoneType'>" :
-            raise ValueError('Either bounding box coordinates or tileId is required')
     else:
+            if str(type(geometry)) != str(type(None)):
+              xMin,yMin,xMax,yMax = geometry.bounds  
+            elif str(type(xMin)) == "<class 'NoneType'>" or str(type(xMax)) == "<class 'NoneType'>" or str(type(yMin)) == "<class 'NoneType'>" or str(type(yMax)) == "<class 'NoneType'>" :
+                    raise ValueError('Either bounding box coordinates or tileId is required')
+
             xMin = float(xMin)
             xMax = float(xMax)
             yMin = float(yMin)
@@ -779,7 +782,7 @@ def rasterRaw(mapId, bands, timestamp, tileId = None, xMin = None, xMax = None, 
                     while tileX != 'done':
                         x_index = tileX - min_x_osm
                         y_index = tileY - min_y_osm
-                        tileId = {'tileX':float(tileX), 'tileY':float(tileY),'zoom':float(zoom)}
+                        tileId = {'tileX':int(tileX), 'tileY':int(tileY),'zoom':int(zoom)}
                         body = {'mapId':mapId, 'tileId':tileId , 'channels':bands, 'timestamp':timestamp}
                         retries = 0
                         while retries <= 10:
@@ -844,7 +847,7 @@ def rasterRaw(mapId, bands, timestamp, tileId = None, xMin = None, xMax = None, 
                     for tileX in x_tiles:
                         x_index = tileX - min_x_osm
                         y_index = tileY - min_y_osm
-                        tileId = {'tileX':float(tileX), 'tileY':float(tileY),'zoom':float(zoom)}
+                        tileId = {'tileX':int(tileX), 'tileY':int(tileY),'zoom':int(zoom)}
                         body = {'mapId':mapId, 'tileId':tileId , 'channels':bands, 'timestamp':timestamp}
                         retries = 0
                         while retries <= 10:
@@ -885,7 +888,13 @@ def rasterRaw(mapId, bands, timestamp, tileId = None, xMin = None, xMax = None, 
             trans = rasterio.transform.from_bounds(xMin, yMin, xMax, yMax, r_total.shape[1], r_total.shape[0])
             crs = "EPSG:3857"
             bounds = {"xMin":xMin,"xMax":xMax,"yMin":yMin,"yMax":yMax} 
-    
+
+            if str(type(geometry)) != str(type(None)):
+                shape = gpd.GeoDataFrame({'geometry':[geometry]})
+                shape.crs = {'init': 'epsg:4326'}
+                shape = shape.to_crs({'init': 'epsg:3857'})
+                raster_shape = rasterize( shapes = [ (shape['geometry'].values[m], 1) for m in np.arange(shape.shape[0]) ] , fill = 0, transform = trans, out_shape = (r_total.shape[0], r_total.shape[1]), all_touched = True )
+                r_total[:,:,transparent_band] = np.minimum(r_total[:,:,transparent_band], raster_shape)
 
 
     return({'data':r_total, 'crs':crs, 'bounds':bounds, 'transform':trans})
@@ -1631,7 +1640,7 @@ def parallel(function, args, callsPerMinute, retries=0):
 
 
 
-def OSMcover(zoom, area = None, xMin= None, xMax = None,yMin = None, yMax = None ):
+def tilesCover(zoom, area = None, xMin= None, xMax = None,yMin = None, yMax = None ):
 
     def cover(area, zoom):
         x1, y1, x2, y2  = area.bounds

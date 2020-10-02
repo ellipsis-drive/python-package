@@ -29,9 +29,7 @@ from owslib.wms import WebMapService
 import os
 from requests_toolbelt import MultipartEncoder
 
-__version__ = '1.1.3'
-url = 'https://dev.api.ellipsis-earth.com/v2'
-
+__version__ = '1.1.5'
 url = 'https://api.ellipsis-drive.com/v1'
 s = requests.Session()
 
@@ -158,15 +156,13 @@ def metadata(mapId, Type, token = None):
             r = r['forms']
         elif Type == 'tileLayers':
             r = r['mapLayers']
-        elif Type == 'dataSources':
-            r = r['dataSources']
         elif Type == 'timestamps':
             r = r['timestamps']
             for i in np.arange(len(r)):
                 r[i]['dateFrom'] = datetime.datetime.strptime(r[i]['dateFrom'].split('T')[0],"%Y-%m-%d" )
                 r[i]['dateTo'] = datetime.datetime.strptime(r[i]['dateTo'].split('T')[0],"%Y-%m-%d" )
         else:
-            raise ValueError('Type must be either, classes, measurements, polygonLayers, bands, forms, tileLayers, dataSources or timestamps')
+            raise ValueError('Type must be either, classes, measurements, polygonLayers, bands, forms, tileLayers or timestamps')
     
     return(r)
 
@@ -174,9 +170,9 @@ def metadata(mapId, Type, token = None):
 
 def dataTimestamps(mapId, element, dataType, className = 'all classes', token = None, unit = 'km2'):
     
-    if str(type(element)) == "<class 'int'>" or str(type(element)) == "<class 'numpy.int64'>":
+    if str(type(element)) == "<class 'str'>" or str(type(element)) == "<class 'numpy.int64'>":
         Type = 'polygon'
-        element = int(element)
+        element = element
     elif str(type(element)) ==  "<class 'dict'>":
         Type = 'tile'
         element['tileX'] = int(element['tileX'])
@@ -230,10 +226,8 @@ def dataIds(mapId, elementIds, dataType, timestamp, className = 'all classes', t
     timestamp = int(timestamp)
     if len(elementIds) ==0:
             raise ValueError('elementIds has length 0')
-    if str(type(elementIds[0])) == "<class 'int'>":
+    if str(type(elementIds[0])) == "<class 'str'>":
         Type = 'polygon'
-        for i in np.arange(len(elementIds)):
-            elementIds[i] = int(elementIds[i])
     if str(type(elementIds[0])) ==  "<class 'dict'>":
         Type = 'tile'
         for i in np.arange(len(elementIds)):
@@ -272,10 +266,9 @@ def dataIds(mapId, elementIds, dataType, timestamp, className = 'all classes', t
 
 def dataTiles(mapId, timestamp, element, dataType, className = 'all classes', token = None, unit = 'km2'):
     timestamp = int(timestamp)
-    if str(type(element)) == "<class 'int'>":
+    if str(type(element)) == "<class 'str'>":
         Type = 'polygon'
-        element = int(element)
-    if str(type(element)) ==  "<class 'dict'>":
+    elif str(type(element)) ==  "<class 'dict'>":
         Type = 'tile'
         element['tileX'] = int(element['tileX'])
         element['tileY'] = int(element['tileY'])
@@ -395,7 +388,37 @@ def geometryIds(mapId, layer, filters = None, limit = None, xMin = None, xMax = 
     ids = r.json()
     return(ids)
 
+def geometryVersions(mapId, geometryId, token = None):
+    body = {"mapId":  mapId, 'polygonId':geometryId}
+    if token == None:
+        r = s.post(url + '/geometry/iversions',
+                         json = body)    
+    else:
+        r = s.post(url + '/geometry/versions', headers = {"Authorization":token},
+                         json = body)    
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
 
+    versions = r.json()
+
+    sh = gpd.GeoDataFrame()
+    for version in versions:
+        body = {"mapId":  mapId, 'elementIds':[geometryId], 'type':'polygon', 'version':version['version']}
+        if token == None:
+            r = s.post(url + '/geometry/get',
+                             json = body)    
+        else:
+            r = s.post(url + '/geometry/get', headers = {"Authorization":token},
+                             json = body)    
+        if int(str(r).split('[')[1].split(']')[0]) != 200:
+            raise ValueError(r.text)
+        r  = gpd.GeoDataFrame.from_features(r.json()['features'])
+        r['version'] = version['version']
+        r['creationDate'] = version['editDate']
+        r['creationUser'] = version['editUser']
+        sh = sh.append(r)
+    sh.crs = {'init': 'epsg:4326'}
+    return(sh)
 
 def geometryGet(mapId, elementIds, token = None):
     body = {"mapId":  mapId}
@@ -494,6 +517,8 @@ def geometryAdd(mapId, layer, features, token):
     if not str(type(features)) ==  "<class 'geopandas.geodataframe.GeoDataFrame'>":
         raise ValueError('features must be of type geopandas dataframe')
 
+    features = features.to_crs({'init': 'epsg:4326'})
+
     property_names = list(set(features.columns) - set(['geometry']))
 
     features_json = []
@@ -523,6 +548,7 @@ def geometryAdd(mapId, layer, features, token):
 
     i = 0
     print('uploading geometries')
+    addedIds = []
     for features in features_chunks:
         body = {"mapId":  mapId, "layer":layer, "features":features}
         
@@ -541,9 +567,26 @@ def geometryAdd(mapId, layer, features, token):
                 time.sleep(1)
 
         if int(str(r).split('[')[1].split(']')[0]) != 200:
-            raise ValueError(r.text)        
+            raise ValueError(r.text)
+        addedIds = addedIds + r.json()['ids']
         loadingBar(i,len(features_chunks))
         i = i+1
+        
+    return(addedIds)
+
+def geometryVersions(mapId, geometryId, token):
+
+    body = {'mapId':mapId, 'geometryId':geometryId}
+    if token == None:
+        r = s.post(url + '/geomessage/ids',
+                     json = body )        
+    else:
+        r = s.post(url + '/geomessage/ids', headers = {"Authorization":token},
+                     json = body )
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+
+
 
         
 def geoMessageIds( mapId, Type, filters = None, limit = None, token = None):
@@ -583,7 +626,7 @@ def geoMessageGet(mapId, Type, messageIds, token = None):
 
 def geoMessageAdd(mapId, elementId,token, replyTo = None, message = None, private= None, form = None, image=None, lon=None, lat=None, timestamp = 0): 
     
-    if str(type(elementId)) == "<class 'int'>":
+    if str(type(elementId)) == "<class 'str'>":
         Type = 'polygon'
         elementId = int(elementId)
     if str(type(elementId)) ==  "<class 'dict'>":
@@ -655,10 +698,7 @@ def geoMessageImage(mapId, Type, geoMessageId, token = None):
 
 def rasterRaw(mapId, bands, timestamp, tileId = None, xMin = None, xMax = None, yMin = None, yMax = None, useThreading = False, callsPerMinute = 30 , token = None):
 
-    if token == None:
-       dtype = metadata(mapId = mapId, Type = 'dataSources')[timestamp]['dataType']
-    else:
-       dtype = metadata(mapId = mapId, Type = 'dataSources', token = token)[timestamp]['dataType']
+    dtype = 'float32'
        
     if len(bands) == 1 and bands[0] == 'label':
         dtype = 'int8'
@@ -732,7 +772,7 @@ def rasterRaw(mapId, bands, timestamp, tileId = None, xMin = None, xMax = None, 
                     while tileX != 'done':
                         x_index = tileX - min_x_osm
                         y_index = tileY - min_y_osm
-                        tileId = {'tileX':float(tileX), 'tileY':float(tileY),'zoom':float(zoom)}
+                        tileId = {'tileX':int(tileX), 'tileY':int(tileY),'zoom':int(zoom)}
                         body = {'mapId':mapId, 'tileId':tileId , 'channels':bands, 'timestamp':timestamp}
                         retries = 0
                         while retries <= 10:
@@ -797,7 +837,7 @@ def rasterRaw(mapId, bands, timestamp, tileId = None, xMin = None, xMax = None, 
                     for tileX in x_tiles:
                         x_index = tileX - min_x_osm
                         y_index = tileY - min_y_osm
-                        tileId = {'tileX':float(tileX), 'tileY':float(tileY),'zoom':float(zoom)}
+                        tileId = {'tileX':int(tileX), 'tileY':int(tileY),'zoom':int(zoom)}
                         body = {'mapId':mapId, 'tileId':tileId , 'channels':bands, 'timestamp':timestamp}
                         retries = 0
                         while retries <= 10:
@@ -1149,23 +1189,32 @@ def rasterSubmit(mapId, r,  timestamp, token, xMin = None, xMax = None, yMin = N
 
 
 def seriesAdd(mapId, geometryId, data, token, includeDatetime = True):
-    if not 'date' in data.columns and includeDatetime:
-        ValueError('Dataframe has no date column. In case you wish to upload data without a date use includeDatetime = False. In this case the server will add the current datetime as datetime')
+    if not 'datetime' in data.columns and includeDatetime:
+        raise ValueError('Dataframe has no datetime column. In case you wish to upload data without a date and time use includeDatetime = False. In this case the server will add the current datetime as datetime')
 
-    else:
-        if str(data['date'].dtypes) == 'datetime64[ns]':
-            data['date'] = data['date'].dt.strftime('%Y-%m-%d %H:%M:%S')
+    if 'datetime' in data.columns:
+            data['date'] = data['datetime']
+            del data['datetime']
+
+
+            if str(data['date'].dtypes) == 'datetime64[ns]':
+                data['date'] = data['date'].dt.strftime('%Y-%m-%d %H:%M:%S')
+            else:
+               raise  ValueError('datetime column must be of type datetime')
 
     for c in data.columns:
         if c != 'date':
             data[c] = data[c].astype(float)
         
-            
+
     values = []
     for i in np.arange(data.shape[0]):
         for c in data.columns:
             if c != 'date':
-                values = values + [{'property':c, 'value':data[c].values[i], 'date':data['date'].values[i]}]
+                if 'date' in data.columns:
+                    values = values + [{'property':c, 'value':data[c].values[i], 'date':data['date'].values[i]}]
+                else:
+                    values = values + [{'property':c, 'value':data[c].values[i]}]                    
 
     r = s.post(url + '/series/add', headers = {"Authorization":token},
                  json = {"mapId":  mapId, "values":values, 'geometryId':geometryId})
@@ -1193,7 +1242,7 @@ def seriesDelete(mapId, geometryId, token, user = None, dateFrom = None, dateTo 
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
 
-def seriesGet(mapId, geometryId, token,  dateFrom = None, dateTo = None, user=None, includeDeleted = False):
+def seriesGet(mapId, geometryId, dateFrom = None, dateTo = None, user=None, includeDeleted = False, token  = None):
     body = {'mapId':mapId, 'geometryId':geometryId, 'includeDeleted':includeDeleted}
     if str(type(user)) != str(type(None)):
         body['user'] = user
@@ -1206,14 +1255,21 @@ def seriesGet(mapId, geometryId, token,  dateFrom = None, dateTo = None, user=No
             dateFrom = dateFrom.strftime('%Y-%m-%d %H:%M:%S')
         body['dateFrom'] = dateFrom
 
-    r = s.post(url + '/series/get', headers = {"Authorization":token},
-                 json = body)
+    if token ==None:
+        r = s.post(url + '/series/get',
+                     json = body )        
+    else:
+        r = s.post(url + '/series/get', headers = {"Authorization":token},
+                     json = body )
 
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
+    r = pd.read_csv(StringIO(r.text))
+    r['date'] = pd.to_datetime(r['date'], format="%Y-%m-%d %H:%M:%S")
+    return(r)
 
-def seriesAggregated(mapId, geometryIds, token,  dateFrom = None, dateTo = None, user=None):
-    body = {'mapId':mapId, 'geometryIds':geometryIds}
+def seriesAggregated(mapId, geometryIds, aggregation = 'mean',  dateFrom = None, dateTo = None, user=None, token = None):
+    body = {'mapId':mapId, 'geometryIds':geometryIds, 'aggregation' : aggregation}
     if str(type(user)) == str(type(None)):
         body['user'] = user
     if str(type(dateTo)) != str(type(None)):
@@ -1225,11 +1281,19 @@ def seriesAggregated(mapId, geometryIds, token,  dateFrom = None, dateTo = None,
             dateFrom = dateFrom.strftime('%Y-%m-%d %H:%M:%S')
         body['dateFrom'] = dateFrom
 
-    r = s.post(url + '/series/get', headers = {"Authorization":token},
-                 json = body)
+    if token ==None:
+        r = s.post(url + '/series/aggregated',
+                     json = body )        
+    else:
+        r = s.post(url + '/series/aggregated', headers = {"Authorization":token},
+                     json = body )
 
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
+
+    r = pd.read_csv(StringIO(r.text))
+    return(r)
+
 
 
 
