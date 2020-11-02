@@ -1,6 +1,7 @@
 README.md
 setup.py
 ellipsis/__init__.py
+ellipsis/packages.py
 ellipsis.egg-info/PKG-INFO
 ellipsis.egg-info/SOURCES.txt
 ellipsis.egg-info/dependency_links.txt
