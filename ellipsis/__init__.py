@@ -23,7 +23,6 @@ from geopy.distance import geodesic
 import json
 import cv2
 import sys
-from owslib.wfs import WebFeatureService
 import fiona
 from owslib.wms import WebMapService
 import os
@@ -236,8 +235,11 @@ def dataGeometry(mapId, geometry, dataType, timestamp=0, token = None):
 
     
 
-def getBounds(mapId, timestamp = 0, token = None ):
+def getBounds(mapId, timestamp = None, token = None ):
     body = {"mapId": mapId}
+
+    if str(type(timestamp)) != str(type(None)):
+        body['timestamp'] = timestamp
 
     if token == None:
         r = s.post(url + '/settings/projects/bounds',
@@ -498,6 +500,7 @@ def geometryAdd(mapId, layer, features, token):
         raise ValueError('features must be of type geopandas dataframe')
 
     features = features.to_crs({'init': 'epsg:4326'})
+    
 
     property_names = list(set(features.columns) - set(['geometry']))
     
@@ -524,15 +527,12 @@ def geometryAdd(mapId, layer, features, token):
         loadingBar(i+1,features.shape[0])
 
     features_chunks = chunks(features_json)
-
+    
     i = 0
-
+    
     addedIds = []
     for features in features_chunks:
         body = {"mapId":  mapId, "layer":layer, "features":features}
-        
-        body = json.dumps(body)
-        print(body)
         retried = 0
         while retried <= 20:
             try:
