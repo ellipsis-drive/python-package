@@ -31,7 +31,7 @@ import warnings
 
 import ellipsis.packages
 
-__version__ = '1.1.12'
+__version__ = '1.1.13'
 url = 'https://api.ellipsis-drive.com/v1'
 #url = 'https://dev.api.ellipsis-earth.com/v2'
 s = requests.Session()
@@ -102,6 +102,90 @@ def metadata(mapId, token = None):
     
     r = r.json()
     return(r)
+
+
+def getShapes(namePart= None, access = ['subscribed', 'public', 'owned'], atlas = None, bounds=None, username= None, token = None):
+    
+    body = {'access': access}
+    if str(type(namePart)) != str(type(None)):
+        body['name'] = namePart        
+        body['nameFuzzy'] = True        
+    if str(type(atlas)) != str(type(None)):
+        body['atlas'] = atlas
+    if str(type(atlas)) != str(type(None)):
+        body['atlas'] = atlas
+    if str(type(username)) == str(type(None)):
+        body['username'] = username
+    if str(type(bounds)) != str(type(None)):
+        bounds = {'xMin':float(bounds['xMin']), 'xMax':float(bounds['xMax']), 'yMin':float(bounds['yMin']), 'yMax':float(bounds['yMax'])}
+        body['bounds'] = bounds
+
+    keepGoing = True
+    results = []
+    while keepGoing:    
+        if token == None:
+            r = s.post(url + '/account/shapes', json = body )
+        else:
+            r = s.post(url + '/account/shapes', json = body, 
+                         headers = {"Authorization":token} )
+        if int(str(r).split('[')[1].split(']')[0]) != 200:
+            raise ValueError(r.text)
+            
+        result = r.json()
+        body['pageStart'] = result['nextPageStart']
+        result = result['result']
+        results = results + result
+        if len(result) < 100:
+            keepGoing = False
+            
+    return(results)
+    
+
+def getMaps(namePart= None, access = ['subscribed', 'public', 'owned'], atlas = None, bounds = None, username= None, bandType=None, resolutionRange=None, dateRange=None, token = None):
+
+    body = {'access': access}
+    if str(type(namePart)) != str(type(None)):
+        body['name'] = namePart        
+        body['nameFuzzy'] = True        
+    if str(type(atlas)) != str(type(None)):
+        body['atlas'] = atlas
+    if str(type(atlas)) != str(type(None)):
+        body['atlas'] = atlas
+    if str(type(username)) != str(type(None)):
+        body['username'] = username
+    if str(type(dateRange)) != str(type(None)):
+        body['dateFrom'] = dateRange['dateFrom'].strftime('%Y-%m-%d %H:%M:%S')
+        body['dateTo'] = dateRange['dateTo'].strftime('%Y-%m-%d %H:%M:%S')
+    if str(type(bandType)) != str(type(None)):
+        body['bandType'] = bandType
+    if str(type(resolutionRange)) != str(type(None)):
+        body['resolution'] = resolutionRange
+    if str(type(bounds)) != str(type(None)):
+        bounds = {'xMin':float(bounds['xMin']), 'xMax':float(bounds['xMax']), 'yMin':float(bounds['yMin']), 'yMax':float(bounds['yMax'])}
+        body['bounds'] = bounds
+
+    
+    keepGoing = True
+    results = []
+    while keepGoing:    
+        if token == None:
+            r = s.post(url + '/account/maps', json = body )
+        else:
+            r = s.post(url + '/account/maps', json = body, 
+                         headers = {"Authorization":token} )
+        if int(str(r).split('[')[1].split(']')[0]) != 200:
+            raise ValueError(r.text)
+            
+        result = r.json()
+        body['pageStart'] = result['nextPageStart']
+        print(result['nextPageStart'])
+        results = results + result
+        if len(result) < 100:
+            keepGoing = False
+            
+    return(results)
+    
+
 
 
 def dataTimestamps(mapId, element, dataType, token = None, unit = 'km2'):
@@ -259,7 +343,6 @@ def getBounds(mapId, timestamp = None, token = None ):
 def geometryGet(mapId, layer, geometryIds = None, historyFilter = None, filters = None, limit = None, xMin = None, xMax = None, yMin=None, yMax=None, wait = 0, showLoadingBar = False, deleted = False, token = None):
     
     body = {"mapId":  mapId, 'layer':layer, 'deleted':deleted}
-    
     if str(type(xMin)) != str(type(None)):
         body['bounds'] = {'xMin': float(xMin) , 'xMax':float(xMax), 'yMin':float(yMin), 'yMax':float(yMax)}
     if str(type(geometryIds)) != str(type(None)):
@@ -289,10 +372,10 @@ def geometryGet(mapId, layer, geometryIds = None, historyFilter = None, filters 
         body['returnType'] = 'count'
         if token == None:
             r = s.post(url + '/geometry/get',
-                             json = body)
+                             json = body, timeout=10)
         else:
             r = s.post(url + '/geometry/get', headers = {"Authorization":token},
-                             json = body)
+                             json = body, timeout=10)
         if int(str(r).split('[')[1].split(']')[0]) != 200:
             raise ValueError(r.text)
         
@@ -311,20 +394,20 @@ def geometryGet(mapId, layer, geometryIds = None, historyFilter = None, filters 
 
         if token == None:
             r = s.post(url + '/geometry/get',
-                             json = body)
+                             json = body, timeout=10)
         else:
             r = s.post(url + '/geometry/get', headers = {"Authorization":token},
-                             json = body)
+                             json = body, timeout=10)
         if int(str(r).split('[')[1].split(']')[0]) != 200:
             raise ValueError(r.text)
         
         r = r.json()
-        if len(r['result']['features']) ==0:
+        if len(r['result']['features']) <3000:
             keepGoing = False
-        else:
-            sh  = sh.append(gpd.GeoDataFrame.from_features(r['result']['features']))
-            body['pageStart'] = r['nextPageStart']
-            time.sleep(wait)
+
+        sh  = sh.append(gpd.GeoDataFrame.from_features(r['result']['features']))
+        body['pageStart'] = r['nextPageStart']
+        time.sleep(wait)
             
         if str(type(limit)) != str(type(None)) and sh.shape[0] > limit:
             sh = sh.iloc[0:limit]
@@ -500,39 +583,19 @@ def geometryAdd(mapId, layer, features, token):
         raise ValueError('features must be of type geopandas dataframe')
 
     features = features.to_crs({'init': 'epsg:4326'})
-    
 
-    property_names = list(set(features.columns) - set(['geometry']))
-    
-    features_json = []
-    
-    for i in np.arange(features.shape[0]):
-        
-        properties = {}
-        for property_name in property_names:
-            try:
-                properties[property_name] = float(features[property_name].values[i])
-                if not math.isnan(properties[property_name]):
-                    if int(properties[property_name]) == float(properties[property_name]):
-                        properties[property_name] = int(properties[property_name])
-            except:
-                properties[property_name] = str(features[property_name].values[i])
-
-
-        feature = gpd.GeoSeries([features['geometry'].values[i]]).__geo_interface__['features'][0]
-        feature['properties'] = properties
-        
-        features_json = features_json + [feature]
-        
-        loadingBar(i+1,features.shape[0])
-
-    features_chunks = chunks(features_json)
-    
-    i = 0
+    indices = chunks(np.arange(features.shape[0]))
     
     addedIds = []
-    for features in features_chunks:
-        body = {"mapId":  mapId, "layer":layer, "features":features}
+    for i in np.arange(len(indices)):
+        indices_sub = indices[i]
+        features_sub = features.iloc[indices_sub]
+        features_sub =features_sub.to_json(na='drop')
+        features_sub = json.loads(features_sub)
+        #float to int
+        
+
+        body = {"mapId":  mapId, "layer":layer, "features":features_sub['features']}
         retried = 0
         while retried <= 20:
             try:
@@ -548,7 +611,7 @@ def geometryAdd(mapId, layer, features, token):
         if int(str(r).split('[')[1].split(']')[0]) != 200:
             raise ValueError(r.text)
         addedIds = addedIds + r.json()['ids']
-        loadingBar(i*3000 + len(features),len(features_chunks))
+        loadingBar(i*3000 + len(indices_sub),len(features.shape[0]))
         i = i+1
         
     return(addedIds)
@@ -1319,9 +1382,19 @@ def uploadGeometryFile(mapId, layerName, file_path, file, fileFormat, token, eps
     
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
+    else:
+        print('upload completed')
 
     conn_file.close()
         
+def addProperty(mapId, layerName, propertyName, propertyType, token, private=False, required=False):
+    body = {"mapId":  mapId, 'layerName':layerName, 'propertyName': propertyName, 'type':propertyType, 'private':private, 'required':required }
+
+    r = s.post(url + '/settings/geometryLayers/addProperty', headers = {"Authorization":token},
+                     json = body)
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+
     
 ############################new projects
 def newShape(name, boundary, token, dryRun = True):
@@ -1417,7 +1490,6 @@ def newOrder(name, boundary, captures, token, shapeName,  visualizations = ['rgb
     aggregationZoom = minResolution + math.floor((256/aggregationPixels)) -1
 
     body = {'name':name, 'dataSource':{'name':dataSource}, 'useMask':useMask , 'captures': captures, 'aggregationZoom':aggregationZoom, 'visualizations':visuals, 'measurements':{'names':measurements, 'perClass':False}, 'active':True, 'dryRun':dryRun}
-    print(body)
 
     if str(type(shapeName)) != str(type(None)):
         body['area'] = shapeName
