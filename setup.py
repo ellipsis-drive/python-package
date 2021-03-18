@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ellipsis",
-    version="1.1.20",
+    version="1.1.31",
     author="Daniel van der Maas",
     author_email="daniel@ellipsis-earth.com",
     description="Package to interact with the Ellipsis API",
@@ -18,17 +18,19 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
+    packages=find_packages(),
     install_requires=[
     'pandas',
     'Pillow',
-    'geopandas',
-    'pyproj',
+    'geopandas==0.9.0',
+    'pyproj==2.2.0',
     'numpy',
     'requests',
     'requests-toolbelt',
     'rasterio',
     'Shapely',
     'geopy',
+    'xmltodict',
     'opencv-python',
     'Fiona'
     ],
