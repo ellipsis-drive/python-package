@@ -637,17 +637,21 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, boun
         if str(type(width)) == str(type(None)) or str(type(height)) == str(type(None)):
             raise ValueError('if downsample is true, width and height are required')
 
+        timestamps = metadata(mapId, token)['timestamps']
 
-        bbox = {'xMin':xMin, 'xMax':xMax, 'yMin':yMin , 'yMax':yMax}
-        body = {'mapId':mapId, 'timestamp' : timestamp, 'mapId':mapId, 'bounds':bbox, 'width':width, 'height':height}
+        r = s.get(url + '/wms/raw/' + mapId + '?SERVICE=WMS&REQUEST=GetCapabilities' + token_inurl)                
+        d = xmltodict.parse(r.text)
+        layers = {}
+        for layer in d['Capabilities']['Capability']['Layer']:
+            layers[layer['Title']] = layer['Name']
+                
 
-        if str(type(token)) == str(type(None)):
-            r = s.post(url + '/raster/raw',
-                         json = body )        
-        else:
-            r = s.post(url + '/raster/raw', headers = {"Authorization":token},
-                         json = body )
-
+        timestampDate = next(item['dateTo'] for item in timestamps if item["timestamp"] == timestamp)
+        timestampDate = str(timestampDate).split('T')[0]
+        layerId = layers[timestampDate + '_' + str(timestamp)]
+        w = int(width)
+        h = int(height)
+        r = s.get(url + '/wms/raw/' + mapId + '?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&BBOX=' + str(yMinWeb) + ',' + str(xMinWeb) + ',' + str(yMaxWeb) + ',' + str(xMaxWeb) + '&CRS=EPSG:3857&WIDTH=' + str(w) + '&HEIGHT=' + str(h) + '&LAYERS=' + layerId + '&STYLES=&FORMAT=image/tiff&DPI=96&MAP_RESOLUTION=96&FORMAT_OPTIONS=dpi:96&TRANSPARENT=TRUE' + token_inurl)
 
         if int(str(r).split('[')[1].split(']')[0]) != 200:
                 raise ValueError(r.text)
@@ -655,7 +659,8 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, boun
                  with MemoryFile(r.content) as memfile:
                      with memfile.open() as dataset:
                          r_total = dataset.read()
-        r_total = np.transpose(r_total, (1,2,0) )
+        r_total = np.transpose(r, (1,2,0) )
+
 
     else:
             bands = metadata(mapId)['bands']

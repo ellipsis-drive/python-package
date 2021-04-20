@@ -1,0 +1,13 @@
+pandas
+Pillow
+geopandas==0.9.0
+pyproj==2.2.0
+numpy
+requests
+requests-toolbelt
+rasterio
+Shapely
+geopy
+xmltodict
+opencv-python
+Fiona

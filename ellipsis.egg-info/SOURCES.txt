@@ -1,0 +1,8 @@
+README.md
+setup.py
+ellipsis/__init__.py
+ellipsis.egg-info/PKG-INFO
+ellipsis.egg-info/SOURCES.txt
+ellipsis.egg-info/dependency_links.txt
+ellipsis.egg-info/requires.txt
+ellipsis.egg-info/top_level.txt
