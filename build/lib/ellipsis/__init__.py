@@ -8,10 +8,10 @@ from pyproj import Proj, transform
 import base64
 import numpy as np
 from io import BytesIO
-from io import StringIO
 import time
 import requests
 import rasterio
+from datetime import datetime
 import math
 from shapely.geometry import Polygon
 from rasterio.features import rasterize
@@ -23,12 +23,11 @@ import os
 from rasterio.io import MemoryFile
 from requests_toolbelt import MultipartEncoder
 import warnings
-import xmltodict
 
 
-__version__ = '1.1.36'
+__version__ = '1.2.0'
 url = 'https://api.ellipsis-drive.com/v1'
-#url = 'https://dev.api.ellipsis-earth.com/v2'
+
 s = requests.Session()
 warnings.filterwarnings("ignore")
 
@@ -44,46 +43,6 @@ def logIn(username, password):
         token = 'Bearer ' + token
         return(token)
 
-
-
-
-def getMapId(name, token = None):
-
-    body = {'name':name, 'nameFuzzy':False, 'access':['public','subscribed','owned']}    
-    if token == None:
-        r = s.post(url + '/account/maps', json = body )
-    else:
-        r = s.post(url + '/account/maps', json = body, 
-                     headers = {"Authorization":token} )
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
-
-    results = r.json()['result']
-    if( len(results) == 0):
-        raise ValueError('Map not found')
-    
-    
-    return(results[0]['id'])
-
-def getShapeId(name, token = None):
-
-    body = {'name':name, 'nameFuzzy':False, 'access':['public','subscribed','owned']}    
-    if token == None:
-        r = s.post(url + '/account/shapes', json = body )
-    else:
-        r = s.post(url + '/account/shapes', json = body, 
-                     headers = {"Authorization":token} )
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
-        
-    results = r.json()['result']
-    if( len(results) == 0):
-        raise ValueError('Map not found')
-    
-    
-    return(results[0]['id'])
-
-    
 def metadata(projectId, token = None):
     mapId = projectId
     if token == None:
@@ -99,20 +58,26 @@ def metadata(projectId, token = None):
     return(r)
 
 
-def getShapes(namePart= None, access = ['subscribed', 'public', 'owned'], bounds=None, userId= None, atlasId = None, token = None):
+def getShapes(name= None, fuzzyMatch = False, favorite = None, access = ['subscribed', 'public', 'owned'], bounds=None, userId= None, hashtag = None, limit = 100, token = None):
     
     body = {'access': access}
-    if str(type(namePart)) != str(type(None)):
-        body['name'] = namePart        
-        body['nameFuzzy'] = True        
+    if str(type(name)) != str(type(None)):
+        body['name'] = name
+        
+    body['nameFuzzy'] = True
+    
+    if str(type(favorite)) != str(type(None)):
+        body['favorite'] = name
+    
     if str(type(userId)) == str(type(None)):
         body['userId'] = userId
-    if str(type(atlasId)) != str(type(None)):
-        body['atlasId'] = atlasId
+    if str(type(hashtag)) != str(type(None)):
+        body['hashtag'] = hashtag
+        
     if str(type(bounds)) != str(type(None)):
         bounds = {'xMin':float(bounds['xMin']), 'xMax':float(bounds['xMax']), 'yMin':float(bounds['yMin']), 'yMax':float(bounds['yMax'])}
         body['bounds'] = bounds
-
+        
     keepGoing = True
     results = []
     while keepGoing:    
@@ -127,19 +92,24 @@ def getShapes(namePart= None, access = ['subscribed', 'public', 'owned'], bounds
         result = r.json()
         body['pageStart'] = result['nextPageStart']
         result = result['result']
-        results = results + result
         if len(result) < 100:
             keepGoing = False
-            
+        results = results + result
+        if len(result) >= limit:
+            keepGoing = False
+    end = min(limit, len(result))
+    result = result[0:end]
     return(results)
     
 
-def getMaps(namePart= None, access = ['subscribed', 'public', 'owned'], bounds = None, userId= None, resolutionRange=None, dateRange=None, atlasId = None, token = None):
+def getMaps(name= None, fuzzyMatch = False, access = ['subscribed', 'public', 'owned'], bounds = None, userId= None, favorite = None, resolutionRange=None, dateRange=None, hashtag = None, limit = 100, token = None):
 
     body = {'access': access}
-    if str(type(namePart)) != str(type(None)):
-        body['name'] = namePart        
-        body['nameFuzzy'] = True        
+    if str(type(name)) != str(type(None)):
+        body['name'] = name
+    body['nameFuzzy'] = fuzzyMatch        
+    if str(type(favorite)) != str(type(None)):
+        body['favorite'] = favorite
     if str(type(userId)) != str(type(None)):
         body['userId'] = userId
     if str(type(dateRange)) != str(type(None)):
@@ -147,8 +117,8 @@ def getMaps(namePart= None, access = ['subscribed', 'public', 'owned'], bounds =
         body['dateTo'] = dateRange['dateTo'].strftime('%Y-%m-%d %H:%M:%S')
     if str(type(resolutionRange)) != str(type(None)):
         body['resolution'] = resolutionRange
-    if str(type(atlasId)) != str(type(None)):
-        body['atlasId'] = atlasId
+    if str(type(hashtag)) != str(type(None)):
+        body['hashtag'] = hashtag
     if str(type(bounds)) != str(type(None)):
         bounds = {'xMin':float(bounds['xMin']), 'xMax':float(bounds['xMax']), 'yMin':float(bounds['yMin']), 'yMax':float(bounds['yMax'])}
         body['bounds'] = bounds
@@ -169,44 +139,27 @@ def getMaps(namePart= None, access = ['subscribed', 'public', 'owned'], bounds =
         body['pageStart'] = result['nextPageStart']
 
         results = results + result['result']
+        result = result['result']
         if len(result) < 100:
             keepGoing = False
-            
+        results = results + result
+        if len(result) >= limit:
+            keepGoing = False
+
+    end = min(limit, len(result))
+    result = result[0:end]
     return(results)
     
-    
-def rasterAggregate(mapId, geometry, aggregation = 'mean', timestamp=0, token = None):
-    if not aggregation in ['min', 'max', 'mean', 'deviation', 'sum']:
-        raise ValueError('aggregation must be one of min, max, mean, deviation or sum')
-    geometry =  gpd.GeoSeries([geometry]).__geo_interface__['features'][0]
-    body = {"mapId": mapId, 'geometry':geometry['geometry'], 'timestamp':timestamp, 'aggregation':aggregation}
-
-    if token == None:
-        r = s.post(url + '/data/geometry',
-                         json = body)
-    else:
-        r = s.post(url + '/data/geometry', headers = {"Authorization":token},
-                         json = body)
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
-    r = r.json()
-    r_dict = {}
-    for c in r.keys():
-        r_dict[c] = [r[c]]
         
-    r  = pd.DataFrame(r_dict)
-
-    return(r)
-
-
-    
 
 def getBounds(projectId, timestamp = None, token = None ):
     body = {"mapId": projectId}
 
     if str(type(timestamp)) != str(type(None)):
         body['timestamp'] = timestamp
-
+    else:
+        body['timestamp'] = 0
+        
     if token == None:
         r = s.post(url + '/settings/projects/bounds',
                          json = body)
@@ -217,19 +170,36 @@ def getBounds(projectId, timestamp = None, token = None ):
         raise ValueError(r.text)
     r = r.json()
     r['id'] = 0
+    r['properties'] = {}
     r  = gpd.GeoDataFrame.from_features([r])
     r = r.unary_union
     return(r)
         
-        
-def geometryGet(shapeId, layer, geometryIds = None, historyFilter = None, filters = None, xMin = None, xMax = None, yMin=None, yMax=None, wait = 0, deleted = False, limit = None, token = None):
-    mapId = shapeId
+def geometryIds(shapeId, layerId, geometryIds, wait = 0, token = None):
+    body = {"mapId":  shapeId, 'layerId':layerId, 'returnType':'all'}
+    ids_chunks = chunks( list(geometryIds))
+    sh = gpd.GeoDataFrame()
+
+    for chunk_ids in ids_chunks:
+        body['geometryIds'] = list(chunk_ids)
+
+        if token == None:
+            r = s.post(url + '/geometry/bounds',
+                             json = body, timeout=10)
+        else:
+            r = s.post(url + '/geometry/get', headers = {"Authorization":token},
+                             json = body, timeout=10)
+        if int(str(r).split('[')[1].split(']')[0]) != 200:
+            raise ValueError(r.text)
+
+        r = r.json()
+        sh  = sh.append(gpd.GeoDataFrame.from_features(r['result']['features']))
+        time.sleep(wait)
+
+    return(sh)
     
-    body = {"mapId":  mapId, 'layer':layer, 'deleted':deleted}
-    if str(type(xMin)) != str(type(None)):
-        body['bounds'] = {'xMin': float(xMin) , 'xMax':float(xMax), 'yMin':float(yMin), 'yMax':float(yMax)}
-    if str(type(geometryIds)) != str(type(None)):
-        body['geometryIds'] = geometryIds
+def geometryGet(shapeId, layerId, filters = None, limit = None, wait = 0, token = None):
+    body = {"mapId":  shapeId, 'layerId':layerId}
     if str(type(filters)) != str(type(None)):
         try:
             for i in np.arange(len(filters)):
@@ -241,30 +211,22 @@ def geometryGet(shapeId, layer, geometryIds = None, historyFilter = None, filter
                     filters[i]['value'] = int(filters[i]['value'])
                 if filters[i]['key'] == 'creationDate':
                     filters[i]['value'] = filters[i]['value'].strftime('%Y-%m-%d %H:%M:%S') 
-            body['propertyFilters'] = filters
+            body['propertyFilter'] = filters
         except:
             raise ValueError('filters must be an array with dictionaries. Each dictionary should have a property, key, operator and value')
-    if str(type(historyFilter)) != str(type(None)):
-        if 'dateFrom' in historyFilter.keys():
-                historyFilter['dateFrom'] = historyFilter['dateFrom'].strftime('%Y-%m-%d %H:%M:%S')
-        if  'dateTo' in historyFilter.keys():
-                historyFilter['dateTo'] = historyFilter['dateTo'].strftime('%Y-%m-%d %H:%M:%S') 
-        body['history'] = historyFilter
 
     body = json.dumps(body)
     body = json.loads(body)
 
-
     body['returnType'] = 'all'
     keepGoing = True
     sh = gpd.GeoDataFrame()
-
     while (keepGoing):
         if str(type(limit)) != str(type(None)):
-            limit = min(5000, limit - sh.shape[0])
+            limit = min(3000, limit - sh.shape[0])
             body['pageSize'] = limit
         if token == None:
-            r = s.post(url + '/geometry/get',
+            r = s.post(url + '/geometry/bounds',
                              json = body, timeout=10)
         else:
             r = s.post(url + '/geometry/get', headers = {"Authorization":token},
@@ -273,7 +235,66 @@ def geometryGet(shapeId, layer, geometryIds = None, historyFilter = None, filter
             raise ValueError(r.text)
         
         r = r.json()
-        if len(r['result']['features']) < 5000:
+        if len(r['result']['features']) < 3000 and not r['truncated']:
+            keepGoing = False
+
+        sh  = sh.append(gpd.GeoDataFrame.from_features(r['result']['features']))
+        body['pageStart'] = r['nextPageStart']
+        time.sleep(wait)
+            
+        if sh.shape[0]>0:
+            loadingBar(sh.shape[0],sh.shape[0])
+            
+    sh.crs = {'init': 'epsg:4326'}
+
+    return(sh)
+    
+        
+def geometryBounds(shapeId, layerId, xMin = None, xMax = None, yMin=None, yMax=None, filters=None, wait = 0, limit = None, token = None):
+    mapId = shapeId
+    
+    body = {"mapId":  mapId, 'layerId':layerId}
+    if str(type(xMin)) != str(type(None)):
+        body['bounds'] = {'xMin': float(xMin) , 'xMax':float(xMax), 'yMin':float(yMin), 'yMax':float(yMax)}
+
+    if str(type(filters)) != str(type(None)):
+        try:
+            for i in np.arange(len(filters)):
+                if 'float' in str(type(filters[i]['key'])):
+                    filters[i]['value'] = float(filters[i]['value'])
+                if 'bool' in str(type(filters[i]['key'])):
+                    filters[i]['value'] = bool(filters[i]['value'])
+                if 'int' in str(type(filters[i]['key'])):
+                    filters[i]['value'] = int(filters[i]['value'])
+                if filters[i]['key'] == 'creationDate':
+                    filters[i]['value'] = filters[i]['value'].strftime('%Y-%m-%d %H:%M:%S') 
+            body['propertyFilter'] = filters
+        except:
+            raise ValueError('filters must be an array with dictionaries. Each dictionary should have a property, key, operator and value')
+
+
+    body = json.dumps(body)
+    body = json.loads(body)
+
+    body['returnType'] = 'all'
+    keepGoing = True
+    sh = gpd.GeoDataFrame()
+
+    while (keepGoing):
+        if str(type(limit)) != str(type(None)):
+            limit = min(3000, limit - sh.shape[0])
+            body['pageSize'] = limit
+        if token == None:
+            r = s.post(url + '/geometry/bounds',
+                             json = body, timeout=10)
+        else:
+            r = s.post(url + '/geometry/get', headers = {"Authorization":token},
+                             json = body, timeout=10)
+        if int(str(r).split('[')[1].split(']')[0]) != 200:
+            raise ValueError(r.text)
+        
+        r = r.json()
+        if len(r['result']['features']) < 3000 and not r['truncated']:
             keepGoing = False
 
         sh  = sh.append(gpd.GeoDataFrame.from_features(r['result']['features']))
@@ -290,9 +311,9 @@ def geometryGet(shapeId, layer, geometryIds = None, historyFilter = None, filter
 
         
 
-def geometryVersions(shapeId, geometryId, token = None):
+def geometryVersions(shapeId, layerId, geometryId, token = None):
     mapId = shapeId
-    body = {"mapId":  mapId, 'geometryId':geometryId}
+    body = {"mapId":  mapId, "layerId":layerId, 'geometryId':geometryId, 'returnType':'all'}
     if token == None:
         r = s.post(url + '/geometry/versions',
                          json = body)    
@@ -302,45 +323,38 @@ def geometryVersions(shapeId, geometryId, token = None):
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
 
-    versions = r.json()
+    r  = r.json()['result']
 
     sh = gpd.GeoDataFrame()
-    for version in versions:
-        body = {"mapId":  mapId, 'geometryIds':[geometryId], 'type':'polygon', 'version':version['version']}
-        if token == None:
-            r = s.post(url + '/geometry/get',
-                             json = body)    
-        else:
-            r = s.post(url + '/geometry/get', headers = {"Authorization":token},
-                             json = body)    
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
-            raise ValueError(r.text)
-        r  = gpd.GeoDataFrame.from_features(r.json()['result']['features'])
-        r['version'] = version['version']
-        r['creationDate'] = version['editDate']
-        r['creationUser'] = version['editUser']
-        sh = sh.append(r)
+    for v in r:
+        sh_sub = gpd.GeoDataFrame({'geometry':[v['feature']]})
+        sh_sub['editUser'] = v['editUser']
+        sh_sub['editDate'] = v['editDate']
+        sh = sh.append(sh_sub)
+
     sh.crs = {'init': 'epsg:4326'}
     return(sh)
 
     
 
 
-def geometryDelete(shapeId, geometryIds, token, revert= False):
+def geometryDelete(shapeId, layerId, geometryIds, token, revert= False):
 
-    body = {"mapId":  shapeId, 'geometryIds': list(geometryIds), 'rever':revert}
+    body = {"mapId":  shapeId, "layerId":layerId , 'geometryIds': list(geometryIds), 'rever':revert}
 
     r= s.post(url + '/geometry/delete', headers = {"Authorization":token},
                      json = body)
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
 
-def geometryEdit(shapeId, geometryIds, features, token):
+def geometryEdit(shapeId, layerId, geometryIds, features, token):
     features = features.copy()
-    del features['id']
-    del features['user']
-    del features['creationDate']
-    del features['layer']
+    if 'id' in features.columns:
+        del features['id']
+    if 'userId' in features.columns:
+        del features['userId']
+    if 'attribution' in features.columns:
+        del features['attribution']
 
 
     mapId = shapeId
@@ -361,7 +375,7 @@ def geometryEdit(shapeId, geometryIds, features, token):
 
         changes = [{'geometryId':x[0] , 'newProperties':x[1]['properties'], 'newGeometry':x[1]['geometry']} for x in zip(geometryIds_sub, features_sub['features'])]
         
-        body = {"mapId":  mapId, 'changes':changes}
+        body = {"mapId":  mapId, "layerId":layerId, 'changes':changes}
         retried = 0
         while retried <= 20:
             try:
@@ -382,23 +396,50 @@ def geometryEdit(shapeId, geometryIds, features, token):
         i = i+1
 
 
-def geometryMove(shapeId, geometryIds, newLayer, token):
+def geometryMove(shapeId, geometryIds, oldLayerId, newLayerId, token):
     mapId = shapeId
     geometryIds = list(geometryIds)
     chunks_ids = chunks(geometryIds)
     N=0
     for chunk_ids in chunks_ids:
         r = s.post(url + '/geometry/move', headers = {"Authorization":token},
-                         json = {"mapId":  mapId, 'geometryIds':chunk_ids, 'newLayer':newLayer})
+                         json = {"mapId":  mapId, 'geometryIds':chunk_ids, 'newLayerId':newLayerId, "oldLayerId": oldLayerId})
         if int(str(r).split('[')[1].split(']')[0]) != 200:
             raise ValueError(r.text)
         loadingBar(N*3000 + len(chunk_ids), len(geometryIds))
         N=N+1
 
-
+def geometryChangelog(shapeId, layerId, limit = 100, userId = None, pageStart = None, actions = ['add', 'delete', 'recover', 'move'], token = None):
+    changes = []
+    keepGoing = True
     
+    while keepGoing:
+        pageSize = min(100, limit - len(changes))
+        body = {'mapId':shapeId, 'layerId':layerId, 'pageSize':pageSize, 'actions':list(actions)}
+        if str(type(userId)) != str(type(None)):
+            body['userId'] = userId
+        if str(type(pageStart)) != str(type(None)):
+            body['pageStart'] = pageStart
     
-def geometryAdd(shapeId, layer, features, token):
+        if token ==None:
+            r = s.post(url + '/geometry/changeLog',
+                         json = body )        
+        else:
+            r = s.post(url + '/geometry/changeLog', headers = {"Authorization":token},
+                         json = body )
+        if int(str(r).split('[')[1].split(']')[0]) != 200:
+            raise ValueError(r.text)
+            
+        r = r.json()
+        pageStart = r['nextPageStart']
+        r = r['result']
+        changes = changes + r
+        if len(changes) >= limit or str(type(pageStart)) == str(type(None)):
+            break
+    return({'changes':changes, 'pageStart':pageStart})
+  
+    
+def geometryAdd(shapeId, layerId, features, token, zoomlevels=None):
     mapId = shapeId
     if not str(type(features)) ==  "<class 'geopandas.geodataframe.GeoDataFrame'>":
         raise ValueError('features must be of type geopandas dataframe')
@@ -411,7 +452,7 @@ def geometryAdd(shapeId, layer, features, token):
         features = features.to_crs({'init': 'epsg:4326'})
     
     firstTime = metadata(projectId = mapId, token = token)['geometryLayers']
-    firstTime = [x for x in firstTime if x['name'] == layer]
+    firstTime = [x for x in firstTime if x['id'] == layerId]
     if len(firstTime)==0:
         raise ValueError('layer does not exist')
     firstTime = len(firstTime[0]['properties']) ==0
@@ -430,7 +471,7 @@ def geometryAdd(shapeId, layer, features, token):
             else:
                 propertyType = 'string'
                 
-            addProperty(shapeId = mapId, layer =layer, propertyName = c, propertyType = propertyType, token = token)
+            addProperty(shapeId = mapId, layerId =layerId, propertyName = c, propertyType = propertyType, token = token)
 
 
     indices = chunks(np.arange(features.shape[0]))
@@ -445,7 +486,11 @@ def geometryAdd(shapeId, layer, features, token):
         #float to int
         
         
-        body = {"mapId":  mapId, "layer":layer, "features":features_sub['features']}
+        body = {"mapId":  mapId, "layerId":layerId, "features":features_sub['features']}
+
+        if str(type(None)) != str(type(zoomlevels)):
+            body['zoomlevels'] = zoomlevels
+
         retried = 0
         while retried <= 20:
             try:
@@ -470,38 +515,20 @@ def geometryAdd(shapeId, layer, features, token):
 
         
     
-def messageGet(shapeId, users= None, userGroups=None, messageIds =None, geometryIds=None, showLoadingBar=False, includeDeleted=False, token = None):
-    mapId = shapeId
-    messages = []
-    Continue = True
-    body={'mapId':mapId, 'includeDeleted':includeDeleted}
+def messageGet(shapeId, layerId, userId= None, messageIds =None, geometryIds=None, limit = 100, deleted=False, token = None):
 
-    if str(type(users)) != str(type(None)):
-        body['users']=users
-    if str(type(userGroups)) != str(type(None)):
-        body['userGroups']=userGroups
-    if str(type(messageIds)) != str(type(None)):
-        body['messageIds']=messageIds
+    body={'mapId':shapeId, 'layerId':layerId, 'deleted':deleted, 'returnType':'all'}
+
+    if str(type(userId)) != str(type(None)):
+        body['userId']=userId
     if str(type(geometryIds)) != str(type(None)):
-        body['geometryIds']=geometryIds
+        body['geometryIds']= list(geometryIds)
     
-    if showLoadingBar:
-        body['returnType']='count'
-        if token == None:
-            r = s.post(url + '/message/get',
-                         json = body )        
-        else:
-            r = s.post(url + '/message/get', headers = {"Authorization":token},
-                         json = body )
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
-            raise ValueError(r.text)
-        
-        r =  r.json()
-        count = r['count']        
-    
-    body['returnType']='all'
+    keepGoing = True
+    messages = []
+    while(keepGoing):
+        body['pageSize'] = min(100, limit - len(messages))
 
-    while(Continue):
         if token == None:
             r = s.post(url + '/message/get',
                          json = body )        
@@ -514,16 +541,16 @@ def messageGet(shapeId, users= None, userGroups=None, messageIds =None, geometry
         r =  r.json()
 
         body['pageStart']=r['nextPageStart']
-        Continue = len(r['result']) ==100
+
         messages = messages +  r['result']
-        if showLoadingBar:
-            loadingBar(len(messages), count)
+        keepGoing = len(messages) < limit or str(type(r['nextPageStart'])) == str(type(None))
+        loadingBar(len(messages), len(messages))
     
     return(messages)
     
-def messageAdd(shapeId, geometryId, token, attachFile=None, replyTo = None, message = None, private= None, image=None, lon=None, lat=None): 
+def messageAdd(shapeId, layerId, geometryId, token, attachFile=None, replyTo = None, message = None, private= None, image=None, lon=None, lat=None): 
     mapId = shapeId    
-    body = {'mapId':mapId, 'geometryId':geometryId}
+    body = {'mapId':mapId, 'layerId':layerId, 'geometryId':geometryId}
     if str(type(lon)) != "<class 'NoneType'>":
         lon = float(lon)
     if str(type(lat)) != "<class 'NoneType'>":
@@ -557,19 +584,18 @@ def messageAdd(shapeId, geometryId, token, attachFile=None, replyTo = None, mess
             fileName = attachFile.split('/')[-1].split('/')[-1]
 
             files = {'upload': open(attachFile,'rb')}
-            body = {'mapId':mapId, 'messageId':messageId, 'fileName':fileName}
-
+            body = {'mapId':mapId, 'layerId':layerId, 'messageId':messageId, 'fileName':fileName}
             r = s.post(url + '/message/attach', headers = {"Authorization":token},
                          data = body, files =files )
             if int(str(r).split('[')[1].split(']')[0]) != 200:
                 raise ValueError(r.text)
 
 
-    return(messageId)
+    return({'id':messageId})
 
-def messageDelete(shapeId, messageId, token):    
+def messageDelete(shapeId, layerId, messageId, token):    
     mapId = shapeId
-    body = {'mapId':mapId, 'messageId':messageId}
+    body = {'mapId':mapId, 'layerId':layerId, 'messageId':messageId}
     r = s.post(url + '/message/delete', headers = {"Authorization":token},
                  json = body )
     if int(str(r).split('[')[1].split(']')[0]) != 200:
@@ -577,9 +603,9 @@ def messageDelete(shapeId, messageId, token):
     
 
 
-def messageImage(shapeId, messageId, token = None):
+def messageImage(shapeId, layerId, messageId, token = None):
     mapId = shapeId
-    body = {'mapId':mapId, 'messageId':messageId}
+    body = {'mapId':mapId, 'layerId':layerId, 'messageId':messageId}
     if token ==None:
         r = s.post(url + '/message/image',
                      json = body )        
@@ -596,9 +622,9 @@ def messageImage(shapeId, messageId, token = None):
  
     return(im)
 
-def messageAttachement(shapeId, messageId, fileName, token = None):
+def messageAttachement(shapeId, layerId, messageId, fileName, token = None):
     mapId = shapeId    
-    body = {'mapId':mapId, 'messageId':messageId}
+    body = {'mapId':mapId, 'layerId':layerId, 'messageId':messageId}
     if token ==None:
         r = s.post(url + '/message/downloadAttachment',
                      json = body )        
@@ -609,6 +635,24 @@ def messageAttachement(shapeId, messageId, fileName, token = None):
         raise ValueError(r.text)
         
     open(fileName, 'wb').write(r.content)
+
+
+def rasterAggregated(mapId, timestamp, geometry, approximate = True, token = None):
+    sh = gpd.GeoDataFrame({'geometry':[geometry]})
+    geometry =sh.to_json(na='drop')
+    geometry = json.loads(geometry)
+    geometry = geometry['features'][0]['geometry']
+    body = {'mapId':mapId, 'timestamp':timestamp, 'geometry':geometry, 'approximate':approximate}
+    print(json.dumps(body))
+    if token ==None:
+        r = s.post(url +  '/raster/aggregated',
+                     json = body )        
+    else:
+        r = s.post(url +  '/raster/aggregated', headers = {"Authorization":token},
+                     json = body )
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+    return(r.json())
 
 
 def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, bounds=None, downsample = False, width = None, height = None, token = None):
@@ -637,21 +681,17 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, boun
         if str(type(width)) == str(type(None)) or str(type(height)) == str(type(None)):
             raise ValueError('if downsample is true, width and height are required')
 
-        timestamps = metadata(mapId, token)['timestamps']
 
-        r = s.get(url + '/wms/raw/' + mapId + '?SERVICE=WMS&REQUEST=GetCapabilities' + token_inurl)                
-        d = xmltodict.parse(r.text)
-        layers = {}
-        for layer in d['Capabilities']['Capability']['Layer']:
-            layers[layer['Title']] = layer['Name']
-                
+        bbox = {'xMin':xMin, 'xMax':xMax, 'yMin':yMin , 'yMax':yMax}
+        body = {'mapId':mapId, 'timestamp' : timestamp, 'mapId':mapId, 'bounds':bbox, 'width':width, 'height':height}
 
-        timestampDate = next(item['dateTo'] for item in timestamps if item["timestamp"] == timestamp)
-        timestampDate = str(timestampDate).split('T')[0]
-        layerId = layers[timestampDate + '_' + str(timestamp)]
-        w = int(width)
-        h = int(height)
-        r = s.get(url + '/wms/raw/' + mapId + '?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&BBOX=' + str(yMinWeb) + ',' + str(xMinWeb) + ',' + str(yMaxWeb) + ',' + str(xMaxWeb) + '&CRS=EPSG:3857&WIDTH=' + str(w) + '&HEIGHT=' + str(h) + '&LAYERS=' + layerId + '&STYLES=&FORMAT=image/tiff&DPI=96&MAP_RESOLUTION=96&FORMAT_OPTIONS=dpi:96&TRANSPARENT=TRUE' + token_inurl)
+        if str(type(token)) == str(type(None)):
+            r = s.post(url + '/raster/raw',
+                         json = body )        
+        else:
+            r = s.post(url + '/raster/raw', headers = {"Authorization":token},
+                         json = body )
+
 
         if int(str(r).split('[')[1].split(']')[0]) != 200:
                 raise ValueError(r.text)
@@ -659,8 +699,7 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, boun
                  with MemoryFile(r.content) as memfile:
                      with memfile.open() as dataset:
                          r_total = dataset.read()
-        r_total = np.transpose(r, (1,2,0) )
-
+        r_total = np.transpose(r_total, (1,2,0) )
 
     else:
             bands = metadata(mapId)['bands']
@@ -668,6 +707,10 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, boun
 
 
             timestamps = metadata(mapId, token = token)['timestamps']
+            all_timestamps = [item["timestamp"] for item in timestamps]
+            if not timestamp in all_timestamps:
+                raise ValueError('given timestamp does not exist')
+            
             zoom = next(item for item in timestamps if item["timestamp"] == timestamp)['zoom']
           
             min_x_osm_precise =  (xMin +180 ) * 2**zoom / 360 
@@ -695,18 +738,18 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, boun
 
 
                     if int(str(r).split('[')[1].split(']')[0]) != 200:
-                            r = np.zeros((256,256,num_bands))
+                            r = np.zeros((num_bands,256,256))
                     else:
                              with MemoryFile(r.content) as memfile:
                                  with memfile.open() as dataset:
                                      r = dataset.read()
                     r = np.transpose(r, (1,2,0) )
-
+                    
                     bands = list(np.arange(num_bands-1))
                     bands.append(r.shape[2]-1)
                     r_total[y_index*256:(y_index+1)*256,x_index*256:(x_index+1)*256, : ] = r[:,:, bands]
-                        
-
+                    
+                    
                     loadingBar(x_index + y_index*len(x_tiles) + 1,len(x_tiles)*len(y_tiles))
                 
                 
@@ -841,7 +884,7 @@ def rasterVisual(mapId, timestamp, layerId, xMin= None,xMax= None,yMin=None, yMa
 
 
 
-def seriesAdd(shapeId, geometryId, data, token, includeDatetime = True):
+def seriesAdd(shapeId, layerId, geometryId, data, token, includeDatetime = True):
     data = data.copy()
     mapId = shapeId
     
@@ -859,11 +902,9 @@ def seriesAdd(shapeId, geometryId, data, token, includeDatetime = True):
         else:
            raise  ValueError('datetime column must be of type datetime')
 
-
     for c in data.columns:
             data[c] = data[c].astype(float)
         
-
     values = []
     for i in np.arange(data.shape[0]):
         for c in data.columns:
@@ -878,7 +919,7 @@ def seriesAdd(shapeId, geometryId, data, token, includeDatetime = True):
     chunks_values = chunks(values)
     N = 0
     for values_sub in chunks_values:
-        body = {"mapId":  mapId, "values":values_sub, 'geometryId':geometryId}
+        body = {"mapId":  mapId, "values":values_sub, 'layerId':layerId, 'geometryId':geometryId}
         r = s.post(url + '/series/add', headers = {"Authorization":token},
                      json = body)
         
@@ -889,26 +930,8 @@ def seriesAdd(shapeId, geometryId, data, token, includeDatetime = True):
         N = N+1
 
 
-def seriesDelete(shapeId, geometryId, token, user = None, dateFrom = None, dateTo = None, revert = False, history=None):
-    mapId = shapeId
-    body = {'mapId':mapId, 'geometryId':geometryId, 'revert':revert}
-    if str(type(user)) != str(type(None)):
-        body['user'] = user
-    if str(type(dateTo)) != str(type(None)):
-        if str(type(dateTo)) == "<class 'datetime.datetime'>":
-            dateTo = dateTo.strftime('%Y-%m-%d %H:%M:%S')
-        body['dateTo'] = dateTo
-    if str(type(dateFrom)) != str(type(None)):
-        if str(type(dateFrom)) == "<class 'datetime.datetime'>":
-            dateFrom = dateFrom.strftime('%Y-%m-%d %H:%M:%S')
-        body['dateFrom'] = dateFrom
-
-    if str(type(history)) != str(type(None)):
-            if 'dateFrom' in history.keys():
-                history['dateFrom'] = history['dateFrom'].strftime('%Y-%m-%d %H:%M:%S')
-            if 'dateTo' in history.keys():
-                history['dateTo'] = history['dateTo'].strftime('%Y-%m-%d %H:%M:%S')
-            body['history'] = history
+def seriesDelete(shapeId, layerId, geometryId, seriesIds, token, revert = False):
+    body = {'mapId':shapeId, 'layerId':layerId, 'geometryId':geometryId, 'seriesIds':list(seriesIds), 'revert':revert}
             
     r = s.post(url + '/series/delete', headers = {"Authorization":token},
                  json = body)
@@ -916,10 +939,40 @@ def seriesDelete(shapeId, geometryId, token, user = None, dateFrom = None, dateT
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
 
+def seriesChangelog(shapeId, layerId, geometryId, limit = 100, userId = None, pageStart = None, actions = ['add', 'delete', 'revert'], token = None):
+    changes = []
+    keepGoing = True
+    
+    while keepGoing:
+        pageSize = min(100, limit - len(changes))
+        body = {'mapId':shapeId, 'layerId':layerId, 'geometryId':geometryId, 'pageSize':pageSize, 'actions':list(actions)}
+        if str(type(userId)) != str(type(None)):
+            body['userId'] = userId
+        if str(type(pageStart)) != str(type(None)):
+            body['pageStart'] = pageStart
+    
+        if token ==None:
+            r = s.post(url + '/series/changelog',
+                         json = body )        
+        else:
+            r = s.post(url + '/series/changelog', headers = {"Authorization":token},
+                         json = body )
+        if int(str(r).split('[')[1].split(']')[0]) != 200:
+            raise ValueError(r.text)
+            
+        r = r.json()
+        pageStart = r['nextPageStart']
+        r = r['result']
 
-def seriesInfo(shapeId, geometryId = None, token = None):
+        changes = changes + r
+        if len(changes) >= limit or str(type(pageStart)) == str(type(None)):
+            break
+    return(changes)
+    
+
+def seriesInfo(shapeId, layerId, geometryId = None, token = None):
     mapId = shapeId
-    body = {'mapId':mapId}
+    body = {'mapId':mapId, 'layerId':layerId}
     if str(type(geometryId)) != str(type(None)):
         body['geometryId'] = geometryId
         
@@ -929,93 +982,101 @@ def seriesInfo(shapeId, geometryId = None, token = None):
     else:
         r = s.post(url + '/series/info', headers = {"Authorization":token},
                      json = body )
+
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
         
     r = r.json()
+
+    r['dateMin'] = datetime.strptime(r['dateMin'], "%Y-%m-%d %H:%M:%S")
+    r['dateMax'] = datetime.strptime(r['dateMax'], "%Y-%m-%d %H:%M:%S")
+
     return(r)
 
-def seriesGet(shapeId, geometryId, propertyString = None, dateFrom = None, dateTo = None, user=None, historyFilter = None, deleted = False, token  = None):
+def seriesGet(shapeId, layerId, geometryId, propertyName = None, dateFrom = None, dateTo = None, pageStart = None, userId=None, limit = None, token  = None):
+
     mapId = shapeId
-    body = {'mapId':mapId, 'geometryId':geometryId, 'deleted':deleted}
-    if str(type(user)) != str(type(None)):
-        body['user'] = user
+    body = {'mapId':mapId, 'geometryId':geometryId, 'returnType':'json', 'layerId':layerId}
+
+    if str(type(pageStart)) != str(type(None)) and str(type(pageStart)) != str(type(None)):
+        raise ValueError('cannot define pageStart together with dateTo')
+    if str(type(dateFrom)) != str(type(None)):
+        if str(type(dateFrom)) == "<class 'datetime.datetime'>":
+            dateFrom = dateFrom.strftime('%Y-%m-%d %H:%M:%S')
+            pageStart = {'dateFrom':dateFrom}
+        
+
+    if str(type(userId)) != str(type(None)):
+        body['userId'] = userId
     if str(type(dateTo)) != str(type(None)):
         if str(type(dateTo)) == "<class 'datetime.datetime'>":
             dateTo = dateTo.strftime('%Y-%m-%d %H:%M:%S')
         body['dateTo'] = dateTo
-    if str(type(dateFrom)) != str(type(None)):
-        if str(type(dateFrom)) == "<class 'datetime.datetime'>":
-            dateFrom = dateFrom.strftime('%Y-%m-%d %H:%M:%S')
-        body['dateFrom'] = dateFrom
-    if str(type(propertyString)) != str(type(None)):
-        body['property'] = propertyString
-
-    if str(type(historyFilter)) != str(type(None)):
-        if 'dateFrom' in historyFilter.keys():
-                historyFilter['dateFrom'] = historyFilter['dateFrom'].strftime('%Y-%m-%d %H:%M:%S')
-        if  'dateTo' in historyFilter.keys():
-                historyFilter['dateTo'] = historyFilter['dateTo'].strftime('%Y-%m-%d %H:%M:%S') 
-        body['history'] = historyFilter
+    if str(type(propertyName)) != str(type(None)):
+        body['property'] = propertyName
 
 
-    if token ==None:
-        r = s.post(url + '/series/get',
-                     json = body )        
-    else:
-        r = s.post(url + '/series/get', headers = {"Authorization":token},
-                     json = body )
+    keepGoing = True
+    series = []
+    while keepGoing:
+        
+        if(str(type(pageStart)) != str(type(None))):
+            body['pageStart'] = pageStart
+        if(str(type(limit)) != str(type(None))):
+            body['limit'] = min(5000, limit - len(series))
+        
+        if token ==None:
+            r = s.post(url + '/series/get',
+                         json = body )        
+        else:
+            r = s.post(url + '/series/get', headers = {"Authorization":token},
+                         json = body )
+    
+        if int(str(r).split('[')[1].split(']')[0]) != 200:
+            raise ValueError(r.text)
+        r = r.json()
+        pageStart = r['nextPageStart']
+        series = series + [r['result']]
 
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
-    r = pd.read_csv(StringIO(r.text))
-    if r.shape[0]>0:
-        r['date'] = pd.to_datetime(r['date'], format="%Y-%m-%d %H:%M:%S")
-    return(r)
+        
 
-def seriesAggregated(shapeId, geometryIds, aggregation = 'mean',  dateFrom = None, dateTo = None, user=None, token = None):
-    mapId = shapeId
-    body = {'mapId':mapId, 'geometryIds': list(geometryIds), 'aggregation' : aggregation}
-    if str(type(user)) == str(type(None)):
-        body['user'] = user
-    if str(type(dateTo)) != str(type(None)):
-        if str(type(dateTo)) == "<class 'datetime.datetime'>":
-            dateTo = dateTo.strftime('%Y-%m-%d %H:%M:%S')
-        body['dateTo'] = dateTo
-    if str(type(dateFrom)) != str(type(None)):
-        if str(type(dateFrom)) == "<class 'datetime.datetime'>":
-            dateFrom = dateFrom.strftime('%Y-%m-%d %H:%M:%S')
-        body['dateFrom'] = dateFrom
+        if str(type(limit)) != str(type(None)) and len(series >= limit):
+            keepGoing = False
 
-    if token ==None:
-        r = s.post(url + '/series/aggregated',
-                     json = body )        
-    else:
-        r = s.post(url + '/series/aggregated', headers = {"Authorization":token},
-                     json = body )
+        if str(type(pageStart)) == str(type(None)):
+            keepGoing = False
 
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
-
-    r = pd.read_csv(StringIO(r.text))
-    return(r)
-
-
-
+    series = [ { 'id':k['id'], 'property': k['property'], 'value': k['value'], 'date': datetime.strptime(k['date'], "%Y-%m-%dT%H:%M:%S.%fZ") } for k in series]
+    r = pd.DataFrame(series)
+    return(series)
 
     
 ################################################up and downloads
-def addTimestamp(mapId, startDate, endDate, token, bounds=None):
-    startDate = startDate.strftime('%Y-%m-%d')
-    endDate = endDate.strftime('%Y-%m-%d')
-    
-    
+def addTimestamp(mapId, startDate, token, endDate = None, bounds=None):
+    if str(type(endDate)) == str(type(None)):
+        endDate = startDate
+
+    if str(type(startDate)) != str(type('hoi')):
+        startDate = startDate.strftime('%Y-%m-%d')    
+        endDate = endDate.strftime('%Y-%m-%d')
+
+    toAdd = {'dateFrom':startDate, 'dateTo':endDate}
+
+    if str(type(bounds)) != str(type(None)):
+        boundary = gpd.GeoSeries([bounds]).__geo_interface__['features'][0]
+        boundary = boundary['geometry']
+        toAdd['bounds'] = boundary        
+
+    body = {"mapId":  mapId, "toAdd":[toAdd]}    
+        
     
     r = s.post(url + '/settings/projects/reschedule', headers = {"Authorization":token},
-                 json = {"mapId":  mapId, "toAdd":[{'startDate':startDate, 'endDate':endDate}]})
+                 json = body)
 
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
     r = r.json()[0]
-    return(r)
+    return({'id':r})
 
     
 def activateTimestamp(mapId, timestampId, active, token):
@@ -1042,6 +1103,15 @@ def removeTimestamp(mapId, timestampId, token):
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
 
+def getGeometryUploads(shapeId, layerId, token):
+    body = {'mapId':shapeId, 'layerId': layerId}
+    r = s.post(url +  '/files/geometry/getUploads', headers = {"Authorization":token},
+                 json = body)
+
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+    return(r.json())
+    
 
 def uploadRasterFile(mapId, timestampId, file, token, fileFormat = 'tif', epsg = None):
     
@@ -1057,7 +1127,7 @@ def uploadRasterFile(mapId, timestampId, file, token, fileFormat = 'tif', epsg =
             raise ValueError( file + ' not found')
     
     conn_file = open(file, 'rb')
-    payload = MultipartEncoder({'upload': (fileName, conn_file, 'application/octet-stream'), 'captureId': timestampId, 'format':fileFormat, 'fileName':fileName})
+    payload = MultipartEncoder({'upload': (fileName, conn_file, 'application/octet-stream'), 'timestampId': timestampId, 'mapId':mapId, 'format':fileFormat, 'fileName':fileName})
     
     if str(type(epsg)) != str(type(None)):
         payload['epsg'] = epsg
@@ -1076,17 +1146,18 @@ def addShapeLayer(shapeId, layerName, token, color = "#fcba033f"):
 
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
+    return(r.json())
 
-def deleteShapeLayer(shapeId, layerName, token):
+def removeShapeLayer(shapeId, layerId, token, revert = False):
     mapId = shapeId
     r = s.post(url + '/settings/geometryLayers/delete', headers = {"Authorization":token},
-                 json = {"mapId":  mapId, "layerName":layerName })
+                 json = {"mapId":  mapId, "layerId":layerId, "revert": revert })
 
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
 
         
-def uploadGeometryFile(shapeId, layerName, file, fileFormat, token, epsg=None):
+def uploadGeometryFile(shapeId, layerId, file, fileFormat, token, epsg=None):
     mapId = shapeId
     
     if not os.path.exists(file):
@@ -1096,7 +1167,7 @@ def uploadGeometryFile(shapeId, layerName, file, fileFormat, token, epsg=None):
     fileName = file.split(splitsign)[-1]
 
     conn_file = open(file, 'rb')
-    payload = MultipartEncoder({'upload': (fileName, conn_file, 'application/octet-stream'), "mapId":  mapId, 'layer':layerName, 'fileName':fileName, 'format':fileFormat } )
+    payload = MultipartEncoder({'upload': (fileName, conn_file, 'application/octet-stream'), "mapId":  mapId, 'layerId':layerId, 'fileName':fileName, 'format':fileFormat } )
 
     if str(type(epsg)) != str(type(None)):
         payload['epsg'] = int(epsg)
@@ -1105,17 +1176,31 @@ def uploadGeometryFile(shapeId, layerName, file, fileFormat, token, epsg=None):
     
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
-
-    conn_file.close()
         
-def addProperty(shapeId, layer, propertyName, propertyType, token, private=False, required=False):
+    conn_file.close()
+    
+def addProperty(shapeId, layerId, propertyName, propertyType, token, private=False, required=False):
     mapId = shapeId
-    body = {"mapId":  mapId, 'layerName':layer, 'propertyName': propertyName, 'type':propertyType, 'private':private, 'required':required }
-
+    body = {"mapId":  mapId, 'layerId':layerId, 'propertyName': propertyName, 'type':propertyType, 'private':private, 'required':required }
+    
     r = s.post(url + '/settings/geometryLayers/addProperty', headers = {"Authorization":token},
                      json = body)
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
+    return(r.json())
+
+
+def deleteProperty(shapeId, layerId, propertyName, token, revert = False):
+    mapId = shapeId
+    body = {"mapId":  mapId, 'layerId':layerId, 'propertyName': propertyName, 'revert':revert }
+    
+    r = s.post(url + '/settings/geometryLayers/deleteProperty', headers = {"Authorization":token},
+                     json = body)
+    
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+
+
 
 
 def shapeLayerAddStyle(shapeId, layerId, styleName, rules, token, isDefault=False):
@@ -1144,7 +1229,7 @@ def shapeLayerAddStyle(shapeId, layerId, styleName, rules, token, isDefault=Fals
     r= r.json()
     return(r)
 
-def shapeLayerDeleteStyle(shapeId, layerId, styleId, token):
+def shapeLayerRemoveStyle(shapeId, layerId, styleId, token):
 
     body = {'mapId':shapeId, 'layerId': layerId, 'styleId':styleId}
     r = s.post(url + '/settings/geometryLayers/removeStyle', headers = {"Authorization":token},
@@ -1155,26 +1240,23 @@ def shapeLayerDeleteStyle(shapeId, layerId, styleId, token):
         raise ValueError(r.text)
 
 
-def shapeLayerEditStyle(shapeId, layerId, styleId, newRules, newName, setDefault, token):
-    rules = newRules
-    rules_new = []
-    for rule in rules:
-        value = rule['value']
-        if 'float' in str(type(value)):
-            value = float(value)
-        elif 'int' in str(type(value)):
-            value = int(value)
-        elif 'str' in str(type(value)):
-            value = str(value)
-        elif 'bool' in str(type(value)):
-            value = bool(value)
-        else:
-            raise ValueError('value must be a float, int or string')
-        rules_new = rules_new + [ {'property': str(rule['property']) , 'value': value , 'operator': str(rule['operator']) , 'color': str(rule['color']) } ]
+
+def mapVisualisationAdd(mapId, name, method , bands, parameters, token):
+    parameter = json.loads(json.dumps(parameters))
+    body = {'mapId': mapId, 'name':name, 'method':method, 'bands':list(bands), 'overwrite':False, 'parameters':parameter}
+    print(json.dumps(body))
+    r = s.post(url + '/settings/mapLayers/add', headers = {"Authorization":token},
+                     json = body)
     
     
-    body = {'mapId':shapeId, 'layerId': layerId, 'styleId':styleId, 'newRules':rules_new, 'newDefault':setDefault, 'newStyleName':newName }
-    r = s.post(url + '/settings/geometryLayers/editStyle', headers = {"Authorization":token},
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+
+    return(r.json())
+
+def mapVisualisationRemove(mapId, layerId, token):
+    body = {'mapId': mapId, 'layerId':layerId}
+    r = s.post(url + '/settings/mapLayers/delete', headers = {"Authorization":token},
                      json = body)
     
     
@@ -1182,8 +1264,6 @@ def shapeLayerEditStyle(shapeId, layerId, styleId, newRules, newName, setDefault
         raise ValueError(r.text)
 
 
-
-    
 ############################new projects
 def newShape(name, token):
 
@@ -1210,49 +1290,10 @@ def updateBounds(shapeId, token, boundary):
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
     
-
-def getBands(token=None):
-    body = {}
-    if str(type(token)) == str(type(None)):
-        r = s.post(url + '/settings/projects/bands',
-                        json = body)    
-    else:
-        r = s.post(url + '/settings/projects/bands', headers = {"Authorization":token},
-                         json = body)    
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
-
-
-
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
     
-    r = r.json()
+def newMap(name,  token):
 
-    r = r['bands']
-    r = pd.DataFrame(r)
-    r = r[['id','name']]
-    
-    return(r)
-    
-    
-def addBand(name, token):
     body = {'name':name}
-    r = s.post(url + '/settings/projects/newBand' , headers = {"Authorization":token},
-                     json = body)
-
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
-    
-    r = r.json()
-    return(r['id'])
-
-    
-    
-def newMap(name,  token, bands, dataType = 'float32' ):
-
-
-    body = {'name':name, 'bands':bands, 'dataType':dataType}
 
     r = s.post(url + '/settings/projects/newMap', headers = {"Authorization":token},
                      json = body)
@@ -1261,7 +1302,7 @@ def newMap(name,  token, bands, dataType = 'float32' ):
         raise ValueError(r.text)
     
     r = r.json()
-    return(r['id'])
+    return(r)
 
 
 def newOrder(name, token,  dataSource = 'sentinel2RGBIR' ):
@@ -1291,6 +1332,29 @@ def projectProperties(projectId, properties, token):
         raise ValueError(r.text)
     
 
+def projectAddHashtag(projectId, hashtag, token):
+    mapId = projectId
+    body = {'mapId':mapId, 'hashtag':hashtag}
+    
+    r = s.post(url + '/settings/organize/addHashtag', headers = {"Authorization":token},
+                     json = body)
+
+
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+
+
+def projectRemoveHashtag(projectId, hashtag, token):
+    mapId = projectId
+    body = {'mapId':mapId, 'hashtag':hashtag}
+    r = s.post(url + '/settings/organize/removeHashtag', headers = {"Authorization":token},
+                     json = body)
+
+
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+
+
 def projectDescription(projectId, description, token):
     r = s.post(url + '/settings/organize/description', headers = {"Authorization":token},
                      json = {'mapId':projectId, 'description':description })
@@ -1300,76 +1364,6 @@ def projectDescription(projectId, description, token):
         raise ValueError(r.text)
 
 
-#####
-def atlasNew(name, token):
-    body = {'name':name}
-    r = s.post(url + '/atlas/add', headers = {"Authorization":token},
-                     json = body)
-
-
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
-    
-    return(r.json())
-    
-def atlasGet(token):
-    r = s.get(url + '/atlas/list', headers = {"Authorization":token})
-
-
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
-    
-    return(r.json())
-    
-
-def atlasCouple(atlasId, projectId, token, remove = False):
-    body = {'atlasId': atlasId, 'mapId':projectId, 'remove':remove}
-    r = s.post(url + '/atlas/couple', headers = {"Authorization":token},
-                     json = body)
-
-
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
-    
-
-
-def atlasRemove(atlasId, token):
-    body = {'atlasId': atlasId}
-    r = s.post(url + '/atlas/delete', headers = {"Authorization":token},
-                     json = body)
-
-
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
-
-
-    
-###calculations
-
-def runModel(mapId, timestamp, token, dryRun=True):
-    body = {'mapId':mapId, 'timestamp':timestamp,'type':'model', 'dryRun':dryRun }
-    r = s.post(url + '/settings/models/run', headers = {"Authorization":token},
-                     json = body)
-
-
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
-    
-    if dryRun:
-        r = r.json()
-        return(r)
-    
-def aggregate(mapId, timestamp, token, dryRun = True):
-    r = s.post(url + '/settings/model/run', headers = {"Authorization":token},
-                     json = {'mapId':mapId, 'timestamp':timestamp,'type':'aggregation', 'dryRun':dryRun })
-
-
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
-
-    if dryRun:
-        r = r.json()
-        return(r)
 
 
 ##################################################################################################################
@@ -1475,8 +1469,8 @@ def cover(bounds, w):
     coords.crs = {'init': 'epsg:4326'}
 
     return(coords)
-     
-     
+    
+
     
 def loadingBar(count,total):
     percent = float(count)/float(total)*100
