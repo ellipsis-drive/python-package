@@ -23,9 +23,9 @@ import os
 from rasterio.io import MemoryFile
 from requests_toolbelt import MultipartEncoder
 import warnings
+import threading
 
-
-__version__ = '1.2.0'
+__version__ = '1.2.8'
 url = 'https://api.ellipsis-drive.com/v1'
 
 s = requests.Session()
@@ -43,14 +43,14 @@ def logIn(username, password):
         token = 'Bearer ' + token
         return(token)
 
-def metadata(projectId, token = None):
+def metadata(projectId, includeDeleted=False, token = None):
     mapId = projectId
     if token == None:
         r = s.post(url + '/metadata',
                          json = {"mapId":  mapId})
     else:
         r = s.post(url + '/metadata', headers = {"Authorization":token},
-                         json = {"mapId":  mapId})
+                         json = {"mapId":  mapId, 'includeDeleted':includeDeleted})
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
     
@@ -69,7 +69,7 @@ def getShapes(name= None, fuzzyMatch = False, favorite = None, access = ['subscr
     if str(type(favorite)) != str(type(None)):
         body['favorite'] = name
     
-    if str(type(userId)) == str(type(None)):
+    if str(type(userId)) != str(type(None)):
         body['userId'] = userId
     if str(type(hashtag)) != str(type(None)):
         body['hashtag'] = hashtag
@@ -216,6 +216,8 @@ def geometryGet(shapeId, layerId, filters = None, limit = None, wait = 0, token 
             raise ValueError('filters must be an array with dictionaries. Each dictionary should have a property, key, operator and value')
 
     body = json.dumps(body)
+    print(body)
+
     body = json.loads(body)
 
     body['returnType'] = 'all'
@@ -226,7 +228,7 @@ def geometryGet(shapeId, layerId, filters = None, limit = None, wait = 0, token 
             limit = min(3000, limit - sh.shape[0])
             body['pageSize'] = limit
         if token == None:
-            r = s.post(url + '/geometry/bounds',
+            r = s.post(url + '/geometry/get',
                              json = body, timeout=10)
         else:
             r = s.post(url + '/geometry/get', headers = {"Authorization":token},
@@ -254,8 +256,16 @@ def geometryBounds(shapeId, layerId, xMin = None, xMax = None, yMin=None, yMax=N
     mapId = shapeId
     
     body = {"mapId":  mapId, 'layerId':layerId}
-    if str(type(xMin)) != str(type(None)):
-        body['bounds'] = {'xMin': float(xMin) , 'xMax':float(xMax), 'yMin':float(yMin), 'yMax':float(yMax)}
+    if str(type(xMin)) == str(type(None)):
+        xMin = -180
+    if str(type(xMax)) == str(type(None)):
+        xMax = 180
+    if str(type(yMin)) == str(type(None)):
+        yMin = -85
+    if str(type(yMax)) == str(type(None)):
+        yMax = 85
+        
+    body['bounds'] = {'xMin': float(xMin) , 'xMax':float(xMax), 'yMin':float(yMin), 'yMax':float(yMax)}
 
     if str(type(filters)) != str(type(None)):
         try:
@@ -288,7 +298,7 @@ def geometryBounds(shapeId, layerId, xMin = None, xMax = None, yMin=None, yMax=N
             r = s.post(url + '/geometry/bounds',
                              json = body, timeout=10)
         else:
-            r = s.post(url + '/geometry/get', headers = {"Authorization":token},
+            r = s.post(url + '/geometry/bounds', headers = {"Authorization":token},
                              json = body, timeout=10)
         if int(str(r).split('[')[1].split(']')[0]) != 200:
             raise ValueError(r.text)
@@ -347,7 +357,7 @@ def geometryDelete(shapeId, layerId, geometryIds, token, revert= False):
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
 
-def geometryEdit(shapeId, layerId, geometryIds, features, token):
+def geometryEdit(shapeId, layerId, geometryIds, features, token, zoomlevels = None):
     features = features.copy()
     if 'id' in features.columns:
         del features['id']
@@ -363,18 +373,22 @@ def geometryEdit(shapeId, layerId, geometryIds, features, token):
         
     features = features.to_crs({'init': 'epsg:4326'})
     
-    indices = chunks(np.arange(features.shape[0]))
-
+    indices = chunks(np.arange(features.shape[0]),1000)
+    i=0    
     for i in np.arange(len(indices)):
         indices_sub = indices[i]
         features_sub = features.iloc[indices_sub]
         geometryIds_sub = geometryIds[indices_sub]
-
+        
         features_sub =features_sub.to_json(na='drop')
         features_sub = json.loads(features_sub)
-
-        changes = [{'geometryId':x[0] , 'newProperties':x[1]['properties'], 'newGeometry':x[1]['geometry']} for x in zip(geometryIds_sub, features_sub['features'])]
         
+        if str(type(zoomlevels)) != str(type(None)):
+            zoomlevels = list(zoomlevels)
+            changes = [{'geometryId':x[0] , 'newProperties':x[1]['properties'], 'newGeometry':x[1]['geometry'], 'newZoomlevels':zoomlevels} for x in zip(geometryIds_sub, features_sub['features'])]
+        else:
+            changes = [{'geometryId':x[0] , 'newProperties':x[1]['properties'], 'newGeometry':x[1]['geometry']} for x in zip(geometryIds_sub, features_sub['features'])]
+            
         body = {"mapId":  mapId, "layerId":layerId, 'changes':changes}
         retried = 0
         while retried <= 20:
@@ -392,22 +406,8 @@ def geometryEdit(shapeId, layerId, geometryIds, features, token):
             raise ValueError(r.text)
 
 
-        loadingBar(i*3000 + len(indices_sub),features.shape[0])
-        i = i+1
+        loadingBar(i*1000 + len(indices_sub),features.shape[0])
 
-
-def geometryMove(shapeId, geometryIds, oldLayerId, newLayerId, token):
-    mapId = shapeId
-    geometryIds = list(geometryIds)
-    chunks_ids = chunks(geometryIds)
-    N=0
-    for chunk_ids in chunks_ids:
-        r = s.post(url + '/geometry/move', headers = {"Authorization":token},
-                         json = {"mapId":  mapId, 'geometryIds':chunk_ids, 'newLayerId':newLayerId, "oldLayerId": oldLayerId})
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
-            raise ValueError(r.text)
-        loadingBar(N*3000 + len(chunk_ids), len(geometryIds))
-        N=N+1
 
 def geometryChangelog(shapeId, layerId, limit = 100, userId = None, pageStart = None, actions = ['add', 'delete', 'recover', 'move'], token = None):
     changes = []
@@ -464,12 +464,22 @@ def geometryAdd(shapeId, layerId, features, token, zoomlevels=None):
         for c in columns:
             if 'int' in str(features.dtypes[c]):
                 propertyType = 'integer'
+                features[c] = [ int(d) if not np.isnan(d) and d != None else  np.nan for d in features[c].values ]
             elif 'float' in str(features.dtypes[c]):
                 propertyType = 'float'
+                features[c] = [ float(d) if not np.isnan(d) and d != None else  np.nan for d in features[c].values ]
             elif 'bool' in str(features.dtypes[c]):
                 propertyType = 'boolean'
+                features[c] = [ bool(d) if not np.isnan(d) and d != None else  np.nan for d in features[c].values ]
+            elif 'datetime' in str(features.dtypes[c]):
+                propertyType = 'datetime'
+                features[c] = [ d.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3] for d in features[c].values ]
             else:
                 propertyType = 'string'
+                features[c] = [ str(d) if d != None else  np.nan for d in features[c].values ]
+
+
+            ###date
                 
             addProperty(shapeId = mapId, layerId =layerId, propertyName = c, propertyType = propertyType, token = token)
 
@@ -489,7 +499,7 @@ def geometryAdd(shapeId, layerId, features, token, zoomlevels=None):
         body = {"mapId":  mapId, "layerId":layerId, "features":features_sub['features']}
 
         if str(type(None)) != str(type(zoomlevels)):
-            body['zoomlevels'] = zoomlevels
+            body['zoomLevels'] = zoomlevels
 
         retried = 0
         while retried <= 20:
@@ -515,7 +525,7 @@ def geometryAdd(shapeId, layerId, features, token, zoomlevels=None):
 
         
     
-def messageGet(shapeId, layerId, userId= None, messageIds =None, geometryIds=None, limit = 100, deleted=False, token = None):
+def messageGet(shapeId, layerId, userId= None, messageIds =None, geometryIds=None, limit = None, deleted=False, token = None):
 
     body={'mapId':shapeId, 'layerId':layerId, 'deleted':deleted, 'returnType':'all'}
 
@@ -527,7 +537,10 @@ def messageGet(shapeId, layerId, userId= None, messageIds =None, geometryIds=Non
     keepGoing = True
     messages = []
     while(keepGoing):
-        body['pageSize'] = min(100, limit - len(messages))
+        if str(type(limit)) == str(type(None)):
+            body['pageSize'] = 100
+        else:
+            body['pageSize'] = min(100, limit - len(messages))
 
         if token == None:
             r = s.post(url + '/message/get',
@@ -543,12 +556,15 @@ def messageGet(shapeId, layerId, userId= None, messageIds =None, geometryIds=Non
         body['pageStart']=r['nextPageStart']
 
         messages = messages +  r['result']
-        keepGoing = len(messages) < limit or str(type(r['nextPageStart'])) == str(type(None))
+        if str(type(limit)) == str(type(None)):
+            keepGoing = str(type(r['nextPageStart'])) != str(type(None))
+        else:
+            keepGoing = len(messages) < limit or str(type(r['nextPageStart'])) != str(type(None))
         loadingBar(len(messages), len(messages))
     
     return(messages)
     
-def messageAdd(shapeId, layerId, geometryId, token, attachFile=None, replyTo = None, message = None, private= None, image=None, lon=None, lat=None): 
+def messageAdd(shapeId, layerId, geometryId, token, replyTo = None, message = None, private= None, image=None, lon=None, lat=None): 
     mapId = shapeId    
     body = {'mapId':mapId, 'layerId':layerId, 'geometryId':geometryId}
     if str(type(lon)) != "<class 'NoneType'>":
@@ -579,16 +595,6 @@ def messageAdd(shapeId, layerId, geometryId, token, attachFile=None, replyTo = N
         raise ValueError(r.text)
     
     messageId = r.json()['id']
-
-    if str(type(attachFile)) != str(type(None)):
-            fileName = attachFile.split('/')[-1].split('/')[-1]
-
-            files = {'upload': open(attachFile,'rb')}
-            body = {'mapId':mapId, 'layerId':layerId, 'messageId':messageId, 'fileName':fileName}
-            r = s.post(url + '/message/attach', headers = {"Authorization":token},
-                         data = body, files =files )
-            if int(str(r).split('[')[1].split(']')[0]) != 200:
-                raise ValueError(r.text)
 
 
     return({'id':messageId})
@@ -622,28 +628,15 @@ def messageImage(shapeId, layerId, messageId, token = None):
  
     return(im)
 
-def messageAttachement(shapeId, layerId, messageId, fileName, token = None):
-    mapId = shapeId    
-    body = {'mapId':mapId, 'layerId':layerId, 'messageId':messageId}
-    if token ==None:
-        r = s.post(url + '/message/downloadAttachment',
-                     json = body )        
-    else:
-        r = s.post(url + '/message/downloadAttachment', headers = {"Authorization":token},
-                     json = body )
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
-        
-    open(fileName, 'wb').write(r.content)
 
 
-def rasterAggregated(mapId, timestamp, geometry, approximate = True, token = None):
+def rasterAggregated(mapId, timestamps, geometry, approximate = True, token = None):
     sh = gpd.GeoDataFrame({'geometry':[geometry]})
     geometry =sh.to_json(na='drop')
     geometry = json.loads(geometry)
     geometry = geometry['features'][0]['geometry']
-    body = {'mapId':mapId, 'timestamp':timestamp, 'geometry':geometry, 'approximate':approximate}
-    print(json.dumps(body))
+    timestamps = list(timestamps)
+    body = {'mapId':mapId, 'timestamps':timestamps, 'geometry':geometry, 'approximate':approximate}
     if token ==None:
         r = s.post(url +  '/raster/aggregated',
                      json = body )        
@@ -655,7 +648,7 @@ def rasterAggregated(mapId, timestamp, geometry, approximate = True, token = Non
     return(r.json())
 
 
-def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, bounds=None, downsample = False, width = None, height = None, token = None):
+def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, zoom = None, num_bands = None, bounds=None, downsample = False, width = None, height = None, threads = 1, token = None):
     dtype = 'float32'
 
     if str(type(bounds)) != str(type(None)):
@@ -674,7 +667,7 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, boun
     timestamp = int(timestamp)
 
     token_inurl = ''
-    if token != None:
+    if str(type(token)) != str(type(None)):
         token_inurl = '?token=' + token.replace('Bearer ', '')
 
     if downsample:
@@ -702,16 +695,18 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, boun
         r_total = np.transpose(r_total, (1,2,0) )
 
     else:
-            bands = metadata(mapId)['bands']
-            num_bands = len(bands)
+            if str(type(num_bands)) == str(type(None)):
+                bands = metadata(mapId)['bands']
+                num_bands = len(bands)
 
 
-            timestamps = metadata(mapId, token = token)['timestamps']
-            all_timestamps = [item["timestamp"] for item in timestamps]
-            if not timestamp in all_timestamps:
-                raise ValueError('given timestamp does not exist')
-            
-            zoom = next(item for item in timestamps if item["timestamp"] == timestamp)['zoom']
+            if str(type(zoom)) == str(type(None)):
+                timestamps = metadata(mapId, token = token)['timestamps']
+                all_timestamps = [item["timestamp"] for item in timestamps]
+                if not timestamp in all_timestamps:
+                    raise ValueError('given timestamp does not exist')
+                
+                zoom = next(item for item in timestamps if item["timestamp"] == timestamp)['zoom']
           
             min_x_osm_precise =  (xMin +180 ) * 2**zoom / 360 
             max_x_osm_precise =   (xMax +180 ) * 2**zoom / 360
@@ -727,31 +722,50 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, boun
             y_tiles = np.arange(min_y_osm, max_y_osm +1)
 
             r_total = np.zeros((256*(max_y_osm - min_y_osm + 1) ,256*(max_x_osm - min_x_osm + 1),num_bands), dtype = dtype)
-            
+
+            tiles = []            
             for tileY in y_tiles:
                 for tileX in x_tiles:
-                    x_index = tileX - min_x_osm
-                    y_index = tileY - min_y_osm
+                    tiles = tiles + [(tileX, tileY)]
 
-                    r = s.get(url + '/tileService/' + mapId + '/' + str(timestamp) + '/data/' + str(zoom) + '/' + str(tileX) + '/' + str(tileY) + token_inurl ,
-                                 timeout = 10 )
+            def subTiles(tiles):
+                    N = 0
+                    for tile in tiles:
+                        tileX = tile[0]
+                        tileY = tile[1]
+                        x_index = tileX - min_x_osm
+                        y_index = tileY - min_y_osm
+    
+                        r = s.get(url + '/tileService/' + mapId + '/' + str(timestamp) + '/data/' + str(zoom) + '/' + str(tileX) + '/' + str(tileY) + token_inurl ,
+                                     timeout = 10 )
+    
+    
+                        if int(str(r).split('[')[1].split(']')[0]) == 403:
+                                raise ValueError('insufficient access')
+                        if int(str(r).split('[')[1].split(']')[0]) != 200:
+                                r = np.zeros((num_bands,256,256))
+                        else:
+                                 with MemoryFile(r.content) as memfile:
+                                     with memfile.open() as dataset:
+                                         r = dataset.read()
+                        r = np.transpose(r, (1,2,0) )
+                        
+                        bands = list(np.arange(num_bands-1))
+                        bands.append(r.shape[2]-1)
+                        r_total[y_index*256:(y_index+1)*256,x_index*256:(x_index+1)*256, : ] = r[:,:, bands]
+                        loadingBar(N, len(tiles))
+                        N = N + 1
+                    
 
-
-                    if int(str(r).split('[')[1].split(']')[0]) != 200:
-                            r = np.zeros((num_bands,256,256))
-                    else:
-                             with MemoryFile(r.content) as memfile:
-                                 with memfile.open() as dataset:
-                                     r = dataset.read()
-                    r = np.transpose(r, (1,2,0) )
-                    
-                    bands = list(np.arange(num_bands-1))
-                    bands.append(r.shape[2]-1)
-                    r_total[y_index*256:(y_index+1)*256,x_index*256:(x_index+1)*256, : ] = r[:,:, bands]
-                    
-                    
-                    loadingBar(x_index + y_index*len(x_tiles) + 1,len(x_tiles)*len(y_tiles))
-                
+            size = math.floor(len(tiles)/threads) + 1
+            tiles_chunks = chunks(tiles, size)
+            prs = []
+            for tiles in tiles_chunks:
+                pr = threading.Thread(target = subTiles, args =(tiles,), daemon=True)
+                pr.start()
+                prs = prs + [pr] 
+            for pr in prs:
+                pr.join()                           
                 
             min_x_index = int(round((min_x_osm_precise - min_x_osm)*256))
             max_x_index = int(round((max_x_osm_precise- min_x_osm)*256))
@@ -774,7 +788,7 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, boun
 
 
 
-def rasterVisual(mapId, timestamp, layerId, xMin= None,xMax= None,yMin=None, yMax=None, bounds=None, downsample = False, width = None, height=None, token = None):
+def rasterVisual(mapId, timestamp, layerId, xMin= None,xMax= None,yMin=None, yMax=None, bounds=None, downsample = False, width = None, height=None, threads = 1, token = None):
 
     dtype = 'uint8'
 
@@ -836,10 +850,19 @@ def rasterVisual(mapId, timestamp, layerId, xMin= None,xMax= None,yMin=None, yMa
             x_tiles = np.arange(min_x_osm, max_x_osm+1)
             y_tiles = np.arange(min_y_osm, max_y_osm +1)
 
-            r_total = np.zeros((256*(max_y_osm - min_y_osm + 1) ,256*(max_x_osm - min_x_osm + 1),4), dtype = dtype)
-            
+
+            tiles = []            
             for tileY in y_tiles:
                 for tileX in x_tiles:
+                    tiles = tiles + [(tileX,tileY)]
+                    
+                    
+            def subTiles(tiles):
+                N=0
+                for tile in tiles:
+                    tileX = tile[0]
+                    tileY = tile[1]
+                    
                     x_index = tileX - min_x_osm
                     y_index = tileY - min_y_osm
 
@@ -855,9 +878,21 @@ def rasterVisual(mapId, timestamp, layerId, xMin= None,xMax= None,yMin=None, yMa
 
                     r_total[y_index*256:(y_index+1)*256,x_index*256:(x_index+1)*256, : ] = r
                         
+                    loadingBar(N, len(tiles))
+                    N = N+1
 
-                    loadingBar(x_index + y_index*len(x_tiles) + 1,len(x_tiles)*len(y_tiles))
-                
+
+            r_total = np.zeros((256*(max_y_osm - min_y_osm + 1) ,256*(max_x_osm - min_x_osm + 1),4), dtype = dtype)
+
+            size = math.floor(len(tiles)/threads) + 1
+            tiles_chunks = chunks(tiles, size)
+            prs = []
+            for tiles in tiles_chunks:
+                pr = threading.Thread(target = subTiles, args =(tiles,), daemon=True)
+                pr.start()
+                prs = prs + [pr] 
+            for pr in prs:
+                pr.join()                     
                 
             min_x_index = int(round((min_x_osm_precise - min_x_osm)*256))
             max_x_index = int(round((max_x_osm_precise- min_x_osm)*256))
@@ -1036,7 +1071,7 @@ def seriesGet(shapeId, layerId, geometryId, propertyName = None, dateFrom = None
             raise ValueError(r.text)
         r = r.json()
         pageStart = r['nextPageStart']
-        series = series + [r['result']]
+        series = series + r['result']
 
         
 
@@ -1047,7 +1082,7 @@ def seriesGet(shapeId, layerId, geometryId, propertyName = None, dateFrom = None
             keepGoing = False
 
     series = [ { 'id':k['id'], 'property': k['property'], 'value': k['value'], 'date': datetime.strptime(k['date'], "%Y-%m-%dT%H:%M:%S.%fZ") } for k in series]
-    r = pd.DataFrame(series)
+    series = pd.DataFrame(series)
     return(series)
 
     
@@ -1056,9 +1091,14 @@ def addTimestamp(mapId, startDate, token, endDate = None, bounds=None):
     if str(type(endDate)) == str(type(None)):
         endDate = startDate
 
-    if str(type(startDate)) != str(type('hoi')):
-        startDate = startDate.strftime('%Y-%m-%d')    
-        endDate = endDate.strftime('%Y-%m-%d')
+    if str(type(startDate)) != "<class 'datetime.datetime'>":
+        raise ValueError('startDate must of of type python date')
+
+    if str(type(endDate)) != "<class 'datetime.datetime'>":
+        raise ValueError('endDate must of of type python date')
+
+    startDate = startDate.strftime("%Y-%m-%dT%H:%M:%S.%f")
+    endDate = endDate.strftime("%Y-%m-%dT%H:%M:%S.%f")
 
     toAdd = {'dateFrom':startDate, 'dateTo':endDate}
 
@@ -1095,10 +1135,10 @@ def activateTimestamp(mapId, timestampId, active, token):
         raise ValueError(r.text)
 
 
-def removeTimestamp(mapId, timestampId, token):
+def removeTimestamp(mapId, timestampNumber, token, revert = False, hard = False):
 
-    r = s.post(url + '/settings/projects/reschedule', headers = {"Authorization":token},
-                 json = {"mapId":  mapId, "toRemove":[timestampId]})
+    r = s.post(url + '/settings/projects/deleteTimestamp', headers = {"Authorization":token},
+                 json = {"mapId":  mapId, "timestamp":timestampNumber, 'revert':revert, 'hard':hard})
 
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
@@ -1120,14 +1160,12 @@ def uploadRasterFile(mapId, timestampId, file, token, fileFormat = 'tif', epsg =
     
     splitsign = os.path.join('s' ,'s')[1]
     fileName = file.split(splitsign)[-1]
-
-    conn_file = open(file, 'rb')
     
     if not os.path.exists(file):
             raise ValueError( file + ' not found')
     
     conn_file = open(file, 'rb')
-    payload = MultipartEncoder({'upload': (fileName, conn_file, 'application/octet-stream'), 'timestampId': timestampId, 'mapId':mapId, 'format':fileFormat, 'fileName':fileName})
+    payload = MultipartEncoder(fields = {'upload': (fileName, conn_file, 'application/octet-stream'), 'timestampId': timestampId, 'mapId':mapId, 'format':fileFormat, 'fileName':fileName})
     
     if str(type(epsg)) != str(type(None)):
         payload['epsg'] = epsg
@@ -1202,6 +1240,25 @@ def deleteProperty(shapeId, layerId, propertyName, token, revert = False):
 
 
 
+def ShapeLayerIndex(shapeId, layerId, token, idProperty=None, valueProperty=None, dateProperty=None ):
+
+
+    body = {"mapId":shapeId,"layerId":layerId}
+    
+    if str(type(None)) != str(type(idProperty)):
+        body['idProperty'] = idProperty
+    if str(type(None)) != str(type(valueProperty)):
+        body['valueProperty'] = valueProperty
+    if str(type(None)) != str(type(dateProperty)):
+        body['dateProperty'] = dateProperty
+
+    r = s.post(url + '/settings/geometryLayers/reIndex', headers = {"Authorization":token},
+                     json = body)
+    
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+
+
 
 def shapeLayerAddStyle(shapeId, layerId, styleName, rules, token, isDefault=False):
     rules_new = []
@@ -1244,7 +1301,6 @@ def shapeLayerRemoveStyle(shapeId, layerId, styleId, token):
 def mapVisualisationAdd(mapId, name, method , bands, parameters, token):
     parameter = json.loads(json.dumps(parameters))
     body = {'mapId': mapId, 'name':name, 'method':method, 'bands':list(bands), 'overwrite':False, 'parameters':parameter}
-    print(json.dumps(body))
     r = s.post(url + '/settings/mapLayers/add', headers = {"Authorization":token},
                      json = body)
     
@@ -1366,6 +1422,7 @@ def projectDescription(projectId, description, token):
 
 
 
+
 ##################################################################################################################
 
 
@@ -1425,8 +1482,7 @@ def chunks(l, n = 3000):
         result.append(l[i:i+n])
     return(result)
     
-    
- 
+
  
 def cover(bounds, w):
     if str(type(bounds)) == "<class 'shapely.geometry.polygon.Polygon'>" :
@@ -1473,8 +1529,11 @@ def cover(bounds, w):
 
     
 def loadingBar(count,total):
-    percent = float(count)/float(total)*100
-    sys.stdout.write("\r" + str(int(count)).rjust(3,'0')+"/"+str(int(total)).rjust(3,'0') + ' [' + '='*int(percent) + ' '*(100-int(percent)) + ']')
+    if total == 0:
+        return
+    else:
+        percent = float(count)/float(total)*100
+        sys.stdout.write("\r" + str(int(count)).rjust(3,'0')+"/"+str(int(total)).rjust(3,'0') + ' [' + '='*int(percent) + ' '*(100-int(percent)) + ']')
 
 ########################
     
