@@ -1,0 +1,19 @@
+Metadata-Version: 2.1
+Name: ellipsis
+Version: 1.2.14
+Summary: Package to interact with the Ellipsis API
+Home-page: https://github.com/ellipsis-drive-internal/python-package
+Author: Daniel van der Maas
+Author-email: daniel@ellipsis-drive.com
+License: UNKNOWN
+Description: This package is meant to help you interact with the Ellipsis API.
+        
+        For documentation see https://app.ellipsis-drive.com/developer/python/documentation.
+        
+        
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown

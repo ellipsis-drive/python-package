@@ -6,13 +6,13 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ellipsis",
-    version="1.2.8",
+    version="1.2.14",
     author="Daniel van der Maas",
-    author_email="daniel@ellipsis-earth.com",
+    author_email="daniel@ellipsis-drive.com",
     description="Package to interact with the Ellipsis API",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/ellipsis-earth/ellipsis-python-package",
+    url="https://github.com/ellipsis-drive-internal/python-package",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
@@ -32,7 +32,8 @@ setuptools.setup(
     'geopy',
     'xmltodict',
     'opencv-python',
-    'Fiona'
+    'Fiona',
+    'tifffile'
     ],
     python_requires='>=3.6',
 )

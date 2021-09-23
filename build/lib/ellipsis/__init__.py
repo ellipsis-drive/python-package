@@ -358,46 +358,37 @@ def geometryDelete(shapeId, layerId, geometryIds, token, revert= False):
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
 
-def geometryEdit(shapeId, layerId, geometryIds, token, features = None, zoomlevels = None):
+def geometryEdit(shapeId, layerId, geometryIds, features, token, zoomlevels = None):
+    features = features.copy()
+    if 'id' in features.columns:
+        del features['id']
+    if 'userId' in features.columns:
+        del features['userId']
+    if 'attribution' in features.columns:
+        del features['attribution']
 
-    if str(type(zoomlevels)) != str(type(None)) and str(type(features)) != str(type(None)):
-        raise ValueError('you need to edit either features or zoomlevels')
-    
-    mapId = shapeId
-    
-    if str(type(features)) != str(type(None)):
-        features = features.copy()
-        if 'id' in features.columns:
-            del features['id']
-        if 'userId' in features.columns:
-            del features['userId']
-        if 'attribution' in features.columns:
-            del features['attribution']
-
-        if not str(type(features)) ==  "<class 'geopandas.geodataframe.GeoDataFrame'>":
-            raise ValueError('features must be of type geopandas dataframe')
-            
-        features = features.to_crs({'init': 'epsg:4326'})
-    
     if str(type(zoomlevels)) != str(type(None)):
         zoomlevels = [int(z) for z in zoomlevels]
 
+
+    mapId = shapeId
+    if not str(type(features)) ==  "<class 'geopandas.geodataframe.GeoDataFrame'>":
+        raise ValueError('features must be of type geopandas dataframe')
+        
+    features = features.to_crs({'init': 'epsg:4326'})
     
-    indices = chunks(np.arange(len(geometryIds)),1000)
+    indices = chunks(np.arange(features.shape[0]),1000)
     i=0    
     for i in np.arange(len(indices)):
         indices_sub = indices[i]
+        features_sub = features.iloc[indices_sub]
         geometryIds_sub = geometryIds[indices_sub]
+        
+        features_sub =features_sub.to_json(na='drop')
+        features_sub = json.loads(features_sub)
 
-        if str(type(features)) != str(type(None)):
-            features_sub = features.iloc[indices_sub]        
-            features_sub =features_sub.to_json(na='drop')
-            features_sub = json.loads(features_sub)
-
-        if str(type(zoomlevels)) != str(type(None)) and str(type(features)) != str(type(None)):
+        if str(type(zoomlevels)) != str(type(None)):
             changes = [{'geometryId':x[0] , 'newProperties':x[1]['properties'], 'newGeometry':x[1]['geometry'], 'newZoomlevels':zoomlevels} for x in zip(geometryIds_sub, features_sub['features'])]
-        elif str(type(zoomlevels)) != str(type(None)) and str(type(features)) == str(type(None)):
-            changes = [{'geometryId':geometryId, 'newZoomlevels':zoomlevels} for geometryId in geometryIds]            
         else:
             changes = [{'geometryId':x[0] , 'newProperties':x[1]['properties'], 'newGeometry':x[1]['geometry']} for x in zip(geometryIds_sub, features_sub['features'])]
             
@@ -419,7 +410,7 @@ def geometryEdit(shapeId, layerId, geometryIds, token, features = None, zoomleve
             raise ValueError(r.text)
 
 
-        loadingBar(i*1000 + len(indices_sub),len(geometryIds))
+        loadingBar(i*1000 + len(indices_sub),features.shape[0])
 
 
 def geometryChangelog(shapeId, layerId, limit = 100, userId = None, pageStart = None, actions = ['add', 'delete', 'recover', 'move'], token = None):
@@ -1174,7 +1165,7 @@ def uploadRasterFile(mapId, timestampId, file, token, fileFormat = 'tif', epsg =
             raise ValueError( file + ' not found')
     
     conn_file = open(file, 'rb')
-    payload = MultipartEncoder(fields = {'timestampId': timestampId, 'mapId':mapId, 'format':fileFormat, 'fileName':fileName, 'upload': (fileName, conn_file, 'application/octet-stream')})
+    payload = MultipartEncoder(fields = {'upload': (fileName, conn_file, 'application/octet-stream'), 'timestampId': timestampId, 'mapId':mapId, 'format':fileFormat, 'fileName':fileName})
     
     if str(type(epsg)) != str(type(None)):
         payload['epsg'] = epsg
@@ -1214,7 +1205,7 @@ def uploadGeometryFile(shapeId, layerId, file, fileFormat, token, epsg=None):
     fileName = file.split(splitsign)[-1]
 
     conn_file = open(file, 'rb')
-    payload = MultipartEncoder({"mapId":  mapId, 'layerId':layerId, 'fileName':fileName, 'format':fileFormat, 'upload': (fileName, conn_file, 'application/octet-stream') } )
+    payload = MultipartEncoder({'upload': (fileName, conn_file, 'application/octet-stream'), "mapId":  mapId, 'layerId':layerId, 'fileName':fileName, 'format':fileFormat } )
 
     if str(type(epsg)) != str(type(None)):
         payload['epsg'] = int(epsg)
