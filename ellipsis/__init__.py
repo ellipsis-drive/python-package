@@ -26,7 +26,7 @@ from requests_toolbelt import MultipartEncoder
 import warnings
 import threading
 
-__version__ = '1.2.14'
+__version__ = '1.2.15'
 url = 'https://api.ellipsis-drive.com/v1'
 
 s = requests.Session()
@@ -1256,36 +1256,13 @@ def ShapeLayerIndex(shapeId, layerId, token, filterProperties = [], idProperty =
 
     toAdd = [ {'property': p, 'id':False } for p in filterProperties]
 
-    if str(type(idProperty)) != str(type(None)):
-        if str(type(idProperty)) != str(type('hi')):
-            raise ValueError('idProperty must be of type string')
-        toAdd = toAdd + [{'property': idProperty, 'id':True }]
-
-
+    if str(type(filterProperties)) != str(type(None)):
+        toAdd = toAdd + [{'property':idProperty, 'id':True}]
     
-    layer = [layer for layer in metadata(shapeId, True, token)['geometryLayers'] if layer['id'] == layerId]
-    if len(layer) == 0:
-        raise ValueError('layerId not found in this shape')
+
+    body = {"mapId":shapeId,"layerId":layerId, 'properties':toAdd}
+    
         
-    layer = layer[0]
-    properties = layer['properties']    
-    currentFilterProperties = [p for p in properties if 'filtering' in p.keys() ]
-
-    names = [n['property'] for n in toAdd]
-    toRemove = list( set(currentFilterProperties).difference(set(names)) )    
-    
-    body = {"mapId":shapeId,"layerId":layerId}
-    
-    
-    if len(toAdd) >0:
-        body['propertiesToAdd'] = toAdd
-        
-    if len(toRemove) > 0:
-        body['propertiesToRemove'] = toRemove
-
-    if len(toRemove) == 0 and len(toAdd) ==0:
-        raise ValueError('The current properties are already the current filter properties')
-    
     r = s.post(url + '/settings/geometryLayers/reIndex', headers = {"Authorization":token},
                      json = body)
     
