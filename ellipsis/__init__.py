@@ -36,7 +36,7 @@ warnings.filterwarnings("ignore")
 def logIn(username, password):
         r =s.post(url + '/account/login/',
                          json = {'username':username, 'password':password} )
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
+        if r.status_code != 200:
             raise ValueError(r.text)
             
         token = r.json()
@@ -52,7 +52,7 @@ def metadata(projectId, includeDeleted=False, token = None):
     else:
         r = s.post(url + '/metadata', headers = {"Authorization":token},
                          json = {"mapId":  mapId, 'includeDeleted':includeDeleted})
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
     
     r = r.json()
@@ -87,7 +87,7 @@ def getShapes(name= None, fuzzyMatch = False, favorite = None, access = ['subscr
         else:
             r = s.post(url + '/account/shapes', json = body, 
                          headers = {"Authorization":token} )
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
+        if r.status_code != 200:
             raise ValueError(r.text)
             
         result = r.json()
@@ -133,7 +133,7 @@ def getMaps(name= None, fuzzyMatch = False, access = ['subscribed', 'public', 'o
         else:
             r = s.post(url + '/account/maps', json = body, 
                          headers = {"Authorization":token} )
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
+        if r.status_code != 200:
             raise ValueError(r.text)
             
         result = r.json()
@@ -167,7 +167,7 @@ def getBounds(projectId, timestamp = None, token = None ):
     else:
         r = s.post(url + '/settings/projects/bounds', headers = {"Authorization":token},
                          json = body)
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
     r = r.json()
     r['id'] = 0
@@ -190,7 +190,7 @@ def geometryIds(shapeId, layerId, geometryIds, wait = 0, token = None):
         else:
             r = s.post(url + '/geometry/get', headers = {"Authorization":token},
                              json = body, timeout=10)
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
+        if r.status_code != 200:
             raise ValueError(r.text)
 
         r = r.json()
@@ -234,7 +234,7 @@ def geometryGet(shapeId, layerId, filters = None, limit = None, wait = 0, token 
         else:
             r = s.post(url + '/geometry/get', headers = {"Authorization":token},
                              json = body, timeout=10)
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
+        if r.status_code != 200:
             raise ValueError(r.text)
         
         r = r.json()
@@ -301,7 +301,7 @@ def geometryBounds(shapeId, layerId, xMin = None, xMax = None, yMin=None, yMax=N
         else:
             r = s.post(url + '/geometry/bounds', headers = {"Authorization":token},
                              json = body, timeout=10)
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
+        if r.status_code != 200:
             raise ValueError(r.text)
         
         r = r.json()
@@ -331,7 +331,7 @@ def geometryVersions(shapeId, layerId, geometryId, token = None):
     else:
         r = s.post(url + '/geometry/versions', headers = {"Authorization":token},
                          json = body)    
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
 
     r  = r.json()['result']
@@ -355,7 +355,7 @@ def geometryDelete(shapeId, layerId, geometryIds, token, revert= False):
 
     r= s.post(url + '/geometry/delete', headers = {"Authorization":token},
                      json = body)
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
 
 def geometryEdit(shapeId, layerId, geometryIds, token, features = None, zoomlevels = None):
@@ -415,7 +415,7 @@ def geometryEdit(shapeId, layerId, geometryIds, token, features = None, zoomleve
                 retried = retried +1
                 time.sleep(1)
 
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
+        if r.status_code != 200:
             raise ValueError(r.text)
 
 
@@ -440,7 +440,7 @@ def geometryChangelog(shapeId, layerId, limit = 100, userId = None, pageStart = 
         else:
             r = s.post(url + '/geometry/changeLog', headers = {"Authorization":token},
                          json = body )
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
+        if r.status_code != 200:
             raise ValueError(r.text)
             
         r = r.json()
@@ -529,7 +529,7 @@ def geometryAdd(shapeId, layerId, features, token, zoomlevels=None):
                 retried = retried +1
                 time.sleep(1)
 
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
+        if r.status_code != 200:
             raise ValueError(r.text)
 
         addedIds = addedIds + r.json()
@@ -564,7 +564,7 @@ def messageGet(shapeId, layerId, userId= None, messageIds =None, geometryIds=Non
         else:
             r = s.post(url + '/message/get', headers = {"Authorization":token},
                          json = body )
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
+        if r.status_code != 200:
             raise ValueError(r.text)
         
         r =  r.json()
@@ -607,7 +607,7 @@ def messageAdd(shapeId, layerId, geometryId, token, replyTo = None, message = No
         
     r = s.post(url + '/message/add', headers = {"Authorization":token},
                  json = body )
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
     
     messageId = r.json()['id']
@@ -620,7 +620,7 @@ def messageDelete(shapeId, layerId, messageId, token):
     body = {'mapId':mapId, 'layerId':layerId, 'messageId':messageId}
     r = s.post(url + '/message/delete', headers = {"Authorization":token},
                  json = body )
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
     
 
@@ -634,7 +634,7 @@ def messageImage(shapeId, layerId, messageId, token = None):
     else:
         r = s.post(url + '/message/image', headers = {"Authorization":token},
                      json = body )
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
         
     try:
@@ -659,7 +659,7 @@ def rasterAggregated(mapId, timestamps, geometry, approximate = True, token = No
     else:
         r = s.post(url +  '/raster/aggregated', headers = {"Authorization":token},
                      json = body )
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
     return(r.json())
 
@@ -702,7 +702,7 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, zoom
                          json = body )
 
 
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
+        if r.status_code != 200:
                 raise ValueError(r.text)
         else:
                 r_total = tifffile.imread(BytesIO(r.content))
@@ -754,9 +754,9 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, zoom
                         r = s.get(url_req , timeout = 10 )
     
     
-                        if int(str(r).split('[')[1].split(']')[0]) == 403:
+                        if r.status_code == 403:
                                 raise ValueError('insufficient access')
-                        if int(str(r).split('[')[1].split(']')[0]) != 200:
+                        if r.status_code != 200:
                                 r = np.zeros((num_bands,256,256))
                         else:
                             r = tifffile.imread(BytesIO(r.content))
@@ -834,7 +834,7 @@ def rasterVisual(mapId, timestamp, layerId, xMin= None,xMax= None,yMin=None, yMa
             r = s.post(url + '/raster/bounds', headers = {"Authorization":token},
                          json = body )
 
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
+        if r.status_code != 200:
                 raise ValueError(r.text)
         else:
            r_total = np.array(Image.open(BytesIO(r.content)), dtype = 'uint8')
@@ -879,7 +879,7 @@ def rasterVisual(mapId, timestamp, layerId, xMin= None,xMax= None,yMin=None, yMa
                                  timeout = 10 )
 
 
-                    if int(str(r).split('[')[1].split(']')[0]) != 200:
+                    if r.status_code != 200:
                             r = np.zeros((256,256,4))
                     else:
                         r = np.array(Image.open(BytesIO(r.content)), dtype = 'uint8')
@@ -967,7 +967,7 @@ def seriesAdd(shapeId, layerId, geometryId, data, token, includeDatetime = True)
         r = s.post(url + '/series/add', headers = {"Authorization":token},
                      json = body)
         
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
+        if r.status_code != 200:
             raise ValueError(r.text)
 
         loadingBar(N*3000 + len(values_sub), len(values))
@@ -980,7 +980,7 @@ def seriesDelete(shapeId, layerId, geometryId, seriesIds, token, revert = False)
     r = s.post(url + '/series/delete', headers = {"Authorization":token},
                  json = body)
 
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
 
 def seriesChangelog(shapeId, layerId, geometryId, limit = 100, userId = None, pageStart = None, actions = ['add', 'delete', 'revert'], token = None):
@@ -1001,7 +1001,7 @@ def seriesChangelog(shapeId, layerId, geometryId, limit = 100, userId = None, pa
         else:
             r = s.post(url + '/series/changelog', headers = {"Authorization":token},
                          json = body )
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
+        if r.status_code != 200:
             raise ValueError(r.text)
             
         r = r.json()
@@ -1027,7 +1027,7 @@ def seriesInfo(shapeId, layerId, geometryId = None, token = None):
         r = s.post(url + '/series/info', headers = {"Authorization":token},
                      json = body )
 
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
         
     r = r.json()
@@ -1076,7 +1076,7 @@ def seriesGet(shapeId, layerId, geometryId, propertyName = None, dateFrom = None
             r = s.post(url + '/series/get', headers = {"Authorization":token},
                          json = body )
     
-        if int(str(r).split('[')[1].split(']')[0]) != 200:
+        if r.status_code != 200:
             raise ValueError(r.text)
         r = r.json()
         pageStart = r['nextPageStart']
@@ -1122,7 +1122,7 @@ def addTimestamp(mapId, startDate, token, endDate = None, bounds=None):
     r = s.post(url + '/settings/projects/reschedule', headers = {"Authorization":token},
                  json = body)
 
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
     r = r.json()[0]
     return({'id':r})
@@ -1140,7 +1140,7 @@ def activateTimestamp(mapId, timestampId, active, token):
     r = s.post(url + '/settings/projects/reschedule', headers = {"Authorization":token},
                  json = body)
 
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
 
 
@@ -1149,7 +1149,7 @@ def removeTimestamp(mapId, timestampNumber, token, revert = False, hard = False)
     r = s.post(url + '/settings/projects/deleteTimestamp', headers = {"Authorization":token},
                  json = {"mapId":  mapId, "timestamp":timestampNumber, 'revert':revert, 'hard':hard})
 
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
 
 def getGeometryUploads(shapeId, layerId, token):
@@ -1157,7 +1157,7 @@ def getGeometryUploads(shapeId, layerId, token):
     r = s.post(url +  '/files/geometry/getUploads', headers = {"Authorization":token},
                  json = body)
 
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
     return(r.json())
     
@@ -1181,7 +1181,7 @@ def uploadRasterFile(mapId, timestampId, file, token, fileFormat = 'tif', epsg =
         
     r = s.post(url + '/files/raster/upload', headers = {"Authorization":token, "Content-Type": payload.content_type}, data=payload)
     
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
     conn_file.close()
 
@@ -1191,7 +1191,7 @@ def addShapeLayer(shapeId, layerName, token, color = "#fcba033f"):
     r = s.post(url + '/settings/geometryLayers/add', headers = {"Authorization":token},
                  json = {"mapId":  mapId, "color":color, "layerName":layerName, "properties":[] })
 
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
     return(r.json())
 
@@ -1200,7 +1200,7 @@ def removeShapeLayer(shapeId, layerId, token, revert = False):
     r = s.post(url + '/settings/geometryLayers/delete', headers = {"Authorization":token},
                  json = {"mapId":  mapId, "layerId":layerId, "revert": revert })
 
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
 
         
@@ -1221,7 +1221,7 @@ def uploadGeometryFile(shapeId, layerId, file, fileFormat, token, epsg=None):
     
     r = s.post(url + '/files/geometry/upload' , headers = {"Authorization":token, "Content-Type": payload.content_type}, data=payload)
     
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
         
     conn_file.close()
@@ -1232,7 +1232,7 @@ def addProperty(shapeId, layerId, propertyName, propertyType, token, private=Fal
     
     r = s.post(url + '/settings/geometryLayers/addProperty', headers = {"Authorization":token},
                      json = body)
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
     return(r.json())
 
@@ -1244,7 +1244,7 @@ def deleteProperty(shapeId, layerId, propertyName, token, revert = False):
     r = s.post(url + '/settings/geometryLayers/deleteProperty', headers = {"Authorization":token},
                      json = body)
     
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
 
 
@@ -1266,7 +1266,7 @@ def ShapeLayerIndex(shapeId, layerId, token, filterProperties = [], idProperty =
     r = s.post(url + '/settings/geometryLayers/reIndex', headers = {"Authorization":token},
                      json = body)
     
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
 
 
@@ -1292,7 +1292,7 @@ def shapeLayerAddStyle(shapeId, layerId, styleName, rules, token, isDefault=Fals
                      json = body)
     
     
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
     r= r.json()
     return(r)
@@ -1304,7 +1304,7 @@ def shapeLayerRemoveStyle(shapeId, layerId, styleId, token):
                      json = body)
     
     
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
 
 
@@ -1316,7 +1316,7 @@ def mapVisualisationAdd(mapId, name, method , bands, parameters, token):
                      json = body)
     
     
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
 
     return(r.json())
@@ -1327,7 +1327,7 @@ def mapVisualisationRemove(mapId, layerId, token):
                      json = body)
     
     
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
 
 
@@ -1338,7 +1338,7 @@ def newShape(name, token):
                      json = {"name":  name})
     
     
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
     
     r = r.json()
@@ -1354,7 +1354,7 @@ def updateBounds(shapeId, token, boundary):
                      json = body)
     
     
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
     
     
@@ -1365,7 +1365,7 @@ def newMap(name,  token):
     r = s.post(url + '/settings/projects/newMap', headers = {"Authorization":token},
                      json = body)
 
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
     
     r = r.json()
@@ -1381,7 +1381,7 @@ def newOrder(name, token,  dataSource = 'sentinel2RGBIR' ):
                      json = body)
 
 
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
     
     r = r.json()
@@ -1395,7 +1395,7 @@ def projectProperties(projectId, properties, token):
                      json = body)
 
 
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
     
 
@@ -1407,7 +1407,7 @@ def projectAddHashtag(projectId, hashtag, token):
                      json = body)
 
 
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
 
 
@@ -1418,7 +1418,7 @@ def projectRemoveHashtag(projectId, hashtag, token):
                      json = body)
 
 
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
 
 
@@ -1427,7 +1427,7 @@ def projectDescription(projectId, description, token):
                      json = {'mapId':projectId, 'description':description })
     
     
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
+    if r.status_code != 200:
         raise ValueError(r.text)
 
 
