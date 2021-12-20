@@ -58,7 +58,7 @@ def metadata(projectId, includeDeleted=False, token = None):
     return(r)
 
 
-def getShapes(name= None, fuzzyMatch = False, favorite = None, access = ['subscribed', 'public', 'owned'], bounds=None, userId= None, hashtag = None, limit = 100, token = None):
+def getShapes(name= None, fuzzyMatch = False, favorite = None, access = ['subscribed', 'public', 'owned'], geometryAbounds=None, userId= None, hashtag = None, limit = 100, token = None):
     
     body = {'access': access}
     if str(type(name)) != str(type(None)):
@@ -451,7 +451,7 @@ def geometryChangelog(shapeId, layerId, limit = 100, userId = None, pageStart = 
     return({'changes':changes, 'pageStart':pageStart})
   
     
-def geometryAdd(shapeId, layerId, features, token, zoomlevels=None):
+def geometryAdd(shapeId, layerId, features, token, fromZoomlevels=None):
     mapId = shapeId
     if not str(type(features)) ==  "<class 'geopandas.geodataframe.GeoDataFrame'>":
         raise ValueError('features must be of type geopandas dataframe')
