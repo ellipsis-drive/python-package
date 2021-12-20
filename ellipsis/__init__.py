@@ -21,12 +21,11 @@ import json
 #import cv2
 import sys
 import os
-from rasterio.io import MemoryFile
 from requests_toolbelt import MultipartEncoder
 import warnings
 import threading
 
-__version__ = '1.2.15'
+__version__ = '1.2.17'
 url = 'https://api.ellipsis-drive.com/v1'
 
 s = requests.Session()
@@ -351,7 +350,7 @@ def geometryVersions(shapeId, layerId, geometryId, token = None):
 
 def geometryDelete(shapeId, layerId, geometryIds, token, revert= False):
 
-    body = {"mapId":  shapeId, "layerId":layerId , 'geometryIds': list(geometryIds), 'rever':revert}
+    body = {"mapId":  shapeId, "layerId":layerId , 'geometryIds': list(geometryIds), 'revert':revert}
 
     r= s.post(url + '/geometry/delete', headers = {"Authorization":token},
                      json = body)
@@ -1096,7 +1095,13 @@ def seriesGet(shapeId, layerId, geometryId, propertyName = None, dateFrom = None
 
     
 ################################################up and downloads
-def addTimestamp(mapId, startDate, token, endDate = None, bounds=None):
+def addTimestamp(mapId, token, appendToTimestampId = None, endDate = None, startDate = None, bounds=None):
+
+
+    if str(type(startDate)) == str(type(None)):
+        startDate = datetime.today()
+
+
     if str(type(endDate)) == str(type(None)):
         endDate = startDate
 
@@ -1115,9 +1120,11 @@ def addTimestamp(mapId, startDate, token, endDate = None, bounds=None):
         boundary = gpd.GeoSeries([bounds]).__geo_interface__['features'][0]
         boundary = boundary['geometry']
         toAdd['bounds'] = boundary        
+    if str(type(appendToTimestampId)) != str(type(None)):
+        toAdd['appendToTimestampId'] = appendToTimestampId
 
     body = {"mapId":  mapId, "toAdd":[toAdd]}    
-        
+
     
     r = s.post(url + '/settings/projects/reschedule', headers = {"Authorization":token},
                  json = body)
@@ -1271,23 +1278,54 @@ def ShapeLayerIndex(shapeId, layerId, token, filterProperties = [], idProperty =
 
 
 
-def shapeLayerAddStyle(shapeId, layerId, styleName, rules, token, isDefault=False):
-    rules_new = []
-    for rule in rules:
-        value = rule['value']
-        if 'float' in str(type(value)):
-            value = float(value)
-        elif 'int' in str(type(value)):
-            value = int(value)
-        elif 'str' in str(type(value)):
-            value = str(value)
-        elif 'bool' in str(type(value)):
-            value = bool(value)
-        else:
-            raise ValueError('value must be a float, int or string')
-        rules_new = rules_new + [ {'property': str(rule['property']) , 'value': value , 'operator': str(rule['operator']) , 'color': str(rule['color']) } ]
+def shapeLayerAddStyle(shapeId, layerId, styleName, method, parameters, token, isDefault=False):
 
-    body = {'mapId':shapeId, 'layerId': layerId, 'rules':rules_new, 'styleName':styleName, 'isDefault':isDefault }
+    if 'alpha' in parameters.keys():
+        parameters['alpha'] = float(parameters['alpha'])
+
+    if 'periodic' in parameters.keys():
+        parameters['periodic'] = float(parameters['periodic'])
+
+    
+    if not method in ['rules', 'random', 'rangeToColor', 'transitionPoints']:
+        raise ValueError("method must be one of 'rules', 'random', 'rangeToColor', 'transitionPoints'")
+
+    if method == 'rules':
+        if not 'rules' in parameters.keys() or not type(parameters['rules']) == type([]):
+            raise ValueError("if method is rules parameters must be a dictionary containing the key rules. rules must be an array of dictionaries containing the keys 'property', 'operator' and 'value'")
+        for i in np.arange(len(parameters['rules'])):
+            if not 'value' in parameters['rules'][i].keys():
+                raise ValueError("Each rule should have a key 'value'")
+
+            if 'float' in str(type(parameters['rules'][i]['value'])):
+                parameters['rules'][i]['value'] = float(parameters['rules'][i]['value'])
+            elif 'int' in str(type(parameters['rules'][i]['value'])):
+                parameters['rules'][i]['value'] = int(parameters['rules'][i]['value'])
+            elif 'str' in str(type(parameters['rules'][i]['value'])):
+                parameters['rules'][i]['value'] = str(parameters['rules'][i]['value'])
+            elif 'bool' in str(type(parameters['rules'][i]['value'])):
+                parameters['rules'][i]['value'] = bool(parameters['rules'][i]['value'])
+            else:
+                raise ValueError('value must be a float, int or string')
+    if method == 'transitionPoints':
+        if not 'transitionPoints' in parameters.keys() or not type(parameters['transitionPoints']) == type([]):
+            raise ValueError("if method is transitionPoints parameters must be a dictionary containing the key 'transitionPoints'. 'transitionPoints' must be an array of dictionaries containing the keys 'value' and 'color'. 'value' must be float and 'color' a hex color")
+        for i in np.arange(len(parameters['transitionPoints'])):
+            if not 'value' in parameters['transitionPoints'][i].keys():
+                raise ValueError("Each element in the array should have a 'value' of type float")
+            parameters['transitionPoints'][i]['value'] = float(parameters['transitionPoints'][i]['value'])
+        
+    if method == 'rangeToColor':
+        if not 'rangeToColor' in parameters.keys() or not type(parameters['rangeToColor']) == type([]):
+            raise ValueError("if method is rangeToColor parameters must be a dictionary containing the key rangeToColor. 'rangeToColor' must be an array of dictionaries containing the keys 'color' as hex, 'fromValue' as float and 'toValue' as float")
+        for i in np.arange(len(parameters['rangeToColor'])):
+            if not 'fromValue' in parameters['rangeToColor'][i].keys() or not 'toValue' in parameters['rangeToColor'][i].keys():
+                raise ValueError("Each element in the array should have a 'fromValue' and 'toValue' of type float")
+            parameters['rangeToColor'][i]['fromValue'] = float(parameters['rangeToColor'][i]['fromValue'])
+            parameters['rangeToColor'][i]['toValue'] = float(parameters['rangeToColor'][i]['toValue'])
+
+
+    body = {'mapId':shapeId, 'layerId': layerId, 'method':method, 'parameters':parameters, 'styleName':styleName, 'isDefault':isDefault }
     r = s.post(url + '/settings/geometryLayers/addStyle', headers = {"Authorization":token},
                      json = body)
     
@@ -1344,9 +1382,6 @@ def newShape(name, token):
     r = r.json()
     return(r)
 
-def updateBounds(shapeId, token, boundary):
-    boundary = gpd.GeoSeries([boundary]).__geo_interface__['features'][0]
-    boundary = boundary['geometry']
 
     body = {"mapId":  shapeId, 'bounds':boundary}
 
@@ -1357,6 +1392,7 @@ def updateBounds(shapeId, token, boundary):
     if r.status_code != 200:
         raise ValueError(r.text)
     
+
     
 def newMap(name,  token):
 
@@ -1387,6 +1423,17 @@ def newOrder(name, token,  dataSource = 'sentinel2RGBIR' ):
     r = r.json()
     return(r)
 
+def getRasterUploads(mapId, captureId, token):
+
+    body={'mapId':mapId, 'timestampId':captureId}
+    r = s.post(url + '/files/raster/getUploads', headers = {"Authorization":token},
+                     json = body)
+
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+    r = r.json()
+
+    return(r)
 
 def projectProperties(projectId, properties, token):
     mapId = projectId
