@@ -1425,6 +1425,72 @@ def getRasterUploads(mapId, captureId, token):
 
     return(r)
 
+#########downloads
+
+def getRasterDownloads(token):
+
+    r = s.get(url + '/files/raster/getDownloads', headers={"Authorization": token})
+
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+
+    r = r.json()
+    return (r)
+
+def orderRasterDownload(mapId, timestamp, xMin, xMax, yMin, yMax, token, layerId =None, fileFormat='tif'):
+    if type(layerId) == type(None):
+        layerId = 'raw'
+    body = {'mapId': mapId, 'layerId': layerId, 'timestamp': timestamp,
+            'xMin': xMin, 'xMax': xMax, 'yMin': yMin, 'yMax': yMax, 'format': fileFormat}
+    
+    r = s.post(url + '/files/raster/order', headers={"Authorization": token}, json=body)
+
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+
+    r = r.json()
+    return (r)
+
+
+def downloadRasterFile(downloadId, token):
+    r = s.get(url + '/files/raster/download/' + downloadId, headers={"Authorization": token})
+
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+
+
+def getGeometryDownloads(token):
+
+    r = s.get(url + '/files/geometry/getDownloads', headers={"Authorization": token})
+
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+
+    r = r.json()
+    return (r)
+
+
+def orderGeometryDownload(shapeId, layerId, xMin, xMax, yMin, yMax, token, fileFormat='shape'):
+    body = {'mapId': shapeId, 'layerId': layerId,
+            'xMin': xMin, 'xMax': xMax, 'yMin': yMin, 'yMax': yMax, 'format': fileFormat}
+    r = s.post(url + '/files/geometry/order', headers={"Authorization": token}, json=body)
+        
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+
+    r = r.json()
+    return (r)
+
+
+def downloadGeometryFile(downloadId, token):
+    r = s.get(url + '/files/geometry/download/' + downloadId, headers={"Authorization": token})
+
+    if int(str(r).split('[')[1].split(']')[0]) != 200:
+        raise ValueError(r.text)
+
+
+
+
 def projectProperties(projectId, properties, token):
     mapId = projectId
     body = {'mapId':mapId, 'properties':properties}
