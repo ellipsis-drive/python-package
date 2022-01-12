@@ -3,7 +3,7 @@
 
 import pandas as pd
 from PIL import Image
-import geopandas as gpd
+import geopandas as gpdtime
 from pyproj import Proj, transform
 import base64
 import numpy as np
@@ -25,7 +25,7 @@ from requests_toolbelt import MultipartEncoder
 import warnings
 import threading
 
-__version__ = '1.2.17'
+__version__ = '1.2.19'
 url = 'https://api.ellipsis-drive.com/v1'
 
 s = requests.Session()
@@ -771,9 +771,9 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, zoom
             for tiles in tiles_chunks:
                 pr = threading.Thread(target = subTiles, args =(tiles,), daemon=True)
                 pr.start()
-                prs = prs + [pr] 
+                prs = prs + [pr]
             for pr in prs:
-                pr.join()                           
+                pr.join()
                 
             min_x_index = int(round((min_x_osm_precise - min_x_osm)*256))
             max_x_index = max(int(round((max_x_osm_precise- min_x_osm)*256)), min_x_index + 1 )
@@ -1095,7 +1095,7 @@ def seriesGet(shapeId, layerId, geometryId, propertyName = None, dateFrom = None
 
     
 ################################################up and downloads
-def addTimestamp(mapId, token, appendToTimestampId = None, endDate = None, startDate = None, bounds=None):
+def addTimestamp(mapId, token, appendToTimestampId = None, endDate = None, startDate = None):
 
 
     if str(type(startDate)) == str(type(None)):
@@ -1114,19 +1114,13 @@ def addTimestamp(mapId, token, appendToTimestampId = None, endDate = None, start
     startDate = startDate.strftime("%Y-%m-%dT%H:%M:%S.%f")
     endDate = endDate.strftime("%Y-%m-%dT%H:%M:%S.%f")
 
-    toAdd = {'dateFrom':startDate, 'dateTo':endDate}
+    body = {'dateFrom':startDate, 'dateTo':endDate, 'mapId': mapId}
 
-    if str(type(bounds)) != str(type(None)):
-        boundary = gpd.GeoSeries([bounds]).__geo_interface__['features'][0]
-        boundary = boundary['geometry']
-        toAdd['bounds'] = boundary        
+
     if str(type(appendToTimestampId)) != str(type(None)):
-        toAdd['appendToTimestampId'] = appendToTimestampId
-
-    body = {"mapId":  mapId, "toAdd":[toAdd]}    
-
+        body['appendToTimestampId'] = appendToTimestampId
     
-    r = s.post(url + '/settings/projects/reschedule', headers = {"Authorization":token},
+    r = s.post(url + '/settings/projects/addTimestamp', headers = {"Authorization":token},
                  json = body)
 
     if r.status_code != 200:
@@ -1136,25 +1130,21 @@ def addTimestamp(mapId, token, appendToTimestampId = None, endDate = None, start
 
     
 def activateTimestamp(mapId, timestampId, active, token):
-    toActivate = []
-    toDeactivate = []
-    if active:
-        toActivate = [timestampId]
-    else:
-        toDeactivate = [timestampId]
     
-    body = {'mapId':mapId, 'toActivate': toActivate, 'toDeactivate': toDeactivate}
-    r = s.post(url + '/settings/projects/reschedule', headers = {"Authorization":token},
-                 json = body)
+    body = {'mapId':mapId, 'timestampIds': [timestampId]}
+    if(active):   
+        r = s.post(url + '/settings/projects/activateTimestamp', headers = {"Authorization":token}, json = body)
+    else:
+        r = s.post(url + '/settings/projects/deactivateTimestamp', headers = {"Authorization":token}, json = body)
 
     if r.status_code != 200:
         raise ValueError(r.text)
 
 
-def removeTimestamp(mapId, timestampNumber, token, revert = False, hard = False):
+def removeTimestamp(mapId, timestampId, token, revert = False, hard = False):
 
     r = s.post(url + '/settings/projects/deleteTimestamp', headers = {"Authorization":token},
-                 json = {"mapId":  mapId, "timestamp":timestampNumber, 'revert':revert, 'hard':hard})
+                 json = {"mapId":  mapId, "timestampId":timestampId, 'revert':revert, 'hard':hard})
 
     if r.status_code != 200:
         raise ValueError(r.text)
