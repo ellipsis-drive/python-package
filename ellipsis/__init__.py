@@ -25,7 +25,7 @@ from requests_toolbelt import MultipartEncoder
 import warnings
 import threading
 
-__version__ = '1.2.19'
+__version__ = '1.2.20'
 url = 'https://api.ellipsis-drive.com/v1'
 
 s = requests.Session()
@@ -1452,12 +1452,13 @@ def orderRasterDownload(mapId, timestamp, xMin, xMax, yMin, yMax, token, layerId
     return (r)
 
 
-def downloadRasterFile(downloadId, token):
+def downloadRasterFile(downloadId, filePath, token):
     r = s.get(url + '/files/raster/download/' + downloadId, headers={"Authorization": token})
 
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
 
+    open(filePath , 'wb').write(r.content)
 
 def getGeometryDownloads(token):
 
@@ -1482,12 +1483,13 @@ def orderGeometryDownload(shapeId, layerId, xMin, xMax, yMin, yMax, token, fileF
     return (r)
 
 
-def downloadGeometryFile(downloadId, token):
+def downloadGeometryFile(downloadId, filePath, token):
     r = s.get(url + '/files/geometry/download/' + downloadId, headers={"Authorization": token})
 
     if int(str(r).split('[')[1].split(']')[0]) != 200:
         raise ValueError(r.text)
 
+    open(filePath , 'wb').write(r.content)
 
 
 
