@@ -3,7 +3,7 @@
 
 import pandas as pd
 from PIL import Image
-import geopandas as gpdtime
+import geopandas as gpd
 from pyproj import Proj, transform
 import base64
 import numpy as np
@@ -24,12 +24,14 @@ import os
 from requests_toolbelt import MultipartEncoder
 import warnings
 import threading
+import urllib
 
-__version__ = '1.2.20'
-url = 'https://api.ellipsis-drive.com/v1'
+__version__ = '2.0.0'
+url = 'https://api.ellipsis-drive.com/v2'
 
 s = requests.Session()
 warnings.filterwarnings("ignore")
+
 
 
 def logIn(username, password):
@@ -43,95 +45,51 @@ def logIn(username, password):
         token = 'Bearer ' + token
         return(token)
 
-def metadata(projectId, includeDeleted=False, token = None):
-    mapId = projectId
+
+
+
+def pathInfo(pathId, includeDeleted=False, token = None):
+    mapId = pathId
     if token == None:
-        r = s.post(url + '/metadata',
-                         json = {"mapId":  mapId})
+        r = s.get(url + '/path/' + mapId)
     else:
-        r = s.post(url + '/metadata', headers = {"Authorization":token},
-                         json = {"mapId":  mapId, 'includeDeleted':includeDeleted})
+        r = s.get(url + '/path/' + mapId, headers = {"Authorization":token})
     if r.status_code != 200:
         raise ValueError(r.text)
     
     r = r.json()
     return(r)
 
-
-def getShapes(name= None, fuzzyMatch = False, favorite = None, access = ['subscribed', 'public', 'owned'], geometryAbounds=None, userId= None, hashtag = None, limit = 100, token = None):
     
-    body = {'access': access}
+
+def searchPaths(name= None, fuzzySearchOnName = False, root = ['myDrive', 'sharedWithMe', 'favorite'], firstPageOnly = True, bounds = None, userId= None, resolution=None,  dateFrom=None, dateTo= None, hashtag = None, token = None):
+
+    body = {'root': root, 'pageSize':20}
     if str(type(name)) != str(type(None)):
         body['name'] = name
-        
-    body['nameFuzzy'] = True
-    
-    if str(type(favorite)) != str(type(None)):
-        body['favorite'] = name
-    
+    body['fuzzySearchOnName'] = fuzzySearchOnName        
     if str(type(userId)) != str(type(None)):
         body['userId'] = userId
-    if str(type(hashtag)) != str(type(None)):
-        body['hashtag'] = hashtag
-        
-    if str(type(bounds)) != str(type(None)):
-        bounds = {'xMin':float(bounds['xMin']), 'xMax':float(bounds['xMax']), 'yMin':float(bounds['yMin']), 'yMax':float(bounds['yMax'])}
-        body['bounds'] = bounds
-        
-    keepGoing = True
-    results = []
-    while keepGoing:    
-        if token == None:
-            r = s.post(url + '/account/shapes', json = body )
-        else:
-            r = s.post(url + '/account/shapes', json = body, 
-                         headers = {"Authorization":token} )
-        if r.status_code != 200:
-            raise ValueError(r.text)
-            
-        result = r.json()
-        body['pageStart'] = result['nextPageStart']
-        result = result['result']
-        if len(result) < 100:
-            keepGoing = False
-        results = results + result
-        if len(result) >= limit:
-            keepGoing = False
-    end = min(limit, len(result))
-    result = result[0:end]
-    return(results)
-    
+    if str(type(dateFrom)) != str(type(None)):
+        body['dateFrom'] = dateFrom.strftime('%Y-%m-%d %H:%M:%S')
+    if str(type(dateTo)) != str(type(None)):
+        body['dateTo'] = dateTo.strftime('%Y-%m-%d %H:%M:%S')
 
-def getMaps(name= None, fuzzyMatch = False, access = ['subscribed', 'public', 'owned'], bounds = None, userId= None, favorite = None, resolutionRange=None, dateRange=None, hashtag = None, limit = 100, token = None):
-
-    body = {'access': access}
-    if str(type(name)) != str(type(None)):
-        body['name'] = name
-    body['nameFuzzy'] = fuzzyMatch        
-    if str(type(favorite)) != str(type(None)):
-        body['favorite'] = favorite
-    if str(type(userId)) != str(type(None)):
-        body['userId'] = userId
-    if str(type(dateRange)) != str(type(None)):
-        body['dateFrom'] = dateRange['dateFrom'].strftime('%Y-%m-%d %H:%M:%S')
-        body['dateTo'] = dateRange['dateTo'].strftime('%Y-%m-%d %H:%M:%S')
-    if str(type(resolutionRange)) != str(type(None)):
-        body['resolution'] = resolutionRange
+    if str(type(resolution)) != str(type(None)):
+        body['resolution'] = resolution
     if str(type(hashtag)) != str(type(None)):
         body['hashtag'] = hashtag
     if str(type(bounds)) != str(type(None)):
         bounds = {'xMin':float(bounds['xMin']), 'xMax':float(bounds['xMax']), 'yMin':float(bounds['yMin']), 'yMax':float(bounds['yMax'])}
         body['bounds'] = bounds
 
-    
     keepGoing = True
     results = []
-    while keepGoing:    
+    while keepGoing:
         if token == None:
-            r = s.post(url + '/account/maps', json = body )
+            r = s.get(url + '/path?' + urllib.parse.urlencode(body) )
         else:
-            r = s.post(url + '/account/maps', json = body, 
-                         headers = {"Authorization":token} )
+            r = s.get(url + '/path?' + urllib.parse.urlencode(body) ,headers = {"Authorization":token} )
         if r.status_code != 200:
             raise ValueError(r.text)
             
@@ -140,32 +98,27 @@ def getMaps(name= None, fuzzyMatch = False, access = ['subscribed', 'public', 'o
 
         results = results + result['result']
         result = result['result']
-        if len(result) < 100:
+
+        if firstPageOnly:
+            keepGoing = False
+        if len(result) < 20:
             keepGoing = False
         results = results + result
-        if len(result) >= limit:
-            keepGoing = False
 
-    end = min(limit, len(result))
-    result = result[0:end]
+
     return(results)
     
         
 
-def getBounds(projectId, timestamp = None, token = None ):
-    body = {"mapId": projectId}
+def rasterMapBounds(mapId, timestampId = None, token = None ):
 
-    if str(type(timestamp)) != str(type(None)):
-        body['timestamp'] = timestamp
-    else:
-        body['timestamp'] = 0
         
     if token == None:
-        r = s.post(url + '/settings/projects/bounds',
-                         json = body)
+        r = s.get(url + '/path/' + mapId + '/raster/timestamp/' + timestampId + '/bounds')
     else:
-        r = s.post(url + '/settings/projects/bounds', headers = {"Authorization":token},
-                         json = body)
+
+        r = s.get(url + '/path/' + mapId + '/raster/timestamp/' + timestampId + '/bounds', headers = {"Authorization":token})
+
     if r.status_code != 200:
         raise ValueError(r.text)
     r = r.json()
@@ -174,6 +127,37 @@ def getBounds(projectId, timestamp = None, token = None ):
     r  = gpd.GeoDataFrame.from_features([r])
     r = r.unary_union
     return(r)
+
+
+
+
+def vectorMapBounds(mapId, layerId = None, token = None ):
+        
+    if token == None:
+        r = s.get(url + '/path/' + mapId + '/vector/layer/' + layerId + '/bounds')
+    else:
+
+        r = s.get(url + '/path/' + mapId + '/vector/layer/' + layerId + '/bounds', headers = {"Authorization":token})
+
+    if r.status_code != 200:
+        raise ValueError(r.text)
+    r = r.json()
+    r['id'] = 0
+    r['properties'] = {}
+    r  = gpd.GeoDataFrame.from_features([r])
+    r = r.unary_union
+    return(r)
+
+
+
+
+
+
+
+
+
+
+
         
 def geometryIds(shapeId, layerId, geometryIds, wait = 0, token = None):
     body = {"mapId":  shapeId, 'layerId':layerId, 'returnType':'all'}
@@ -216,7 +200,6 @@ def geometryGet(shapeId, layerId, filters = None, limit = None, wait = 0, token 
             raise ValueError('filters must be an array with dictionaries. Each dictionary should have a property, key, operator and value')
 
     body = json.dumps(body)
-    print(body)
 
     body = json.loads(body)
 
@@ -451,7 +434,7 @@ def geometryChangelog(shapeId, layerId, limit = 100, userId = None, pageStart = 
     return({'changes':changes, 'pageStart':pageStart})
   
     
-def geometryAdd(shapeId, layerId, features, token, fromZoomlevels=None):
+def geometryAdd(shapeId, layerId, features, token, zoomlevels=None):
     mapId = shapeId
     if not str(type(features)) ==  "<class 'geopandas.geodataframe.GeoDataFrame'>":
         raise ValueError('features must be of type geopandas dataframe')
@@ -511,7 +494,7 @@ def geometryAdd(shapeId, layerId, features, token, fromZoomlevels=None):
         #float to int
         
         
-        body = {"mapId":  mapId, "layerId":layerId, "features":features_sub['features']}
+        body = {"mapId":  mapId, "layerId":layerId, "features":features_sub['features'], 'zoomlevels':zoomlevels}
 
         if str(type(None)) != str(type(zoomlevels)):
             body['zoomLevels'] = zoomlevels
@@ -692,7 +675,6 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, zoom
 
         bbox = {'xMin':xMin, 'xMax':xMax, 'yMin':yMin , 'yMax':yMax}
         body = {'mapId':mapId, 'timestamp' : timestamp, 'mapId':mapId, 'bounds':bbox, 'width':width, 'height':height}
-        print(body)
         if str(type(token)) == str(type(None)):
             r = s.post(url + '/raster/raw',
                          json = body )        
@@ -709,7 +691,7 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, zoom
 
     else:
             if str(type(num_bands)) == str(type(None)):
-                bands = metadata(mapId)['bands']
+                bands = metadata(mapId, token = token)['bands']
                 num_bands = len(bands)
 
 
@@ -740,7 +722,6 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, zoom
             for tileY in y_tiles:
                 for tileX in x_tiles:
                     tiles = tiles + [(tileX, tileY)]
-
             def subTiles(tiles):
                     N = 0
                     for tile in tiles:
@@ -751,7 +732,6 @@ def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, zoom
                         
                         url_req = url + '/tileService/' + mapId + '/' + str(timestamp) + '/data/' + str(zoom) + '/' + str(tileX) + '/' + str(tileY) + token_inurl
                         r = s.get(url_req , timeout = 10 )
-    
     
                         if r.status_code == 403:
                                 raise ValueError('insufficient access')
@@ -1372,17 +1352,18 @@ def newShape(name, token):
     r = r.json()
     return(r)
 
+    
 
-    body = {"mapId":  shapeId, 'bounds':boundary}
+def removeShape(shapeId, token, hard = False, revert = False):
 
-    r = s.post(url + '/settings/projects/newBounds', headers = {"Authorization":token},
+    body = {'pathId':shapeId, 'hard': hard, 'revert':revert}
+
+    r = s.post(url + '/path/remove', headers = {"Authorization":token},
                      json = body)
-    
-    
+
     if r.status_code != 200:
         raise ValueError(r.text)
     
-
     
 def newMap(name,  token):
 
@@ -1396,6 +1377,20 @@ def newMap(name,  token):
     
     r = r.json()
     return(r)
+
+
+def removeMap(mapId, token, hard = False, revert = False):
+
+    body = {'pathId':mapId, 'hard': hard, 'revert':revert}
+
+    r = s.post(url + '/path/remove', headers = {"Authorization":token},
+                     json = body)
+
+    if r.status_code != 200:
+        raise ValueError(r.text)
+    
+
+
 
 
 def newOrder(name, token,  dataSource = 'sentinel2RGBIR' ):
