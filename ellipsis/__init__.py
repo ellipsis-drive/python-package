@@ -460,10 +460,10 @@ def geometryAdd(shapeId, layerId, features, token, zoomlevels=None):
         columns = features.columns
         columns = [c for c in columns if c != 'geometry']
         for c in columns:
-            if 'int' in str(features.dtypes[c]):
+            if 'int' in str(features.dtypes[c]) or 'Int' in str(features.dtypes[c]):
                 propertyType = 'integer'
                 features[c] = [ int(d) if not np.isnan(d) and d != None else  np.nan for d in features[c].values ]
-            elif 'float' in str(features.dtypes[c]):
+            elif 'float' in str(features.dtypes[c]) or 'Float' in str(features.dtypes[c]):
                 propertyType = 'float'
                 features[c] = [ float(d) if not np.isnan(d) and d != None else  np.nan for d in features[c].values ]
             elif 'bool' in str(features.dtypes[c]):
