@@ -26,6 +26,17 @@ import warnings
 import threading
 import urllib
 
+# for use after refactoring
+import ellipsis.account
+import ellipsis.oauth
+import ellipsis.ogcprotocols
+import ellipsis.path
+import ellipsis.pricing
+import ellipsis.raster
+import ellipsis.users
+import ellipsis.vector
+
+
 __version__ = '2.0.0'
 url = 'https://api.ellipsis-drive.com/v2'
 
