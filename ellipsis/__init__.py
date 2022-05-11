@@ -35,7 +35,7 @@ import ellipsis.pricing
 import ellipsis.raster
 import ellipsis.users
 import ellipsis.vector
-
+import ellipsis.util
 
 __version__ = '2.0.0'
 url = 'https://api.ellipsis-drive.com/v2'
@@ -43,21 +43,7 @@ url = 'https://api.ellipsis-drive.com/v2'
 s = requests.Session()
 warnings.filterwarnings("ignore")
 
-
-
-def logIn(username, password):
-        r =s.post(url + '/account/login/',
-                         json = {'username':username, 'password':password} )
-        if r.status_code != 200:
-            raise ValueError(r.text)
-            
-        token = r.json()
-        token = token['token']
-        token = 'Bearer ' + token
-        return(token)
-
-
-
+# TODO name?
 
 def pathInfo(pathId, includeDeleted=False, token = None):
     mapId = pathId
@@ -70,65 +56,18 @@ def pathInfo(pathId, includeDeleted=False, token = None):
     
     r = r.json()
     return(r)
-
     
-
-def searchPaths(name= None, fuzzySearchOnName = False, root = ['myDrive', 'sharedWithMe', 'favorite'], firstPageOnly = True, bounds = None, userId= None, resolution=None,  dateFrom=None, dateTo= None, hashtag = None, token = None):
-
-    body = {'root': root, 'pageSize':20}
-    if str(type(name)) != str(type(None)):
-        body['name'] = name
-    body['fuzzySearchOnName'] = fuzzySearchOnName        
-    if str(type(userId)) != str(type(None)):
-        body['userId'] = userId
-    if str(type(dateFrom)) != str(type(None)):
-        body['dateFrom'] = dateFrom.strftime('%Y-%m-%d %H:%M:%S')
-    if str(type(dateTo)) != str(type(None)):
-        body['dateTo'] = dateTo.strftime('%Y-%m-%d %H:%M:%S')
-
-    if str(type(resolution)) != str(type(None)):
-        body['resolution'] = resolution
-    if str(type(hashtag)) != str(type(None)):
-        body['hashtag'] = hashtag
-    if str(type(bounds)) != str(type(None)):
-        bounds = {'xMin':float(bounds['xMin']), 'xMax':float(bounds['xMax']), 'yMin':float(bounds['yMin']), 'yMax':float(bounds['yMax'])}
-        body['bounds'] = bounds
-
-    keepGoing = True
-    results = []
-    while keepGoing:
-        if token == None:
-            r = s.get(url + '/path?' + urllib.parse.urlencode(body) )
-        else:
-            r = s.get(url + '/path?' + urllib.parse.urlencode(body) ,headers = {"Authorization":token} )
-        if r.status_code != 200:
-            raise ValueError(r.text)
-            
-        result = r.json()
-        body['pageStart'] = result['nextPageStart']
-
-        results = results + result['result']
-        result = result['result']
-
-        if firstPageOnly:
-            keepGoing = False
-        if len(result) < 20:
-            keepGoing = False
-        results = results + result
+# TODO name? also, renaming mapId to pathId is not strictly necessary (but the API page does specify 'pathId')
 
 
-    return(results)
-    
-        
+# el.path.raster.timestamp.getBounds()
 
-def rasterMapBounds(mapId, timestampId = None, token = None ):
+def rasterMapBounds(pathId, timestampId = None, token = None ):
 
-        
     if token == None:
-        r = s.get(url + '/path/' + mapId + '/raster/timestamp/' + timestampId + '/bounds')
+        r = s.get(url + '/path/' + pathId + '/raster/timestamp/' + timestampId + '/bounds')
     else:
-
-        r = s.get(url + '/path/' + mapId + '/raster/timestamp/' + timestampId + '/bounds', headers = {"Authorization":token})
+        r = s.get(url + '/path/' + pathId + '/raster/timestamp/' + timestampId + '/bounds', headers = {"Authorization":token})
 
     if r.status_code != 200:
         raise ValueError(r.text)
@@ -139,16 +78,13 @@ def rasterMapBounds(mapId, timestampId = None, token = None ):
     r = r.unary_union
     return(r)
 
-
-
-
-def vectorMapBounds(mapId, layerId = None, token = None ):
+def vectorMapBounds(pathId, layerId = None, token = None ):
         
     if token == None:
-        r = s.get(url + '/path/' + mapId + '/vector/layer/' + layerId + '/bounds')
+        r = s.get(url + '/path/' + pathId + '/vector/layer/' + layerId + '/bounds')
     else:
 
-        r = s.get(url + '/path/' + mapId + '/vector/layer/' + layerId + '/bounds', headers = {"Authorization":token})
+        r = s.get(url + '/path/' + pathId + '/vector/layer/' + layerId + '/bounds', headers = {"Authorization":token})
 
     if r.status_code != 200:
         raise ValueError(r.text)
@@ -1540,122 +1476,3 @@ def projectDescription(projectId, description, token):
     
     if r.status_code != 200:
         raise ValueError(r.text)
-
-
-
-
-
-##################################################################################################################
-
-
-
-
-def plotPolys(polys, xMin = None,xMax = None,yMin=None,yMax= None, alpha = None, image = None, colors = {0:(0,0,255)} , column= None):
-    polys.crs = {'init': 'epsg:4326'}
-
-    if str(type(xMin)) == str(type(None)):
-        polys_union = polys.unary_union
-        bbox = gpd.GeoDataFrame({'geometry':[polys_union]})
-        xMin = bbox.bounds['minx'].values[0]
-        yMin = bbox.bounds['miny'].values[0]
-        xMax = bbox.bounds['maxx'].values[0]
-        yMax = bbox.bounds['maxy'].values[0]
-        
-    bbox = gpd.GeoDataFrame( {'geometry': [Polygon([(xMin,yMin), (xMax, yMin), (xMax, yMax), (xMin, yMax)])]} )
-    bbox.crs = {'init': 'epsg:4326'}
-    bbox = bbox.to_crs({'init': 'epsg:3785'})
-    polys = polys.to_crs({'init': 'epsg:3785'})
-
-    if str(type(image)) == "<class 'NoneType'>":
-        if (xMax-xMin) > (yMax - yMin):
-            image = np.zeros((1024,1024* int((xMax-xMin)/(yMax-yMin)),4))
-        else:
-            image = np.zeros((1024* int((yMax-yMin)/(xMax-xMin)),1024,4))
-            
-    image = image/255
-    if column == None:
-        column = 'extra'
-        polys[column] = 0
-    
-    transform = rasterio.transform.from_bounds(bbox.bounds['minx'], bbox.bounds['miny'], bbox.bounds['maxx'], bbox.bounds['maxy'], image.shape[1], image.shape[0])
-    rasters = np.zeros(image.shape)
-    for key in colors.keys():
-        sub_polys = polys.loc[polys[column] == key]
-        if sub_polys.shape[0] >0:
-            raster = rasterize( shapes = [ (sub_polys['geometry'].values[m], 1) for m in np.arange(sub_polys.shape[0]) ] , fill = 0, transform = transform, out_shape = (image.shape[0], image.shape[1]), all_touched = True )
-            raster = np.stack([raster * colors[key][0]/255, raster*colors[key][1]/255,raster*colors[key][2]/255, raster ], axis = 2)
-            rasters = np.add(rasters, raster)
-     
-    rasters = np.clip(rasters, 0,1)
-
-    image_out = rasters
-    image_out[image_out[:,:,3] == 0, :] = image [image_out[:,:,3] == 0, :]
-    if alpha != None:
-        image_out = image * (1 - alpha) + image_out*alpha 
-
-    image_out = image_out *255
-    image_out = image_out.astype('uint8')
-    return(image_out)
-
-
-def chunks(l, n = 3000):
-    result = list()
-    for i in range(0, len(l), n):
-        result.append(l[i:i+n])
-    return(result)
-    
-
- 
-def cover(bounds, w):
-    if str(type(bounds)) == "<class 'shapely.geometry.polygon.Polygon'>" :
-        bounds = [bounds]
-    elif str(type(bounds)) =="<class 'shapely.geometry.multipolygon.MultiPolygon'>":
-        bounds = bounds
-    else:
-        raise ValueError('bounds must be a shapely polygon or multipolygon')
-
-    bound = bounds[0]
-    coords_total = pd.DataFrame()
-    for bound in bounds:
-         x1, y1, x2, y2  = bound.bounds
-
-         step_y =  w/geodesic((y1,x1), (y1 - 1,x1)).meters
-         parts_y = math.floor((y2 - y1)/ step_y + 1)
-
-         y1_vec = y1 + np.arange(0, parts_y )*step_y
-         y2_vec = y1 + np.arange(1, parts_y +1 )*step_y
-             
-         steps_x = [   w/geodesic((y,x1), (y,x1+1)).meters for y in y1_vec  ]
-
-         parts_x = [math.floor( (x2-x1) /step +1 ) for step in steps_x ]      
-             
-     
-         coords = pd.DataFrame()
-         for n in np.arange(len(parts_x)):
-             x1_sq = [ x1 + j*steps_x[n] for j in np.arange(0,parts_x[n]) ]
-             x2_sq = [ x1 + j*steps_x[n] for j in np.arange(1, parts_x[n]+1) ]
-             coords_temp = {'x1': x1_sq, 'x2': x2_sq, 'y1': y1_vec[n], 'y2':y2_vec[n]}
-             coords = coords.append(pd.DataFrame(coords_temp))
-         coords_total = coords_total.append(coords)
-
-    cover = [Polygon([ (coords_total['x1'].iloc[j] , coords_total['y1'].iloc[j]) , (coords_total['x2'].iloc[j] , coords_total['y1'].iloc[j]), (coords_total['x2'].iloc[j] , coords_total['y2'].iloc[j]), (coords_total['x1'].iloc[j] , coords_total['y2'].iloc[j]) ]) for j in np.arange(coords_total.shape[0])]
-     
-
-
-    coords = gpd.GeoDataFrame({'geometry': cover, 'x1':coords_total['x1'], 'x2':coords_total['x2'], 'y1':coords_total['y1'], 'y2':coords_total['y2'] })
-
-    coords.crs = {'init': 'epsg:4326'}
-
-    return(coords)
-    
-
-    
-def loadingBar(count,total):
-    if total == 0:
-        return
-    else:
-        percent = float(count)/float(total)*100
-        sys.stdout.write("\r" + str(int(count)).rjust(3,'0')+"/"+str(int(total)).rjust(3,'0') + ' [' + '='*int(percent) + ' '*(100-int(percent)) + ']')
-
-########################
-    
