@@ -1,3 +1,21 @@
+import requests
+import warnings
+import geopandas as gpd
+from shapely.geometry import Polygon
+from rasterio.features import rasterize
+from geopy.distance import geodesic
+
+URL = 'https://api.ellipsis-drive.com/v2'
+
+session = requests.Session()
+warnings.filterwarnings("ignore")
+
+def dictAdd(dictionary, key, value):
+    ''' Adds key with value to the dictionary if the value is not None '''
+    if value is not None:
+        dictionary[key] = value
+    print(dictionary)
+
 def plotPolys(polys, xMin = None,xMax = None,yMin=None,yMax= None, alpha = None, image = None, colors = {0:(0,0,255)} , column= None):
     polys.crs = {'init': 'epsg:4326'}
 
