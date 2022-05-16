@@ -32,7 +32,7 @@ import ellipsis.ellipsis.path
 import ellipsis.ellipsis.raster
 import ellipsis.ellipsis.users
 import ellipsis.ellipsis.vector
-import ellipsis.util
+import ellipsis.ellipsis.util
 
 __version__ = '2.0.0'
 url = 'https://api.ellipsis-drive.com/v2'

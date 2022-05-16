@@ -1,6 +1,6 @@
 # login
-from util import URL
-from util import session as s
+from ..util import URL
+from ..util import session as s
 
 def logIn(username, password, validFor = None):
 

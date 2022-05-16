@@ -1,4 +1,4 @@
-from util import dictAdd, session, URL
+from ..util import dictAdd, session, URL
 import urllib
 
 import ellipsis as el
