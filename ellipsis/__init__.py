@@ -27,17 +27,21 @@ import threading
 import urllib
 
 # for use after refactoring
-import ellipsis.account
-import ellipsis.path
-import ellipsis.raster
-import ellipsis.users
-import ellipsis.vector
+import ellipsis.ellipsis.account
+import ellipsis.ellipsis.path
+import ellipsis.ellipsis.raster
+import ellipsis.ellipsis.users
+import ellipsis.ellipsis.vector
 import ellipsis.util
 
 __version__ = '2.0.0'
 url = 'https://api.ellipsis-drive.com/v2'
 
 # TODO name?
+
+class path():
+    searchRaster = ellipsis.ellipsis.path.searchRaster
+
 
 def pathInfo(pathId, includeDeleted=False, token = None):
     mapId = pathId

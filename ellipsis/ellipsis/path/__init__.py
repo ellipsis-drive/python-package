@@ -1,6 +1,8 @@
 from util import dictAdd, session, URL
 import urllib
 
+import ellipsis as el
+
 s = session
 
 # TODO: implement all possible parameters?
@@ -26,9 +28,9 @@ def searchVector(name = None, root = ['myDrive', 'sharedWithMe', 'favorites'], h
     results = []
     while keepGoing:
         if token == None:
-            r = s.get(f"URL/path?{urllib.parse.urlencode(body)}")
+            r = s.get(f"{URL}/path?{urllib.parse.urlencode(body)}")
         else:
-            r = s.get(f"URL/path?{urllib.parse.urlencode(body)}", headers = {"Authorization":token} )
+            r = s.get(f"{URL}/path?{urllib.parse.urlencode(body)}", headers = {"Authorization":token} )
         
         if r.status_code != 200:
             raise ValueError(r.text)

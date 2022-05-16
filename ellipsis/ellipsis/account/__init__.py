@@ -9,7 +9,7 @@ def logIn(username, password, validFor = None):
         if validFor is not None:
             json["validFor"] = validFor
 
-        r =s.post(f"{URL}/account/login/", json=json)
+        r = s.post(f"{URL}/account/login/", json=json)
         if r.status_code != 200:
             raise ValueError(r.text)
             
