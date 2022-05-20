@@ -1,6 +1,6 @@
 from ...util import *
 
-def invite_user():
+def inviteUser():
     pass
 
 def revoke():
@@ -9,8 +9,8 @@ def revoke():
 def accept():
     pass
 
-def get_your_invites():
+def getYourInvites():
     pass
 
-def get_path_invites():
+def getPathInvites():
     pass
