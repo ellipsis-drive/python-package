@@ -51,7 +51,7 @@ def validBool(name, value, required):
     return(value)
 
 
-def validLayer(name, value, required):
+def validObject(name, value, required):
     if not required and type(value) == type(None):
         return
 

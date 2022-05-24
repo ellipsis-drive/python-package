@@ -20,7 +20,7 @@ def getDownsampledRaster(pathId, timestampId, bounds, width, height, layer = Non
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     bounds = sanitize.validBounds('bounds', bounds, True)
-    layer = sanitize.validLayer('layer', layer, False)
+    layer = sanitize.validObject('layer', layer, False)
 
     body = {'pathId':pathId, 'timestampId':timestampId, 'bounds':bounds, 'width':width, 'height':height}
     r = apiManager.get('/path/' + pathId + '/timestamp/' + timestampId + '/rasterByBounds', body, token, crash = False)
@@ -56,7 +56,7 @@ def getRaster(pathId, timestampId, bounds, layer = None, threads = 1, token = No
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     bounds = sanitize.validBounds('bounds', bounds, True)
-    layer = sanitize.validLayer('layer', layer, False)
+    layer = sanitize.validObject('layer', layer, False)
 
         
     xMin = bounds['xMin']
@@ -208,6 +208,10 @@ def getBounds(pathId, timestampId, token = None):
     pathId = sanitize.validUuid('pathId', pathId, True)  
     timestampId = sanitize.validUuid('timestampId', timestampId, True)  
     r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/bounds'  , None, token)
+    r['id'] = 0
+    r['properties'] = {}
+    r  = gpd.GeoDataFrame.from_features([r])
+    r = r.unary_union
     return r
 
 def activate(pathId, timestampId, token):
@@ -224,8 +228,6 @@ def delete(pathId, timestampId, token):
 
     r = apiManager.delete('/path/' + pathId + '/raster/timestamp/' + timestampId  , None, token)
     return r
-
-
 
 def trash(pathId, timestampId, token, trash):
     token = sanitize.validString('token', token, True)

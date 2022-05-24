@@ -6,7 +6,7 @@ def add(pathId, method, parameters, token, description = None):
     pathId = sanitize.validUuid('pathId', pathId, True)    
     method = sanitize.validString('method', method, True)    
     description = sanitize.validString('description', description, False)    
-    parameters = sanitize.validLayer('parameters', parameters, True)
+    parameters = sanitize.validObject('parameters', parameters, True)
 
     body = {'method': method, 'parameters':parameters, 'description': description}
     r = apiManager.post('/path/' + pathId + '/raster/layer', body, token)
@@ -27,7 +27,7 @@ def edit(pathId, layerId, method, parameters, token, description = None):
     pathId = sanitize.validUuid('pathId', pathId, True)    
     method = sanitize.validString('method', method, True)    
     description = sanitize.validString('description', description, False)    
-    parameters = sanitize.validLayer('parameters', parameters, True)
+    parameters = sanitize.validObject('parameters', parameters, True)
 
     body = {'method': method, 'parameters':parameters, 'description': description}
     r = apiManager.patch('/path/' + pathId + '/raster/layer/' + layerId, body, token)
