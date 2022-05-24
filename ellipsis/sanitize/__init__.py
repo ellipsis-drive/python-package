@@ -13,45 +13,6 @@ def validUuid(name, value, required):
     return(value)
 
 
-    
-def validRoot(name, value, required ):
-    if not required and type(value) == type(None):
-        return
-
-    roots = ['myDrive', 'sharedWithMe', 'favorites', 'trash']
-
-
-    if str(value) != str('x') or not roots.includes(value):
-        raise ValueError( name + ' must be one of ' + ' '.join(roots))
-    return(value)
-
-    
-def validRootArray(name, value, required ):
-    if not required and type(value) == type(None):
-        return
-
-
-    roots = ['myDrive', 'sharedWithMe', 'favorites', 'trash', 'public']
-
-    try:
-        value = list(value)
-    except:
-        raise ValueError(name + ' must be an iterable')
-       
-    types = np.array([type(x) != type('x') for x in value])
-    
-    if np.sum(types) > 0 :
-        raise ValueError(name + ' must be a list containg ' ' '.join(roots))
-        
-        
-    if len(set(roots).intersection(set(value))) != len(value):
-        raise ValueError(name + ' must be a list containg only ' ' '.join(roots))
-        
-    if len(value) ==0:
-        raise ValueError(name + ' cannot be an empty list')
-    return(value)
-
-
 def validString(name, value, required):
     if not required and type(value) == type(None):
         return
@@ -125,6 +86,46 @@ def validStringArray(name, value, required):
         raise ValueError(name + ' must be a list of strings')
         
     return value
+
+def validFloatArray(name, value, required):
+    if not required and type(value) == type(None):
+        return
+    
+    try:
+        value = list(value)
+        
+    except:
+        raise ValueError(name + ' must be an iterable')
+
+    types = np.array([ (not 'float' in str(type(x)) ) and (not 'int' in str(type(x)))  for x in value])
+    
+    if np.sum(types) > 0 :
+        raise ValueError(name + ' must be a list of strings')
+
+    value = [float(x) for x in value]
+        
+    return value
+
+
+def validIntArray(name, value, required):
+    if not required and type(value) == type(None):
+        return
+    
+    try:
+        value = list(value)
+        
+    except:
+        raise ValueError(name + ' must be an iterable')
+
+    types = np.array([  not 'int' in str(type(x))  for x in value])
+    
+    if np.sum(types) > 0 :
+        raise ValueError(name + ' must be a list of strings')
+
+    value = [float(x) for x in value]
+        
+    return value
+
 
 def validDate(name, value, required):
 

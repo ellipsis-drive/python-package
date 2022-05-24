@@ -1,9 +1,3 @@
-from ..util import *
+from ellipsis.raster.root import editBand
+from ellipsis.raster.root import editMap
 
-# /path/{pathId}/raster/band/{bandNumber}/name
-def edit_band(pathId, bandNumber, name):
-    pass
-
-# /path/{pathId}/raster
-def edit_map(pathId, interpolation = None, includesTransparent = None):
-    pass

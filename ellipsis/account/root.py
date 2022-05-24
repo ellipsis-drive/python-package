@@ -17,8 +17,7 @@ def logIn(username, password, validFor = None):
 
 def listRoot(rootName, token, isFolder = False, pageStart = None, listAll = True):
     token = sanitize.validString('token', token, True)
-
-    rootName = sanitize.validRoot('rootName', rootName, True)
+    rootName = sanitize.validString('rootName', rootName, True)
     pageStart = sanitize.validUuid('pageStart', pageStart, False)
     listAll = sanitize.validBool('listAll', listAll, True)        
     isFolder = sanitize.validBool('isFolder', isFolder, True)        
