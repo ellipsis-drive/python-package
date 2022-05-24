@@ -13,6 +13,24 @@ def validUuid(name, value, required):
     return(value)
 
 
+def validUuidArray(name, value, required):
+    if not required and type(value) == type(None):
+        return
+
+    try:
+        value = list(value)        
+    except:
+        raise ValueError(name + ' must be an iterable')
+
+    for uuid in value:
+        try:
+            UUID(uuid, version=2)
+        except:
+            raise ValueError(name + ' must be a list of uuids')    
+    return(value)
+
+
+
 def validString(name, value, required):
     if not required and type(value) == type(None):
         return
@@ -66,7 +84,20 @@ def validBounds(name, value, required):
             raise ValueError(name + ' must be a dictionary with keys ' ' '.join(keys) + ' whose values must be of type float')
         value[key] = float(value[key])
 
-    value = int(value)
+    if value['xMin'] > 180 or value['xMin'] < -180:
+        raise ValueError('xMin must be between -180 and 180')
+    if value['xMax'] > 180 or value['xMax'] < -180:
+        raise ValueError('xMax must be between -180 and 180')
+    if value['yMin'] > 85 or value['yMin'] < -85:
+        raise ValueError('yMin must be between -85 and 85')
+    if value['yMax'] > 85 or value['yMax'] < -85:
+        raise ValueError('yMax must be between -180 and 180')
+    if value['yMax'] < value['yMin']:
+        raise ValueError('yMax must be strictly greater than yMin')
+    if value['xMax'] < value['xMin']:
+        raise ValueError('xMax must be strictly greater than xMin')
+
+
     return(value)
 
 
@@ -75,8 +106,7 @@ def validStringArray(name, value, required):
         return
     
     try:
-        value = list(value)
-        
+        value = list(value)        
     except:
         raise ValueError(name + ' must be an iterable')
 
