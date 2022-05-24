@@ -9,4 +9,7 @@ from ellipsis.path.raster.timestamp.root import getDownsampledRaster
 from ellipsis.path.raster.timestamp.root import trash
 from ellipsis.path.raster.timestamp.root import recover
 
+from ellipsis.path.raster.timestamp import upload
+from ellipsis.path.raster.timestamp import order
+
 

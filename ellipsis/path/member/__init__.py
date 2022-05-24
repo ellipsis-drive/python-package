@@ -1,1 +1,1 @@
-from root import editMember, listMembers, removeMember
+from ellipsis.path.member.root import editMember, listMembers, removeMember

@@ -1,1 +1,1 @@
-from root import add, remove, search
+from ellipsis.path.hashtag.root import add, remove, search

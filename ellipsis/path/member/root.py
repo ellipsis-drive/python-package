@@ -1,5 +1,4 @@
-from ...util import *
-from ....ellipsis import apiManager, sanitize
+from ellipsis import apiManager, sanitize
 
 
 def listMembers(pathId=None, token=None, types=None):

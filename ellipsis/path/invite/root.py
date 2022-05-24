@@ -1,5 +1,4 @@
-from ...util import *
-from ....ellipsis import apiManager, sanitize
+from ellipsis import apiManager, sanitize
 
 
 def inviteUser(pathId=None, token=None, userId=None, email=None, access=None):
@@ -39,7 +38,7 @@ def acceptInvite(pathId=None, token=None, inviteId=None, accept=None):
 
 def getYourInvites(token=None):
     token = sanitize.validString('token', token, False)
-    return apiManager.get(f'/path/invite', None, token)
+    return apiManager.get('/path/invite', None, token)
 
 
 def getPathInvites(pathId=None, token=None):

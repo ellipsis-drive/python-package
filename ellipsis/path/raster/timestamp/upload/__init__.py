@@ -1,10 +1,2 @@
-from ....util import *
+from ellipsis.path.raster.timestamp.upload.root import upload, get
 
-def upload_file():
-    pass
-
-def get_uploads():
-    pass
-
-def delete_failed():
-    pass

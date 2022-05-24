@@ -1,5 +1,4 @@
-from ...util import *
-from ....ellipsis import apiManager, sanitize
+from ellipsis import apiManager, sanitize
 
 
 def add(pathId=None, token=None, hashtag=None):
