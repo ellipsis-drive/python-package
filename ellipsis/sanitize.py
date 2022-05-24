@@ -1,6 +1,7 @@
 from uuid import UUID
 import numpy as np
 import datetime
+import json
 
 
 def validUuid(name, value, required):
@@ -49,6 +50,18 @@ def validBool(name, value, required):
     value = bool(value)
     return(value)
 
+
+def validLayer(name, value, required):
+    if not required and type(value) == type(None):
+        return
+
+    if type(value) != type({}):
+        raise ValueError(name + ' must be a dictionary')
+
+    try:
+        json.dumps(value)
+    except:
+        raise ValueError(name + ' must be json serializable')
 
 def validInt(name, value, required):
     if not required and type(value) == type(None):

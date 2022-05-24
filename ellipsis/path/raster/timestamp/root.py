@@ -20,12 +20,7 @@ def getDownsampledRaster(pathId, timestampId, bounds, width, height, layer = Non
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     bounds = sanitize.validBounds('bounds', bounds, True)
-
-    if type(layer) != type(None):
-        try:
-            layer_temp = json.dumps(layer)
-        except:
-            raise ValueError('layer must be a uuid of some predefined layer or a dictionary with parameters for a layer')
+    layer = sanitize.validLayer('layer', layer, False)
 
     body = {'pathId':pathId, 'timestampId':timestampId, 'bounds':bounds, 'width':width, 'height':height}
     r = apiManager.get('/path/' + pathId + '/timestamp/' + timestampId + '/rasterByBounds', body, token, crash = False)
@@ -61,12 +56,8 @@ def getRaster(pathId, timestampId, bounds, layer = None, threads = 1, token = No
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     bounds = sanitize.validBounds('bounds', bounds, True)
+    layer = sanitize.validLayer('layer', layer, False)
 
-    if type(layer) != type(None):
-        try:
-            layer_temp = json.dumps(layer)
-        except:
-            raise ValueError('layer must be a uuid of some predefined layer or a dictionary with parameters for a layer')
         
     xMin = bounds['xMin']
     yMin = bounds['yMin']
