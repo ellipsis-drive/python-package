@@ -5,7 +5,18 @@ baseUrl = 'https://api.ellipsis-drive.com/v2'
 s = requests.Session()
 
 
+def filterNone(parameters):
+    if type(parameters) == type(None):
+        return parameters
+
+    params = {}    
+    for k in parameters.keys():
+        if type(parameters[k]) != type(None):
+            params[k] = parameters[k]
+    return params
+
 def get(url, parameters = None, token = None):
+    parameters = filterNone(parameters)
     if type(parameters) != type(None):
         if type(parameters) != type({}):
             raise ValueError('parameters of an API call must be of type dict or noneType')
@@ -32,6 +43,9 @@ def patch(url, parameters, token = None):
     return r
     
 def call(method, url, parameters = None, token = None):
+    parameters = filterNone(parameters)
+
+
     print(url)
     print(parameters)
     print(token)

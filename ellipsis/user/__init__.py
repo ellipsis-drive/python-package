@@ -1,14 +1,11 @@
 from ellipsis import apiManager
-from uuid import UUID
-
+from ellipsis import sanitize
 
 def search(username, fuzzySearch= True):
     
-    if type(username) != type('x'):
-        raise ValueError('username must be of type string')
+    sanitize.validString('username', username, True)
 
-    if type(fuzzySearch) != type(True):
-        raise ValueError('fuzzySearch must be of type boolean')
+    sanitize.validBool('fuzzySearch', fuzzySearch, True)
 
     
     body = {'username': username, 'fuzzySearch':fuzzySearch}
@@ -18,10 +15,7 @@ def search(username, fuzzySearch= True):
 
 
 def get(userId):
-    try:
-        UUID(userId, version=2)
-    except:
-        raise ValueError('userId must be of type string and be a uuid')
+    sanitize.validUuid('userId', userId)
     
     r = apiManager.get(url = '/user/' + userId, parameters = None)
     return r
