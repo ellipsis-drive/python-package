@@ -162,7 +162,6 @@ def validIntArray(name, value, required):
     return value
 
 
-
 def validDate(name, value, required):
 
     if not required and type(value) == type(None):
