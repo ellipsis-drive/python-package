@@ -1,5 +1,3 @@
-import requests
-import warnings
 import geopandas as gpd
 from shapely.geometry import Polygon
 from rasterio.features import rasterize
@@ -13,7 +11,7 @@ import sys
 
 def recurse(f, body, listAll, extraKey = None):
     
-    r = f()
+    r = f(body)
     if listAll:
         nextPageStart = r['nextPageStart']
         while nextPageStart != None:

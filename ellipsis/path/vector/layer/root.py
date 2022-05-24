@@ -1,5 +1,6 @@
 from ellipsis import apiManager
 from ellipsis import sanitize
+from ellipsis.util import recurse
 import geopandas as gpd
 
 def add(pathId, name, token, properties = None, description = None):
@@ -105,17 +106,10 @@ def getFeaturesByBounds(pathId, layerId, bounds, propertyFilter = None, token = 
 
     body = {'pageStart': pageStart, 'propertyFilter':propertyFilter, 'bounds':bounds}
 
-    r = apiManager.get('/path/' + pathId + '/layer/' + layerId + '/featureByBounds' , body, token)
-
-
-    if listAll:
-        nextPageStart = r['nextPageStart']
-        while nextPageStart != None:
-            body['pageStart'] = nextPageStart
-            r_new = apiManager.get('/path/' + pathId + '/layer/' + layerId + '/featureByBounds' , body, token)
-            nextPageStart = r_new['nextPageStart']
-            r['result']['features'] = r['result']['features'] + r_new['result']['features']
-        r['nextPageStart'] = None
+    def f(body):
+        return apiManager.get('/path/' + pathId + '/layer/' + layerId + '/featureByBounds' , body, token)
+        
+    r = recurse(f, body, listAll, 'features')
 
     r = gpd.GeoDataFrame.from_features(r['result']['features'])    
     return r
@@ -130,18 +124,12 @@ def listFeatures(pathId, layerId, token = None, listAll = True, pageStart = None
 
     body = {'pageStart': pageStart}
 
-    r = apiManager.get('/path/' + pathId + '/layer/' + layerId + '/listFeatures' , body, token)
+    def f(body):
+        return apiManager.get('/path/' + pathId + '/layer/' + layerId + '/listFeatures' , body, token)
 
+    r = recurse(f, body, listAll, 'features')
 
-    if listAll:
-        nextPageStart = r['nextPageStart']
-        while nextPageStart != None:
-            body['pageStart'] = nextPageStart
-            r_new = apiManager.get('/path/' + pathId + '/layer/' + layerId + '/listFeatures' , body, token)
-            nextPageStart = r_new['nextPageStart']
-            r['result']['features'] = r['result']['features'] + r_new['result']['features']
-        r['nextPageStart'] = None
-
+    
     r = gpd.GeoDataFrame.from_features(r['result']['features'])    
     return r
 
