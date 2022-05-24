@@ -2,8 +2,6 @@ from uuid import UUID
 import numpy as np
 import datetime
 
-roots = ['myDrive', 'sharedWithMe', 'favorites', 'trash']
-
 
 def validUuid(name, value, required):
     if not required and type(value) == type(None):
@@ -20,6 +18,9 @@ def validRoot(name, value, required ):
     if not required and type(value) == type(None):
         return
 
+    roots = ['myDrive', 'sharedWithMe', 'favorites', 'trash']
+
+
     if str(value) != str('x') or not roots.includes(value):
         raise ValueError( name + ' must be one of ' + ' '.join(roots))
     return(value)
@@ -30,7 +31,7 @@ def validRootArray(name, value, required ):
         return
 
 
-    roots = ['myDrive', 'sharedWithMe', 'favorites', 'trash']
+    roots = ['myDrive', 'sharedWithMe', 'favorites', 'trash', 'public']
 
     try:
         value = list(value)
@@ -45,6 +46,9 @@ def validRootArray(name, value, required ):
         
     if len(set(roots).intersection(set(value))) != len(value):
         raise ValueError(name + ' must be a list containg only ' ' '.join(roots))
+        
+    if len(value) ==0:
+        raise ValueError(name + ' cannot be an empty list')
     return(value)
 
 

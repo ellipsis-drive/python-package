@@ -1,3 +1,5 @@
 import ellipsis as el;
 
-el.path.searchRaster("raster-from-ee");
+r = el.path.searchRaster();
+
+r
