@@ -11,6 +11,23 @@ import math
 import sys
 
 
+def recurse(f, body, listAll, extraKey = None):
+    
+    r = f()
+    if listAll:
+        nextPageStart = r['nextPageStart']
+        while nextPageStart != None:
+            body['pageStart'] = nextPageStart
+            r_new = f(body)
+            nextPageStart = r_new['nextPageStart']
+            if extraKey == None:
+                r['result'] = r_new['result']
+            else:
+                r['result'][extraKey] = r_new['result'][extraKey]
+                
+        r['nextPageStart'] = None
+    return r
+
 def plotPolys(polys, xMin = None,xMax = None,yMin=None,yMax= None, alpha = None, image = None, colors = {0:(0,0,255)} , column= None):
     polys.crs = {'init': 'epsg:4326'}
 

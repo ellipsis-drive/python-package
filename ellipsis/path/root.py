@@ -1,10 +1,11 @@
 from ellipsis import apiManager
 from ellipsis import sanitize
+from ellipsis.util.root import recurse
 
-
-def searchRaster(root=None, name=None, fuzzySearchOnName=False, userId=None, disabled=False, canView=None, pageStart=None, hashtag=None, bounds=None, bands=None, resolution=None, dateFrom=None, dateTo=None, hasTimestamp=None, timestampSize=None, token=None):
+def searchRaster(root=None, name=None, fuzzySearchOnName=False, userId=None, disabled=False, canView=None, pageStart=None, hashtag=None, bounds=None, bands=None, resolution=None, dateFrom=None, dateTo=None, hasTimestamp=None, timestampSize=None, listAll= False, token=None):
     token = sanitize.validString('token', token, False)
     root = sanitize.validStringArray('root', root, False)
+    listAll = sanitize.validBool('listAll', listAll, True)
     name = sanitize.validString('name', name, False)
     fuzzySearchOnName = sanitize.validBool(
         'fuzzySearchOnName', fuzzySearchOnName, True)
@@ -16,12 +17,12 @@ def searchRaster(root=None, name=None, fuzzySearchOnName=False, userId=None, dis
     bounds = sanitize.validBounds('bounds', bounds, False)
     bands = sanitize.validStringArray('bands', bands, False)
     dateFrom = sanitize.validDate('dateFrom', dateFrom, False)
-    dateTo = sanitize.validDate('dateTo', dateFrom, False)
+    dateTo = sanitize.validDate('dateTo', dateTo, False)
     hasTimestamp = sanitize.validBool('hasTimestamp', hasTimestamp, False)
     timestampSize = sanitize.validFloat('timestampSize', timestampSize, False)
     resolution = sanitize.validFloatArray('resolution', resolution, False)
 
-    return apiManager.get('/path', {
+    body = {
         'type': ['raster'],
         'root': root,
         'name': name,
@@ -37,11 +38,18 @@ def searchRaster(root=None, name=None, fuzzySearchOnName=False, userId=None, dis
         'dateFrom': dateFrom,
         'dateTo': dateTo,
         'hasTimestamp': hasTimestamp, 'timestampSize': timestampSize
-    }, token)
+    }
+    
+    def f(body):
+        return apiManager.get('/path', body, token)
+    
+    r = recurse(f, body, listAll)
+    return r
 
 
-def searchVector(root=None, name=None, fuzzySearchOnName=False, userId=None, disabled=False, canView=None, pageStart=None, hashtag=None, bounds=None, hasVectorLayers=None, layerName=None, fuzzySearchOnLayerName=None, token=None):
+def searchVector(root=None, name=None, fuzzySearchOnName=False, userId=None, disabled=False, canView=None, pageStart=None, hashtag=None, bounds=None, hasVectorLayers=None, layerName=None, fuzzySearchOnLayerName=None, listAll=False, token=None):
     token = sanitize.validString('token', token, False)
+    listAll = sanitize.validBool('listAll', listAll, True)
     root = sanitize.validStringArray('root', root, False)
     name = sanitize.validString('name', name, False)
     fuzzySearchOnName = sanitize.validBool(
@@ -62,7 +70,7 @@ def searchVector(root=None, name=None, fuzzySearchOnName=False, userId=None, dis
         raise ValueError(
             "When no token is given the root can only be ['public'']")
 
-    return apiManager.get('/path', {
+    body = {
         'type': ['vector'],
         'root': root,
         'name': name,
@@ -76,12 +84,19 @@ def searchVector(root=None, name=None, fuzzySearchOnName=False, userId=None, dis
         'hasVectorLayers': hasVectorLayers,
         'layerName': layerName,
         'fuzzySearchOnLayerName': fuzzySearchOnLayerName
-    }, token)
+    }
 
+    def f(body):
+        return apiManager.get('/path', body, token)
+
+    r = recurse(f, body, listAll)
+    
+    return r
 
 # retrieving all pages depricated
-def searchFolder(root=None, name=None, fuzzySearchOnName=False, userId=None, pageStart=None, token=None):
+def searchFolder(root=None, name=None, fuzzySearchOnName=False, userId=None, pageStart=None, listAll = False, token=None):
     token = sanitize.validString('token', token, False)
+    listAll = sanitize.validBool('listAll', listAll, True)
     root = sanitize.validStringArray('root', root, False)
     name = sanitize.validString('name', name, False)
     fuzzySearchOnName = sanitize.validBool(
@@ -93,14 +108,20 @@ def searchFolder(root=None, name=None, fuzzySearchOnName=False, userId=None, pag
         raise ValueError(
             "When no token is given the root can only be ['public'']")
 
-    return (apiManager.get('/path', {
+    body = {
         'type': ['folder'],
         'root': root,
         'name': name,
         'fuzzySearchOnName': fuzzySearchOnName,
         'userId': userId,
         'pagestart': pageStart
-    }, token))
+    }
+    
+    def f(body):
+        return (apiManager.get('/path', body, token))
+
+    r = recurse(f, body, listAll)
+    return r
 
 
 def get(pathId=None, token=None):
