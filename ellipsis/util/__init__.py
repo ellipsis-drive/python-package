@@ -4,11 +4,11 @@ import geopandas as gpd
 from shapely.geometry import Polygon
 from rasterio.features import rasterize
 from geopy.distance import geodesic
-
-URL = 'https://api.ellipsis-drive.com/v2'
-
-session = requests.Session()
-warnings.filterwarnings("ignore")
+import numpy as np
+import rasterio
+import pandas as pd
+import math
+import sys
 
 def dictAdd(dictionary, key, value):
     ''' Adds key with value to the dictionary if the value is not None '''
