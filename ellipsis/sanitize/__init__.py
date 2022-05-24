@@ -136,9 +136,12 @@ def validUuidArray(name, value, required):
         return
 
     try:
-        return [UUID(x, version=2) for x in list(value)]
+        value = list(value)
+        [UUID(x, version=2) for x in value]
     except:
         raise ValueError(name + ' must be an iterable list with uuid values')
+
+    return value
 
 
 def validDate(name, value, required):
