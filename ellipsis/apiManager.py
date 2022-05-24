@@ -22,18 +22,13 @@ def get(url, parameters = None, token = None, crash = True):
         parameters['token'] = token
     parameters = filterNone(parameters)
     
-    if type(parameters) != type(None):
-        if type(parameters) != type({}):
-            raise ValueError(
-                'parameters of an API call must be of type dict or noneType')
-        else:
-            for k in parameters.keys():
-                if type(parameters[k]) != type('x'):
-                    parameters[k] = json.dumps(parameters[k])
 
-            parameters = urllib.parse.urlencode(parameters)
-            url = url + '?' + parameters
-            parameters = None
+    for k in parameters.keys():
+        if type(parameters[k]) != type('x'):
+            parameters[k] = json.dumps(parameters[k])
+
+    parameters = urllib.parse.urlencode(parameters)
+    url = url + '?' + parameters
 
             
     r = call( method = s.get, url = url, parameters = parameters, token = token, crash = crash )
