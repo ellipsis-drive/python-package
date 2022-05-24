@@ -27,14 +27,14 @@ import threading
 import urllib
 
 # for use after refactoring
-#import ellipsis.account
-#import ellipsis.oauth
-#import ellipsis.ogcprotocols
-#import ellipsis.path
-#import ellipsis.pricing
-#import ellipsis.raster
-#import ellipsis.users
-#import ellipsis.vector
+import ellipsis.account
+import ellipsis.oauth
+import ellipsis.ogcprotocols
+import ellipsis.path
+import ellipsis.pricing
+import ellipsis.raster
+import ellipsis.users
+import ellipsis.vector
 
 
 __version__ = '2.0.0'
@@ -657,7 +657,7 @@ def rasterAggregated(mapId, timestamps, geometry, approximate = True, token = No
     return(r.json())
 
 
-def rasterRaw(mapId, timestampId, xMin= None,xMax= None,yMin=None, yMax=None, zoom = None, num_bands = None, bounds=None, downsample = False, width = None, height = None, threads = 1, token = None):
+def rasterRaw(mapId, timestamp, xMin= None,xMax= None,yMin=None, yMax=None, zoom = None, num_bands = None, bounds=None, downsample = False, width = None, height = None, threads = 1, token = None):
     dtype = 'float32'
     
     if str(type(bounds)) != str(type(None)):
@@ -673,6 +673,8 @@ def rasterRaw(mapId, timestampId, xMin= None,xMax= None,yMin=None, yMax=None, zo
     xMinWeb,yMinWeb =  transform(Proj(init='epsg:4326'), Proj(init='epsg:3857'), xMin, yMin)
     xMaxWeb,yMaxWeb = transform(Proj(init='epsg:4326'), Proj(init='epsg:3857'), xMax, yMax)
 
+    timestamp = int(timestamp)
+
     token_inurl = ''
     if str(type(token)) != str(type(None)):
         token_inurl = '?token=' + token.replace('Bearer ', '')
@@ -683,7 +685,7 @@ def rasterRaw(mapId, timestampId, xMin= None,xMax= None,yMin=None, yMax=None, zo
 
 
         bbox = {'xMin':xMin, 'xMax':xMax, 'yMin':yMin , 'yMax':yMax}
-        body = {'mapId':mapId, 'timestampId' : timestampId, 'mapId':mapId, 'bounds':bbox, 'width':width, 'height':height}
+        body = {'mapId':mapId, 'timestamp' : timestamp, 'mapId':mapId, 'bounds':bbox, 'width':width, 'height':height}
         if str(type(token)) == str(type(None)):
             r = s.post(url + '/raster/raw',
                          json = body )        
@@ -700,17 +702,17 @@ def rasterRaw(mapId, timestampId, xMin= None,xMax= None,yMin=None, yMax=None, zo
 
     else:
             if str(type(num_bands)) == str(type(None)):
-                bands =  pathInfo(mapId, token = token)['raster']['bands']
+                bands = metadata(mapId, token = token)['bands']
                 num_bands = len(bands)
 
 
             if str(type(zoom)) == str(type(None)):
-                timestamps =  pathInfo(mapId, token = token)['raster']['timestamps']
-                all_timestamps = [item['id'] for item in timestamps]
-                if not timestampId in all_timestamps:
+                timestamps = metadata(mapId, token = token)['timestamps']
+                all_timestamps = [item["timestamp"] for item in timestamps]
+                if not timestamp in all_timestamps:
                     raise ValueError('given timestamp does not exist')
                 
-                zoom = next(item for item in timestamps if item["id"] == timestampId)['zoom']
+                zoom = next(item for item in timestamps if item["timestamp"] == timestamp)['zoom']
           
             min_x_osm_precise =  (xMin +180 ) * 2**zoom / 360 
             max_x_osm_precise =   (xMax +180 ) * 2**zoom / 360
@@ -739,7 +741,7 @@ def rasterRaw(mapId, timestampId, xMin= None,xMax= None,yMin=None, yMax=None, zo
                         x_index = tileX - min_x_osm
                         y_index = tileY - min_y_osm
                         
-                        url_req = url + '/path/' + mapId + '/raster/timestamp/' + timestampId + '/tile/' + str(zoom) + '/' + str(tileX) + '/' + str(tileY)  + token_inurl
+                        url_req = url + '/tileService/' + mapId + '/' + str(timestamp) + '/data/' + str(zoom) + '/' + str(tileX) + '/' + str(tileY) + token_inurl
                         r = s.get(url_req , timeout = 10 )
     
                         if r.status_code == 403:
@@ -764,16 +766,16 @@ def rasterRaw(mapId, timestampId, xMin= None,xMax= None,yMin=None, yMax=None, zo
             for pr in prs:
                 pr.join()
                 
-            min_x_index = int(math.floor((min_x_osm_precise - min_x_osm)*256))
-            max_x_index = max(int(math.floor((max_x_osm_precise- min_x_osm)*256 + 1 )), min_x_index + 1 )
-            min_y_index = int(math.floor((min_y_osm_precise - min_y_osm)*256))
-            max_y_index = max(int(math.floor((max_y_osm_precise- min_y_osm)*256 +1)), min_y_index + 1)
-
+            min_x_index = int(round((min_x_osm_precise - min_x_osm)*256))
+            max_x_index = max(int(round((max_x_osm_precise- min_x_osm)*256)), min_x_index + 1 )
+            min_y_index = int(round((min_y_osm_precise - min_y_osm)*256))
+            max_y_index = max(int(round((max_y_osm_precise- min_y_osm)*256)), min_y_index + 1)
+            
             r_total = r_total[min_y_index:max_y_index,min_x_index:max_x_index,:]
  
-    trans = rasterio.transform.from_bounds(xMinWeb, yMinWeb, xMaxWeb, yMaxWeb, r_total.shape[1], r_total.shape[0])
 
     if str(type(bounds)) != str(type(None)):
+        trans = rasterio.transform.from_bounds(xMinWeb, yMinWeb, xMaxWeb, yMaxWeb, r_total.shape[1], r_total.shape[0])
         shape = gpd.GeoDataFrame({'geometry':[bounds]})
         shape.crs = {'init': 'epsg:4326'}
         shape = shape.to_crs({'init': 'epsg:3857'})
@@ -781,7 +783,7 @@ def rasterRaw(mapId, timestampId, xMin= None,xMax= None,yMin=None, yMax=None, zo
         r_total[:,:,-1] = np.minimum(r_total[:,:,-1], raster_shape)
 
 
-    return r_total, trans, {'xMin' : xMinWeb, 'yMin': yMinWeb, 'xMax': xMaxWeb, 'yMax': yMaxWeb}
+    return(r_total)
 
 
 
