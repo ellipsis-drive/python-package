@@ -15,9 +15,13 @@ def filterNone(parameters):
             params[k] = parameters[k]
     return params
 
-
-def get(url, parameters=None, token=None):
+def get(url, parameters = None, token = None, crash = True):
+    if parameters == None:
+        parameters = {'token': token}
+    else:
+        parameters['token'] = token
     parameters = filterNone(parameters)
+    
     if type(parameters) != type(None):
         if type(parameters) != type({}):
             raise ValueError(
@@ -31,7 +35,10 @@ def get(url, parameters=None, token=None):
             url = url + '?' + parameters
             parameters = None
 
-    r = call(method=s.get, url=url, parameters=parameters, token=token)
+            
+    r = call( method = s.get, url = url, parameters = parameters, token = token, crash = crash )
+
+
     return r
 
 
@@ -49,14 +56,18 @@ def patch(url, parameters, token=None):
     r = call(method=s.patch, url=url, parameters=parameters, token=token)
     return r
 
+    
+def delete(url, parameters, token = None):
+    r = call( method = s.delete, url = url, parameters = parameters, token = token )
+    return r
 
-# TODO add url params support
+
 def delete(url, parameters, token=None):
     r = call(method=s.delete, url=url, parameters=parameters, token=token)
     return r
 
 
-def call(method, url, parameters=None, token=None):
+def call(method, url, parameters = None, token = None, crash = True):
     parameters = filterNone(parameters)
 
     print(url)
@@ -73,12 +84,16 @@ def call(method, url, parameters=None, token=None):
         r = method(baseUrl + url, json=parameters)
     else:
         token = 'Bearer ' + token
-        r = method(baseUrl + url, json=parameters,
-                   headers={"Authorization": token})
+        r = method(baseUrl + url , json = parameters, headers = {"Authorization":token})    
 
-    if r.status_code != 200:
-        raise ValueError(r.text)
-    print(r)
-    r = r.json()
+    if crash:
+        if r.status_code != 200:
+            raise ValueError(r.text)
+        print(r)
+        r = r.json()
+    
+        return r
+    else:
+        return r
 
-    return(r)
+    
