@@ -2,7 +2,8 @@ from uuid import UUID
 import numpy as np
 import datetime
 import json
-
+import geopandas as gpd
+import pandas as pd
 
 def validUuid(name, value, required):
     if not required and type(value) == type(None):
@@ -38,6 +39,52 @@ def validString(name, value, required):
 
     if type(value) != type('x'):
         raise ValueError(name + 'must be of type string')
+    return(value)
+
+
+def validImage(name, value, required):
+    if not required and type(value) == type(None):
+        return
+
+    if type(value) != type(np.zeros((2,2))):
+        raise ValueError(name + ' must be a numpy array with either 2 or 3 dimensions')
+    if len(value.shape) != 2  and len(value.shape) !=3 :
+        raise ValueError(name + ' must be a numpy array with either 2 or 3 dimensions')
+    if len(value.shape) ==3 and value.shape[2] !=3 and value.shape[2] !=1:
+        raise ValueError(name + ' must have either 1 or 3 bands')
+
+
+
+def validDataframe(name, value, required):
+    if not required and type(value) == type(None):
+        return
+
+    if type(value) != type(pd.DataFrame()):
+        raise ValueError(name + ' must be a pandas dataframe')
+        
+
+def validGeopandas(name, value, required):
+    if not required and type(value) == type(None):
+        return
+
+    if type(value) != type(gpd.GeoDataFrame()):
+        raise ValueError(name + 'must be a geopandas dataframe')
+        
+    if str(type(value.crs)) == str(type(None)) and min(value.bounds['minx']) > -180  and max(value.bounds['maxx']) < 180 and min(value.bounds['miny']) > -90  and max(value.bounds['maxy']) < 90:
+        print('assuming WGS84 coordinates for ' + name)
+        value.crs = {'init': 'epsg:4326'}
+    elif str(type(value.crs)) == str(type(None)):
+        raise ValueError('Please provide CRS for ' + name)
+    else:
+        value = value.to_crs({'init': 'epsg:4326'})
+
+    if 'id' in value.columns:
+        del value['id']
+    if 'userId' in value.columns:
+        del value['userId']
+    if 'attribution' in value.columns:
+        del value['attribution']
+        
     return(value)
 
 
@@ -170,7 +217,7 @@ def validIntArray(name, value, required):
     if np.sum(types) > 0:
         raise ValueError(name + ' must be a list of strings')
 
-    value = [float(x) for x in value]
+    value = [int(x) for x in value]
 
     return value
 

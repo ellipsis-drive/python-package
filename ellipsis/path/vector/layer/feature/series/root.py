@@ -1,0 +1,154 @@
+from ellipsis import apiManager
+from ellipsis import sanitize
+from ellipsis.util.root import recurse
+from ellipsis.util.root import chunks
+from ellipsis.util.root import loadingBar
+from datetime import datetime
+
+import numpy as np
+import pandas as pd
+
+def get(pathId, layerId, featureId, pageStart = None, dateTo = None, userId = None, seriesProperty = None, deleted = False, listAll= True,  token = None ):    
+    pathId = sanitize.validUuid('pathId', pathId, True) 
+    layerId = sanitize.validUuid('layerId', layerId, True) 
+    featureId = sanitize.validUuid('featureId', featureId, True) 
+    pageStart = sanitize.validObject('pageStart', pageStart, False)
+    dateTo = sanitize.validDate('dateTo', dateTo, False)
+    userId = sanitize.validUuid('userId', userId, False)
+    seriesProperty = sanitize.validString('seriesProperty', seriesProperty, False)
+    deleted = sanitize.validBool('deleted', deleted, True)
+    listAll = sanitize.validBool('listAll', listAll, True)
+    token = sanitize.validString('token', token, False)
+
+    body = {'pageStart' : pageStart, 'dateTo' : dateTo, 'userId' : userId, 'seriesProperty': seriesProperty, 'deleted': deleted, 'listAll': listAll}
+    
+    def f(body):
+        r = apiManager.get('/path/' + pathId + '/vector/layer' + layerId + '/feature/' + featureId + '/series/element', body, token)
+        return r
+    
+    r = recurse(f, body, listAll)
+    series = r['result']
+    series = [ { 'id':k['id'], 'property': k['property'], 'value': k['value'], 'date': datetime.strptime(k['date'], "%Y-%m-%dT%H:%M:%S.%fZ") } for k in series]
+    series = pd.DataFrame(series)
+    return({'nextPageStart': r['nextPageStart'], 'result': series})
+
+
+    return r
+    
+
+def info(pathId, layerId, featureId, token = None):
+    pathId = sanitize.validUuid('pathId', pathId, True) 
+    layerId = sanitize.validUuid('layerId', layerId, True) 
+    featureId = sanitize.validUuid('featureId', featureId, True) 
+    token = sanitize.validString('token', token, False)
+    
+    r = apiManager.get('/path/' + pathId + '/vector/layer' + layerId + '/feature/' + featureId + '/series/info', None, token)
+    return r
+
+
+def add(pathId, layerId, featureId, seriesData, token):
+    pathId = sanitize.validUuid('pathId', pathId, True) 
+    layerId = sanitize.validUuid('layerId', layerId, True) 
+    featureId = sanitize.validUuid('featureId', featureId, True) 
+    token = sanitize.validString('token', token, True)
+    seriesData = sanitize.validDataframe('seriesData', seriesData, True)
+
+    if 'datetime' in seriesData.columns:
+        if str(seriesData['datetime'].dtypes) == 'datetime64[ns]':
+            seriesData['datetime'] = seriesData['datetime'].dt.strftime('%Y-%m-%d %H:%M:%S')
+            seriesData = list(seriesData['datetime'])
+            del seriesData['datetime']
+        else:
+           raise  ValueError('datetime column must be of type datetime')
+    else:
+           raise  ValueError('seriesData must have a column datetime of type datetime')
+
+
+    for c in seriesData.columns:
+            seriesData[c] = seriesData[c].astype(float)
+        
+    values = []
+    for i in np.arange(seriesData.shape[0]):
+        for c in seriesData.columns:
+                value = seriesData[c].values[i]
+                if not np.isnan(value):
+                    values = values + [{'property':c, 'value':seriesData[c].values[i], 'date':seriesData[i]}]
+
+
+    chunks_values = chunks(values)
+    N = 0
+    r_total = []
+    for values_sub in chunks_values:
+        body = { "values":values_sub}
+        r = apiManager.post("/path/" + pathId + "/vector/layer/" + layerId  + '/feature/' + featureId + '/series/element', body, token)
+        
+        r_total = r_total + r
+        loadingBar(N*3000 + len(values_sub), len(values))
+        N = N+1
+    return r_total
+
+
+
+
+def delete(pathId, layerId, featureId, seriesIds, token):
+    pathId = sanitize.validUuid('pathId', pathId, True) 
+    layerId = sanitize.validUuid('layerId', layerId, True) 
+    featureId = sanitize.validUuid('featureId', featureId, True) 
+    token = sanitize.validString('token', token, True)
+    seriesIds = sanitize.validUuidArray('seriesIds', seriesIds, True)
+
+    chunks_values = chunks(seriesIds)
+    N = 0
+    r_total = []
+    for seriesIds_sub in chunks_values:
+        body = { "seriesIds":seriesIds_sub, "deleted": True}
+        r = apiManager.put("/path/" + pathId + "/vector/layer/" + layerId  + '/feature/' + featureId + '/series/element/deleted', body, token)
+        
+        r_total = r_total + r
+        loadingBar(N*3000 + len(seriesIds_sub), len(seriesIds))
+        N = N+1
+    return r_total
+
+def recover(pathId, layerId, featureId, seriesIds, token):
+    pathId = sanitize.validUuid('pathId', pathId, True) 
+    layerId = sanitize.validUuid('layerId', layerId, True) 
+    featureId = sanitize.validUuid('featureId', featureId, True) 
+    token = sanitize.validString('token', token, True)
+    seriesIds = sanitize.validUuidArray('seriesIds', seriesIds, True)
+
+    chunks_values = chunks(seriesIds)
+    N = 0
+    r_total = []
+    for seriesIds_sub in chunks_values:
+        body = { "seriesIds":seriesIds_sub, "deleted": False}
+        r = apiManager.put("/path/" + pathId + "/vector/layer/" + layerId  + '/feature/' + featureId + '/series/element/deleted', body, token)
+        
+        r_total = r_total + r
+        loadingBar(N*3000 + len(seriesIds_sub), len(seriesIds))
+        N = N+1
+    return r_total
+
+
+def changelog(pathId, layerId, featureId, listAll = False, actions = None, userId = None, pageStart = None, token = None):
+    pathId = sanitize.validUuid('pathId', pathId, True) 
+    layerId = sanitize.validUuid('layerId', layerId, True) 
+    featureId = sanitize.validUuid('featureId', featureId, True) 
+    listAll = sanitize.validBool('listAll', listAll, True) 
+    actions = sanitize.validStringArray('actions', actions, False) 
+    userId = sanitize.validUuid('userId', userId, False) 
+    pageStart = sanitize.validObject('pageStart', pageStart, False) 
+    token = sanitize.validString('token', token, False)
+
+    body = {'userId': userId, 'actions':actions, 'pageStart':pageStart}
+
+    def f(body):
+        r = apiManager.get('/path/' + pathId + '/vecotor/layer/' + layerId + '/feature/' + featureId + '/series/changelog', body, token)
+        return r
+        
+    r = recurse(f, body, listAll)
+
+
+    return r
+
+    
+    

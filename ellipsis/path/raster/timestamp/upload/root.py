@@ -14,7 +14,7 @@ def upload(pathId, timestampId, filePath, token, epsg = None, noDataValue = None
     seperator = os.path.sep    
     fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
     
-    body = {'fileName':fileName, 'epsg':epsg, 'noDataValue':noDataValue, 'fileFormat':fileFormat}
+    body = {'fileName':fileName, 'epsg':epsg, 'noDataValue':noDataValue, 'format':fileFormat}
     apiManager.upload('/path/' + pathId + '/raster/timestamp/' + timestampId + '/upload' , filePath, body, token)
 
 

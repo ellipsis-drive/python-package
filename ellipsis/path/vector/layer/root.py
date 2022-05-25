@@ -1,6 +1,6 @@
 from ellipsis import apiManager
 from ellipsis import sanitize
-from ellipsis.util import recurse
+from ellipsis.util.root import recurse
 import geopandas as gpd
 
 def add(pathId, name, token, properties = None, description = None):
