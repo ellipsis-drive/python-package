@@ -1,16 +1,23 @@
 import ellipsis as el
 
 
-el.path.vector.layer.upload.get
 
+# el.path.raster.timestamp.order.download
 
-el.path.vector.layer.property
+g_token = ""
 
-el.path.raster.timestamp.order.download
+def test_logIn():
+    global g_token
+    g_token = el.account.logIn("demo_user", "demo_user")
 
+# crashes
+def test_path_searchRaster():
+    r = el.path.searchRaster(token=g_token);
 
-r = el.path.searchRaster(token = 'hoi');
+# crashes
+def test_path_searchVector():
+    r = el.path.searchVector(token=g_token);
 
-r = el.path.searchFolder();
-
-r
+# crashes
+def test_path_searchFolder():
+    r = el.path.searchFolder(token=g_token);
