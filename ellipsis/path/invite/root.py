@@ -1,15 +1,13 @@
 from ellipsis import apiManager, sanitize
 
 
-def inviteUser(pathId=None, token=None, userId=None, email=None, access=None):
+def sent(pathId, access, token, userId=None, email=None):
     pathId = sanitize.validUuid('pathId', pathId, True)
-    token = sanitize.validString('token', token, False)
+    token = sanitize.validString('token', token, True)
     userId = sanitize.validUuid('userId', userId, False)
     email = sanitize.validString('email', email, False)
-    access = sanitize.validBool('access', access, True)
+    access = sanitize.validObject('access', access, True)
 
-    if(userId == None and email == None):
-        raise ValueError("Email and userId cannot both be None")
 
     return apiManager.post(f'/path/{pathId}/invite', {
         'userId': userId,
@@ -18,30 +16,38 @@ def inviteUser(pathId=None, token=None, userId=None, email=None, access=None):
     }, token)
 
 
-def revokeInvite(pathId=None, token=None, inviteId=None):
+def revoke(pathId, inviteId, token):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
     inviteId = sanitize.validUuid('inviteId', inviteId, True)
     return apiManager.delete(f'/path/{pathId}/invite/{inviteId}', None, token)
 
 
-def acceptInvite(pathId=None, token=None, inviteId=None, accept=None):
+def accept(pathId, inviteId, token):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
     inviteId = sanitize.validUuid('inviteId', inviteId, True)
-    accept = sanitize.validBool('accept', accept, False)
 
     return apiManager.post(f'/path/{pathId}/invite/{inviteId}/accept', {
-        'accept': accept
+        'accept': True
+    }, token)
+
+def decline(pathId, inviteId, token):
+    pathId = sanitize.validUuid('pathId', pathId, True)
+    token = sanitize.validString('token', token, False)
+    inviteId = sanitize.validUuid('inviteId', inviteId, True)
+
+    return apiManager.post(f'/path/{pathId}/invite/{inviteId}/accept', {
+        'accept': False
     }, token)
 
 
-def getYourInvites(token=None):
-    token = sanitize.validString('token', token, False)
+def getYourInvites(token):
+    token = sanitize.validString('token', token, True)
     return apiManager.get('/path/invite', None, token)
 
 
-def getPathInvites(pathId=None, token=None):
+def getPathInvites(pathId, token):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
     return apiManager.get(f'/path/{pathId}/invite', None, token)

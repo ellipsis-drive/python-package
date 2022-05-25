@@ -234,11 +234,4 @@ def validDate(name, value, required):
     return value
 
 
-def validDict(name, value, required):
-    if not required and type(value) == type(None):
-        return
 
-    if(type(value) != type({})):
-        raise ValueError(f'{name} must be a dictionary')
-
-    return value

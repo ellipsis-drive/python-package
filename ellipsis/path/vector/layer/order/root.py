@@ -26,4 +26,4 @@ def download(orderId, filePath, token):
     orderId = sanitize.validUuid('orderId', orderId, True)
     filePath = sanitize.validString('filePath', filePath, True)
 
-    apiManager('/path/vector/layer/order/' + orderId, filePath, token)
+    apiManager.download('/path/vector/layer/order/' + orderId, filePath, token)

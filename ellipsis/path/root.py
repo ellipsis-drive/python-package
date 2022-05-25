@@ -124,38 +124,52 @@ def searchFolder(root=None, name=None, fuzzySearchOnName=False, userId=None, pag
     return r
 
 
-def get(pathId=None, token=None):
+def get(pathId, token=None):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
     return apiManager.get(f"/path/{pathId}", None, token)
 
 
 # This is supposed to be private
-def list(pathId=None, token=None, isFolder=False, pageSize=None, pageStart=None):
+def listMaps(pathId, pageStart=None, listAll = True, token=None):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
-    pageSize = sanitize.validInt('pageSize', pageSize, False)
     pageStart = sanitize.validUuid('pageStart', pageStart, False)
+    listAll = sanitize.validBool('listAll', listAll, False)
 
-    return apiManager.get(f'/path/{pathId}/list', {
-        'pageStart': pageStart,
-        'pageSize': pageSize,
-    }, token)
+    body  = {'pageStart': pageStart, 'isFolder':False}
+    
+    def f(body):
+        
+        return apiManager.get(f'/path/{pathId}/list', body, token)
 
+    r = recurse(f, body, listAll)
+    return r
 
-def listFolders(pathId=None, token=None, pageSize=None, pageStart=None):
-    return list(pathId, token, True, pageSize, pageStart)
-
-
-def listFiles(pathId=None, token=None, pageSize=None, pageStart=None):
-    return list(pathId, token, False, pageSize, pageStart)
-
-
-def editMetaData(pathId=None, token=None, description=None, attribution=None, properties=None):
+def listFolders(pathId, pageStart=None, listAll = True, token=None):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
+    pageStart = sanitize.validUuid('pageStart', pageStart, False)
+    listAll = sanitize.validBool('listAll', listAll, False)
+
+    body  = {'pageStart': pageStart, 'isFolder':True}
+    
+    def f(body):
+        
+        return apiManager.get(f'/path/{pathId}/list', body, token)
+
+    r = recurse(f, body, listAll)
+    return r
+
+
+
+
+def editMetadata(pathId, token, description=None, attribution=None, properties=None):
+    pathId = sanitize.validUuid('pathId', pathId, True)
+    token = sanitize.validString('token', token, True)
     attribution = sanitize.validString('attribution', attribution, False)
-    properties = sanitize.validDict('properties', properties, False)
+    description = sanitize.validString('description', description, False)
+    properties = sanitize.validObject('properties', properties, False)
 
     return apiManager.patch(f'/path/{pathId}/metadata', {
         'description': description,
@@ -164,7 +178,19 @@ def editMetaData(pathId=None, token=None, description=None, attribution=None, pr
     }, token)
 
 
-def rename(pathId=None, token=None, name=None):
+def add( pathType, name, token, parentId = None, publicAccess =None, metadata=None):
+    pathType = sanitize.validString('pathType', pathType, True)
+    name = sanitize.validUuid('name', name, True)
+    token = sanitize.validString('token', token, True)
+    parentId = sanitize.validUuid('parentId', parentId, False)
+    metadata = sanitize.validObject('metadata', metadata, False)
+    publicAccess = sanitize.validObject('publicAccess', publicAccess, False)
+
+    body = {'name': name, 'parentId':parentId, 'publicAccess':publicAccess, 'metadata':metadata }
+
+    return apiManager.post('/path', body, token)
+
+def rename(pathId, name, token):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
     name = sanitize.validString('name', name, False)
@@ -174,7 +200,7 @@ def rename(pathId=None, token=None, name=None):
     }, token)
 
 
-def movePaths(token=None, pathIds=None, parentId=None):
+def move(pathIds, parentId, token):
     token = sanitize.validString('token', token, False)
     pathIds = sanitize.validUuidArray('pathIds', pathIds, True)
     parentId = sanitize.validUuid('parentId', parentId, False)
@@ -185,19 +211,52 @@ def movePaths(token=None, pathIds=None, parentId=None):
     }, token)
 
 
-def setTrashed(pathId=None, token=None, trashed=None):
+def trash(pathId, token):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
-    trashed = sanitize.validBool('trashed', trashed, True)
 
     return apiManager.put(f'/path/{pathId}/trashed', {
-        'trashed': trashed
+        'trashed': True
     }, token)
 
 
-def delete(pathId=None, token=None):
+def recover(pathId, token):
+    pathId = sanitize.validUuid('pathId', pathId, True)
+    token = sanitize.validString('token', token, False)
+
+    return apiManager.put(f'/path/{pathId}/trashed', {
+        'trashed': False
+    }, token)
+
+
+def delete(pathId, token):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
     return apiManager.delete(f'/path/{pathId}', None, token)
 
-# NOT IMPLEMENTED: edit access, favorite, request access
+def editPublicAccess(pathId, token, accessLevel=None, processingUnits=None, geoFence=None):
+    pathId = sanitize.validUuid('pathId', pathId, True)
+    token = sanitize.validString('token', token, False)
+    geoFence = sanitize.validObject('geoFence', geoFence, False)
+    accessLevel = sanitize.validInt('accessLevel', accessLevel, False)
+    processingUnits = sanitize.validInt('processingUnits', processingUnits, False)
+
+    body = {'accessLevel':accessLevel, 'processingUnits':processingUnits, 'geoFence':geoFence}    
+    
+    return apiManager.patch('/path/publicAccess', body, token)
+    
+def addTofavorites(pathId, token):
+    pathId = sanitize.validUuid('pathId', pathId, True)
+    token = sanitize.validString('token', token, False)
+    body = {'favorite':True}
+    return apiManager.put(f'/path/{pathId}/favorite', body, token)
+    
+    
+def removeFromFavorites(pathId, token):
+    pathId = sanitize.validUuid('pathId', pathId, True)
+    token = sanitize.validString('token', token, False)
+    body = {'favorite':False}
+    return apiManager.put(f'/path/{pathId}/favorite', body, token)
+    
+    
+    

@@ -9,7 +9,7 @@ def search(username, fuzzySearch= True):
 
     
     body = {'username': username, 'fuzzySearch':fuzzySearch}
-    r = apiManager.get(url = '/user', parameters = body)
+    r = apiManager.get('/user', body, None)
 
     return r
 
@@ -17,6 +17,6 @@ def search(username, fuzzySearch= True):
 def get(userId):
     sanitize.validUuid('userId', userId)
     
-    r = apiManager.get(url = '/user/' + userId, parameters = None)
+    r = apiManager.get('/user/' + userId, None, None)
     return r
 

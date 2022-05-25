@@ -1,5 +1,6 @@
 from ellipsis import apiManager
 from ellipsis import sanitize
+from ellipsis.util.root import recurse
 
 def logIn(username, password, validFor = None):
 
@@ -15,30 +16,42 @@ def logIn(username, password, validFor = None):
 
         return(token)
 
-def listRoot(rootName, token, isFolder = False, pageStart = None, listAll = True):
+def listRootMaps(rootName, token, pageStart = None, listAll = True):
     token = sanitize.validString('token', token, True)
     rootName = sanitize.validString('rootName', rootName, True)
     pageStart = sanitize.validUuid('pageStart', pageStart, False)
     listAll = sanitize.validBool('listAll', listAll, True)        
-    isFolder = sanitize.validBool('isFolder', isFolder, True)        
 
 
     url = "/account/root/" + rootName
-    body = {"isFolder": isFolder, "pageStart": pageStart}
+    body = {"isFolder": False, "pageStart": pageStart}
 
 
-    r = apiManager.get(url, body, token)            
-    nextPageStart = r['nextPageStart']
+    def f(body):
+        r = apiManager.get(url, body, token)
+        return r
 
-    if listAll:
-        while nextPageStart != None:
-            body['pageStart'] = nextPageStart
-            r_new = apiManager.get(url, body, token)            
-            nextPageStart = r_new['nextPageStart']
-            r['result'] = r['result'] + r_new['result']
-        r['pageStart'] = None
+    r = recurse(f, body, listAll)
         
     return r
 
 
+def listRootFolders(rootName, token, pageStart = None, listAll = True):
+    token = sanitize.validString('token', token, True)
+    rootName = sanitize.validString('rootName', rootName, True)
+    pageStart = sanitize.validUuid('pageStart', pageStart, False)
+    listAll = sanitize.validBool('listAll', listAll, True)        
+
+
+    url = "/account/root/" + rootName
+    body = {"isFolder": True, "pageStart": pageStart}
+
+
+    def f(body):
+        r = apiManager.get(url, body, token)
+        return r
+
+    r = recurse(f, body, listAll)
+        
+    return r
 
