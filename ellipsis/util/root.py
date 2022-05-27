@@ -35,8 +35,14 @@ def recurse(f, body, listAll, extraKey = None):
 def stringToDate(date):
     date = sanitize.validString('date', date, True)
 
+    try:
+        d = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%fZ")
+    except:
+        try:
+            d = datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
+        except:
+            d = datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
 
-    d = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%fZ")
     return d
 
 def dateToString(date):

@@ -26,4 +26,7 @@ def download(orderId, filePath, token):
     orderId = sanitize.validUuid('orderId', orderId, True)
     filePath = sanitize.validString('filePath', filePath, True)
 
+    if filePath[len(filePath)-4 : len(filePath) ] != '.tif':
+        raise ValueError('filePath must end with .tif')
+
     apiManager.download('/path/raster/timestamp/order/' + orderId + '/download', filePath, token)

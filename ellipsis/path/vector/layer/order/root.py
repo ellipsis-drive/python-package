@@ -14,7 +14,7 @@ def order(pathId, layerId, token, bounds = None, uploadId = None):
     bounds = sanitize.validBounds('bounds', bounds, False)
     uploadId = sanitize.validUuid('uploadId', uploadId, False)
 
-    body = {'uploadId': uploadId, 'bounds':bounds}
+    body = {'uploadId': uploadId, 'bounds':bounds, 'format' :'geojson'}
     
     r = apiManager.post('/path/' + pathId + '/vector/layer/' + layerId + '/order', body, token)    
 
@@ -26,4 +26,7 @@ def download(orderId, filePath, token):
     orderId = sanitize.validUuid('orderId', orderId, True)
     filePath = sanitize.validString('filePath', filePath, True)
 
-    apiManager.download('/path/vector/layer/order/' + orderId, filePath, token)
+    if filePath[len(filePath)-4 : len(filePath) ] != '.zip':
+        raise ValueError('filePath must end with .zip')
+
+    apiManager.download('/path/vector/layer/order/' + orderId + '/download', filePath, token)

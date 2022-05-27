@@ -22,11 +22,11 @@ def edit(pathId, layerId, styleId, token, name = None, method = None, parameters
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     styleId = sanitize.validUuid('styleId', styleId, True) 
-    method = sanitize.validString('method', method, True)
-    parameters = sanitize.validObject('parameters', parameters, True)
+    method = sanitize.validString('method', method, False)
+    parameters = sanitize.validObject('parameters', parameters, False)
     token = sanitize.validString('token', token, True)
-    default = sanitize.validBool('default', default, True)
-
+    default = sanitize.validBool('default', default, False)
+    name = sanitize.validString('name', name, False)
 
     body = {'name': name, 'default':default, 'method': method, 'parameters':parameters}
 

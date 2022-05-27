@@ -41,7 +41,7 @@ def delete(pathId, layerId, featurePropertyId, token):
     token = sanitize.validString('token', token, True)
 
     body = {'deleted': True}
-    r = apiManager.patch('/path/' + pathId + '/vector/layer/' + layerId + '/property/' + featurePropertyId, body, token)
+    r = apiManager.put('/path/' + pathId + '/vector/layer/' + layerId + '/property/' + featurePropertyId + '/deleted', body, token)
     return r
 
 
@@ -52,7 +52,7 @@ def recover(pathId, layerId, featurePropertyId, token):
     token = sanitize.validString('token', token, True)
 
     body = {'deleted': False}
-    r = apiManager.patch('/path/' + pathId + '/vector/layer/' + layerId + '/property/' + featurePropertyId, body, token)
+    r = apiManager.put('/path/' + pathId + '/vector/layer/' + layerId + '/property/' + featurePropertyId + '/deleted', body, token)
     return r
 
 

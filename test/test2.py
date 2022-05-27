@@ -2,6 +2,8 @@ import ellipsis as el
 import datetime
 import os
 import time
+import numpy as np
+import pandas as pd
 
 folderId = '46e1e919-8b73-42a3-a575-25c6d45fd93b'
 
@@ -224,7 +226,7 @@ r =  el.path.vector.layer.getFeaturesByIds(mapId, layerId, featureIds, token)
 
 r = el.path.vector.layer.getChanges(mapId, layerId, token, listAll = True)
 
-editFilter(mapId, layerId, [{'property':'gml_id'}], token)
+el.path.vector.layer.editFilter(mapId, layerId, [{'property':'gml_id'}], token)
 
 
 
@@ -235,19 +237,84 @@ featureIds = features['id'].values
 el.path.vector.layer.feature.add(mapId, layerId, features, token)
 
 
-el.path.vector.layer.feature.edit(pathId, layerId, featureIds = features['id'].values, token = token, features = features)
+el.path.vector.layer.feature.edit(mapId, layerId, featureIds = features['id'].values, token = token, features = features)
 
 el.path.vector.layer.feature.delete(mapId, layerId, featureIds, token)
 el.path.vector.layer.feature.recover(mapId, layerId, featureIds, token)
-el.path.vector.layer.feature.versions(mapId, layerId, featureIds[0], token)
+featureId = featureIds[0]
+el.path.vector.layer.feature.versions(mapId, layerId, featureId, token)
 
 
 ###message module
+el.path.vector.layer.feature.message.add(mapId, layerId, featureId, token, text= 'hoi')
+image = np.zeros((256,256))
+el.path.vector.layer.feature.message.add(mapId, layerId, featureId, token, text= 'hoi', image = image)
+
+messages = el.path.vector.layer.feature.message.get(mapId, layerId, featureIds=[featureId], token = token)
+
+messageId = [m for m in messages['result'] if m['thumbnail'] != None][0]['id']
+
+
+el.path.vector.layer.feature.message.getImage(mapId, layerId, messageId, token)
+
+el.path.vector.layer.feature.message.delete(mapId, layerId, messageId, token)
+el.path.vector.layer.feature.message.recover(mapId, layerId, messageId, token)
+
+
+###series module
+date = datetime.datetime.now()
+seriesData = pd.DataFrame({'x': [1,2,3,4]})
+seriesData['date'] = date
+el.path.vector.layer.feature.series.add(pathId = mapId, layerId = layerId, featureId = featureId, seriesData = seriesData, token = token)
+
+
+el.path.vector.layer.feature.series.info(mapId, layerId, featureId,token)
+
+r = el.path.vector.layer.feature.series.get(mapId, layerId, featureId, token = token)
+
+
+seriesId = r['result']['id'].values[0]
+
+el.path.vector.layer.feature.series.delete(mapId, layerId, featureId, [seriesId], token)
+
+el.path.vector.layer.feature.series.recover(mapId, layerId, featureId, [seriesId], token)
+
+el.path.vector.layer.feature.series.changelog(mapId, layerId, featureId)
+
+
+
+#style module
+
+parameters = {"alpha":0.5,"width":2,"radius":{"method":"constant","parameters":{"value":7}},"property":"gml_id"}
+styleId = el.path.vector.layer.style.add(mapId, layerId, 'test', 'random', parameters, token)['id']
+
+el.path.vector.layer.style.edit(mapId, layerId, styleId, token, name = 'sfd')
+el.path.vector.layer.style.delete(mapId, layerId, styleId, token)
+
+
+## properties module
+featurePropertyId = el.path.vector.layer.featureProperty.add(mapId, layerId, 'new', 'string', token)['id']
+el.path.vector.layer.featureProperty.delete(mapId, layerId, featurePropertyId, token)
+
+el.path.vector.layer.featureProperty.recover(mapId, layerId, featurePropertyId, token)
+el.path.vector.layer.featureProperty.edit(mapId, layerId, featurePropertyId, token, required = True)
+
+### order module
+
+orderId = el.path.vector.layer.order.order(mapId, layerId, token, bounds)['id']
+
+order = el.path.vector.layer.order.get(token)[0]
+while order['status'] != 'completed':
+    order = el.path.vector.layer.order.get(token)[0]
+
+file_out = '/home/daniel/Downloads/out.zip'
+el.path.vector.layer.order.download(orderId, file_out, token)
+    
 
 import ellipsis as el
 
 
 
 
-info = el.path.get(mapId, token)
-while info['vector']['layers'][0]['status']
+
+

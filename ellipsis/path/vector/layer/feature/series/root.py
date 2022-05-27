@@ -3,7 +3,8 @@ from ellipsis import sanitize
 from ellipsis.util.root import recurse
 from ellipsis.util.root import chunks
 from ellipsis.util.root import loadingBar
-from datetime import datetime
+from ellipsis.util.root import stringToDate
+
 
 import numpy as np
 import pandas as pd
@@ -23,15 +24,14 @@ def get(pathId, layerId, featureId, pageStart = None, dateTo = None, userId = No
     body = {'pageStart' : pageStart, 'dateTo' : dateTo, 'userId' : userId, 'seriesProperty': seriesProperty, 'deleted': deleted, 'listAll': listAll}
     
     def f(body):
-        r = apiManager.get('/path/' + pathId + '/vector/layer' + layerId + '/feature/' + featureId + '/series/element', body, token)
+        r = apiManager.get('/path/' + pathId + '/vector/layer/' + layerId + '/feature/' + featureId + '/series/element', body, token)
         return r
     
     r = recurse(f, body, listAll)
     series = r['result']
-    series = [ { 'id':k['id'], 'property': k['property'], 'value': k['value'], 'date': datetime.strptime(k['date'], "%Y-%m-%dT%H:%M:%S.%fZ") } for k in series]
+    series = [ { 'id':k['id'], 'property': k['property'], 'value': k['value'], 'date': stringToDate(k['date']) } for k in series]
     series = pd.DataFrame(series)
-    return({'nextPageStart': r['nextPageStart'], 'result': series})
-
+    r['result'] = series
 
     return r
     
@@ -42,7 +42,9 @@ def info(pathId, layerId, featureId, token = None):
     featureId = sanitize.validUuid('featureId', featureId, True) 
     token = sanitize.validString('token', token, False)
     
-    r = apiManager.get('/path/' + pathId + '/vector/layer' + layerId + '/feature/' + featureId + '/series/info', None, token)
+    r = apiManager.get('/path/' + pathId + '/vector/layer/' + layerId + '/feature/' + featureId + '/series/info', None, token)
+    r['dateMin'] = stringToDate(r['dateMin'])
+    r['dateMax'] = stringToDate(r['dateMax'])
     return r
 
 
@@ -53,11 +55,11 @@ def add(pathId, layerId, featureId, seriesData, token):
     token = sanitize.validString('token', token, True)
     seriesData = sanitize.validDataframe('seriesData', seriesData, True)
 
-    if 'datetime' in seriesData.columns:
-        if str(seriesData['datetime'].dtypes) == 'datetime64[ns]':
-            seriesData['datetime'] = seriesData['datetime'].dt.strftime('%Y-%m-%d %H:%M:%S')
-            seriesData = list(seriesData['datetime'])
-            del seriesData['datetime']
+    if 'date' in seriesData.columns:
+        if str(seriesData['date'].dtypes) == 'datetime64[ns]':
+            seriesData['date'] = seriesData['date'].dt.strftime('%Y-%m-%d %H:%M:%S')
+            dates = list(seriesData['date'])
+            del seriesData['date']
         else:
            raise  ValueError('datetime column must be of type datetime')
     else:
@@ -72,7 +74,7 @@ def add(pathId, layerId, featureId, seriesData, token):
         for c in seriesData.columns:
                 value = seriesData[c].values[i]
                 if not np.isnan(value):
-                    values = values + [{'property':c, 'value':seriesData[c].values[i], 'date':seriesData[i]}]
+                    values = values + [{'property':c, 'value':seriesData[c].values[i], 'date':dates[i]}]
 
 
     chunks_values = chunks(values)
@@ -83,7 +85,8 @@ def add(pathId, layerId, featureId, seriesData, token):
         r = apiManager.post("/path/" + pathId + "/vector/layer/" + layerId  + '/feature/' + featureId + '/series/element', body, token)
         
         r_total = r_total + r
-        loadingBar(N*3000 + len(values_sub), len(values))
+        if len(chunks_values) >1:
+            loadingBar(N*3000 + len(values_sub), len(values))
         N = N+1
     return r_total
 
@@ -99,15 +102,13 @@ def delete(pathId, layerId, featureId, seriesIds, token):
 
     chunks_values = chunks(seriesIds)
     N = 0
-    r_total = []
     for seriesIds_sub in chunks_values:
         body = { "seriesIds":seriesIds_sub, "deleted": True}
         r = apiManager.put("/path/" + pathId + "/vector/layer/" + layerId  + '/feature/' + featureId + '/series/element/deleted', body, token)
         
-        r_total = r_total + r
         loadingBar(N*3000 + len(seriesIds_sub), len(seriesIds))
         N = N+1
-    return r_total
+    return r
 
 def recover(pathId, layerId, featureId, seriesIds, token):
     pathId = sanitize.validUuid('pathId', pathId, True) 
@@ -118,15 +119,14 @@ def recover(pathId, layerId, featureId, seriesIds, token):
 
     chunks_values = chunks(seriesIds)
     N = 0
-    r_total = []
+
     for seriesIds_sub in chunks_values:
         body = { "seriesIds":seriesIds_sub, "deleted": False}
         r = apiManager.put("/path/" + pathId + "/vector/layer/" + layerId  + '/feature/' + featureId + '/series/element/deleted', body, token)
         
-        r_total = r_total + r
         loadingBar(N*3000 + len(seriesIds_sub), len(seriesIds))
         N = N+1
-    return r_total
+    return r
 
 
 def changelog(pathId, layerId, featureId, listAll = False, actions = None, userId = None, pageStart = None, token = None):
@@ -142,12 +142,12 @@ def changelog(pathId, layerId, featureId, listAll = False, actions = None, userI
     body = {'userId': userId, 'actions':actions, 'pageStart':pageStart}
 
     def f(body):
-        r = apiManager.get('/path/' + pathId + '/vecotor/layer/' + layerId + '/feature/' + featureId + '/series/changelog', body, token)
+        r = apiManager.get('/path/' + pathId + '/vector/layer/' + layerId + '/feature/' + featureId + '/series/changelog', body, token)
         return r
         
     r = recurse(f, body, listAll)
 
-
+    r['result'] = [{**x, 'date':stringToDate(x['date'])} for x in r['result']]
     return r
 
     

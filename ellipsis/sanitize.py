@@ -53,7 +53,7 @@ def validImage(name, value, required):
     if len(value.shape) ==3 and value.shape[2] !=3 and value.shape[2] !=1:
         raise ValueError(name + ' must have either 1 or 3 bands')
 
-
+    return value
 
 def validDataframe(name, value, required):
     if not required and type(value) == type(None):
@@ -61,6 +61,8 @@ def validDataframe(name, value, required):
 
     if type(value) != type(pd.DataFrame()):
         raise ValueError(name + ' must be a pandas dataframe')
+    value = value.copy()
+    return value
         
 
 def validNumpyArray(name, value, required):
