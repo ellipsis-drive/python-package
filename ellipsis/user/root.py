@@ -15,7 +15,7 @@ def search(username, fuzzySearch= True):
 
 
 def get(userId):
-    sanitize.validUuid('userId', userId)
+    sanitize.validUuid('userId', userId, True)
     
     r = apiManager.get('/user/' + userId, None, None)
     return r

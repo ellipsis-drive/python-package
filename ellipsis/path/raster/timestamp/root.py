@@ -66,7 +66,7 @@ def getRaster(pathId, timestampId, bounds, layer = None, threads = 1, token = No
     xMinWeb,yMinWeb =  transform(Proj(init='epsg:4326'), Proj(init='epsg:3857'), xMin, yMin)
     xMaxWeb,yMaxWeb = transform(Proj(init='epsg:4326'), Proj(init='epsg:3857'), xMax, yMax)
 
-    info = apiManager.get('/path/' + pathId, token)
+    info = apiManager.get('/path/' + pathId, None, token)
     bands =  info['raster']['bands']
     if type(layer) == type(None):
         num_bands = len(bands)
@@ -84,20 +84,22 @@ def getRaster(pathId, timestampId, bounds, layer = None, threads = 1, token = No
 
     body = {'layer':layer}
 
-    min_x_osm_precise =  (xMin +180 ) * 2**zoom / 360 
-    max_x_osm_precise =   (xMax +180 ) * 2**zoom / 360
-    max_y_osm_precise = 2**zoom / (2* math.pi) * ( math.pi - math.log( math.tan(math.pi / 4 + yMin/360 * math.pi  ) ) ) 
-    min_y_osm_precise = 2**zoom / (2* math.pi) * ( math.pi - math.log( math.tan(math.pi / 4 + yMax/360 * math.pi  ) ) )
-                
-    min_x_osm =  math.floor(min_x_osm_precise )
-    max_x_osm =  math.floor( max_x_osm_precise)
-    max_y_osm = math.floor( max_y_osm_precise)
-    min_y_osm = math.floor( min_y_osm_precise)
+    LEN = 2.003751e+07
+
+    x_start = 2**zoom * (xMinWeb + LEN) / (2* LEN)
+    x_end = 2**zoom * (xMaxWeb + LEN) / (2* LEN)
+    y_end = 2**zoom * (LEN - yMinWeb) / (2* LEN)
+    y_start = 2**zoom * (LEN - yMaxWeb) / (2* LEN)
+
+    x1_osm = math.floor(x_start)
+    x2_osm = math.floor(x_end)
+    y1_osm = math.floor(y_start)
+    y2_osm = math.floor(y_end)
     
-    x_tiles = np.arange(min_x_osm, max_x_osm+1)
-    y_tiles = np.arange(min_y_osm, max_y_osm +1)
+    x_tiles = np.arange(x1_osm, x2_osm+1)
+    y_tiles = np.arange(y1_osm, y2_osm +1)
     
-    r_total = np.zeros((256*(max_y_osm - min_y_osm + 1) ,256*(max_x_osm - min_x_osm + 1),num_bands), dtype = dtype)
+    r_total = np.zeros((num_bands, 256*(y2_osm - y1_osm + 1) ,256*(x2_osm - x1_osm + 1)), dtype = dtype)
     
     tiles = []            
     for tileY in y_tiles:
@@ -108,8 +110,8 @@ def getRaster(pathId, timestampId, bounds, layer = None, threads = 1, token = No
             for tile in tiles:
                 tileX = tile[0]
                 tileY = tile[1]
-                x_index = tileX - min_x_osm
-                y_index = tileY - min_y_osm
+                x_index = tileX - x1_osm
+                y_index = tileY - y1_osm
                 
                 r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/tile/' + str(zoom) + '/' + str(tileX) + '/' + str(tileY), body, token, False)
 
@@ -118,6 +120,7 @@ def getRaster(pathId, timestampId, bounds, layer = None, threads = 1, token = No
                 if r.status_code != 200:
                         r = np.zeros((num_bands,256,256))
                 else:
+                    print('tile found')
                     if type(layer) == type(None):
                         r = tifffile.imread(BytesIO(r.content))
                     else:
@@ -140,10 +143,10 @@ def getRaster(pathId, timestampId, bounds, layer = None, threads = 1, token = No
     for pr in prs:
         pr.join()
         
-    min_x_index = int(math.floor((min_x_osm_precise - min_x_osm)*256))
-    max_x_index = max(int(math.floor((max_x_osm_precise- min_x_osm)*256 + 1 )), min_x_index + 1 )
-    min_y_index = int(math.floor((min_y_osm_precise - min_y_osm)*256))
-    max_y_index = max(int(math.floor((max_y_osm_precise- min_y_osm)*256 +1)), min_y_index + 1)
+    min_x_index = int(math.floor((x_start - x1_osm)*256))
+    max_x_index = max(int(math.floor((x_end- x1_osm)*256 + 1 )), min_x_index + 1 )
+    min_y_index = int(math.floor((y_start - y1_osm)*256))
+    max_y_index = max(int(math.floor((y_end- y1_osm)*256 +1)), min_y_index + 1)
 
     r_total = r_total[:,min_y_index:max_y_index,min_x_index:max_x_index]
  
@@ -229,19 +232,19 @@ def delete(pathId, timestampId, token):
     r = apiManager.delete('/path/' + pathId + '/raster/timestamp/' + timestampId  , None, token)
     return r
 
-def trash(pathId, timestampId, token, trash):
+def trash(pathId, timestampId, token):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)  
     timestampId = sanitize.validUuid('timestampId', timestampId, True)  
     body = {'trash' : True}
-    r = apiManager.put('/path/' + pathId + '/raster/timestamp/' + timestampId + '/trash'  , body, token)
+    r = apiManager.put('/path/' + pathId + '/raster/timestamp/' + timestampId + '/trashed'  , body, token)
     return r
 
     
-def recover(pathId, timestampId, token, trash):
+def recover(pathId, timestampId, token):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)  
     timestampId = sanitize.validUuid('timestampId', timestampId, True)  
     body = {'trash' : False}
-    r = apiManager.put('/path/' + pathId + '/raster/timestamp/' + timestampId + '/trash'  , body, token)
+    r = apiManager.put('/path/' + pathId + '/raster/timestamp/' + timestampId + '/trashed'  , body, token)
     return r

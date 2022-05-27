@@ -8,7 +8,7 @@ def sent(pathId, access, token, userId=None, email=None):
     email = sanitize.validString('email', email, False)
     access = sanitize.validObject('access', access, True)
 
-
+    print(access)
     return apiManager.post(f'/path/{pathId}/invite', {
         'userId': userId,
         'email': email,

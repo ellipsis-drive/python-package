@@ -90,7 +90,7 @@ def getFeaturesByIds(pathId, layerId, featureIds, token = None):
     featureIds = sanitize.validUuidArray('featureIds', featureIds, True)
     body = {'featureIds': featureIds}
     r = apiManager.get('/path/' + pathId + '/layer/' + layerId + '/featureByIds' , body, token)
-        
+    
     r = gpd.GeoDataFrame.from_features(r['result']['features'])    
     return r
     
@@ -103,7 +103,7 @@ def getFeaturesByBounds(pathId, layerId, bounds, propertyFilter = None, token = 
     propertyFilter = sanitize.validObject('propertyFilter', propertyFilter, True)
     listAll = sanitize.validObject('listAll', listAll, True)
     pageStart = sanitize.validUuid('pageStart', pageStart, False) 
-
+    
     body = {'pageStart': pageStart, 'propertyFilter':propertyFilter, 'bounds':bounds}
 
     def f(body):
@@ -111,7 +111,7 @@ def getFeaturesByBounds(pathId, layerId, bounds, propertyFilter = None, token = 
         
     r = recurse(f, body, listAll, 'features')
 
-    r = gpd.GeoDataFrame.from_features(r['result']['features'])    
+    r = gpd.GeoDataFrame.from_features(r['result']['features'])
     return r
 
 

@@ -63,6 +63,28 @@ def validDataframe(name, value, required):
         raise ValueError(name + ' must be a pandas dataframe')
         
 
+def validNumpyArray(name, value, required):
+    if not required and type(value) == type(None):
+        return
+
+    if type(value) != type(np.zeros((2,2) )):
+        raise ValueError(name + 'must be a geopandas dataframe')
+
+    return value
+
+
+def validList(name, value, required):
+    if not required and type(value) == type(None):
+        return
+
+    try:
+        value = list(value)
+
+    except:
+        raise ValueError(name + ' must be an iterable')
+    return value
+
+
 def validGeopandas(name, value, required):
     if not required and type(value) == type(None):
         return
@@ -109,12 +131,13 @@ def validObject(name, value, required):
         json.dumps(value)
     except:
         raise ValueError(name + ' must be json serializable')
+    return value
 
 def validInt(name, value, required):
     if not required and type(value) == type(None):
         return
 
-    if not 'int' in str(type(value)):
+    if not 'int' in str(type(value)).lower():
         raise ValueError(name + ' must be of type int')
 
     value = int(value)
@@ -125,7 +148,7 @@ def validFloat(name, value, required):
     if not required and type(value) == type(None):
         return
 
-    if not 'int' in str(type(value)) and not 'float' in str(type(value)):
+    if not 'int' in str(type(value)).lower() and not 'float' in str(type(value)).lower():
         raise ValueError(name + ' must be of type float')
 
     value = float(value)
@@ -154,9 +177,9 @@ def validBounds(name, value, required):
         raise ValueError('yMin must be between -85 and 85')
     if value['yMax'] > 85 or value['yMax'] < -85:
         raise ValueError('yMax must be between -180 and 180')
-    if value['yMax'] < value['yMin']:
+    if value['yMax'] <= value['yMin']:
         raise ValueError('yMax must be strictly greater than yMin')
-    if value['xMax'] < value['xMin']:
+    if value['xMax'] <= value['xMin']:
         raise ValueError('xMax must be strictly greater than xMin')
 
 
@@ -230,7 +253,7 @@ def validDate(name, value, required):
     if type(value) != type(datetime.datetime.now()):
         raise ValueError(name + ' must be of type datetime')
 
-    value = value.strftime('%Y-%M-%dT%H:%M:%S')
+    value = value.strftime('%Y-%m-%dT%H:%M:%S')
     return value
 
 

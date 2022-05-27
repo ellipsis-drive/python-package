@@ -1,6 +1,7 @@
 from ellipsis import apiManager
 from ellipsis import sanitize
 from ellipsis.util.root import recurse
+from ellipsis.util.root import stringToDate
 
 def searchRaster(root=None, name=None, fuzzySearchOnName=False, userId=None, disabled=False, canView=None, pageStart=None, hashtag=None, bounds=None, bands=None, resolution=None, dateFrom=None, dateTo=None, hasTimestamp=None, timestampSize=None, listAll= False, token=None):
     token = sanitize.validString('token', token, False)
@@ -127,7 +128,9 @@ def searchFolder(root=None, name=None, fuzzySearchOnName=False, userId=None, pag
 def get(pathId, token=None):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
-    return apiManager.get(f"/path/{pathId}", None, token)
+    r = apiManager.get(f"/path/{pathId}", None, token)
+    r = convertPath(r)
+    return r
 
 
 # This is supposed to be private
@@ -180,13 +183,13 @@ def editMetadata(pathId, token, description=None, attribution=None, properties=N
 
 def add( pathType, name, token, parentId = None, publicAccess =None, metadata=None):
     pathType = sanitize.validString('pathType', pathType, True)
-    name = sanitize.validUuid('name', name, True)
+    name = sanitize.validString('name', name, True)
     token = sanitize.validString('token', token, True)
     parentId = sanitize.validUuid('parentId', parentId, False)
     metadata = sanitize.validObject('metadata', metadata, False)
     publicAccess = sanitize.validObject('publicAccess', publicAccess, False)
 
-    body = {'name': name, 'parentId':parentId, 'publicAccess':publicAccess, 'metadata':metadata }
+    body = {'name': name, 'parentId':parentId, 'type': pathType, 'publicAccess':publicAccess, 'metadata':metadata }
 
     return apiManager.post('/path', body, token)
 
@@ -229,34 +232,53 @@ def recover(pathId, token):
     }, token)
 
 
-def delete(pathId, token):
+def delete(pathId, token, recursive = False):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
-    return apiManager.delete(f'/path/{pathId}', None, token)
+    recursive = sanitize.validBool('recursive', recursive, True)
+    
+    if recursive:
+        info = get(pathId, token)
+        if info['type'] == 'folder':
+            folders = listFolders(pathId, token=token)['result']
+            for f in folders:
+                delete(f['id'], token, True)
+            maps = listMaps(pathId, token=token)['result']
+            for m in maps:
+                delete(m['id'], token, True)
+        apiManager.delete(f'/path/{pathId}', None, token)            
+    
+    else:
+        return apiManager.delete(f'/path/{pathId}', None, token)
 
-def editPublicAccess(pathId, token, accessLevel=None, processingUnits=None, geoFence=None):
+def editPublicAccess(pathId, token, accessLevel=None, hidden=None, processingUnits=None, geoFence=None):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
     geoFence = sanitize.validObject('geoFence', geoFence, False)
     accessLevel = sanitize.validInt('accessLevel', accessLevel, False)
     processingUnits = sanitize.validInt('processingUnits', processingUnits, False)
-
-    body = {'accessLevel':accessLevel, 'processingUnits':processingUnits, 'geoFence':geoFence}    
+    hidden = sanitize.validBool('hidden', hidden, False)
+    body = {'accessLevel':accessLevel, 'processingUnits':processingUnits, 'geoFence':geoFence, 'hidden': hidden}    
     
-    return apiManager.patch('/path/publicAccess', body, token)
+    return apiManager.patch('/path/' + pathId + '/publicAccess', body, token)
     
-def addTofavorites(pathId, token):
+def favorite(pathId, token):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
     body = {'favorite':True}
     return apiManager.put(f'/path/{pathId}/favorite', body, token)
     
     
-def removeFromFavorites(pathId, token):
+def unfavorite(pathId, token):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
     body = {'favorite':False}
     return apiManager.put(f'/path/{pathId}/favorite', body, token)
     
+##helper function
     
-    
+def convertPath(path):
+    if path['type'] == 'raster':
+        path['raster']['timestamps'] = [ {**x, 'dateFrom' : stringToDate(x['dateFrom']), 'dateTo' : stringToDate(x['dateTo']) } for x in path['raster']['timestamps'] ]
+    return(path)
+

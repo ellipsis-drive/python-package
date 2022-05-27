@@ -26,3 +26,13 @@ def get(pathId, timestampId, token):
     r = apiManager.get('/path/' + pathId, + '/raster/timestamp/' + timestampId + '/upload', None, token)    
     return r
 
+
+def delete(pathId, timestampId, uploadId, token):
+    token = sanitize.validString('token', token, True)
+    pathId = sanitize.validUuid('pathId', pathId, True) 
+    uploadId = sanitize.validUuid('uploadId', uploadId, True) 
+    timestampId = sanitize.validUuid('timestampId', timestampId, True) 
+
+    r = apiManager.delete('/path/' + pathId, + '/raster/timestamp/' + timestampId + '/upload/' + uploadId, None, token)    
+    return r
+

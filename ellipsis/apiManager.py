@@ -62,8 +62,8 @@ def delete(url, body, token = None):
 
 def call(method, url, body = None, token = None, crash = True):
     body = filterNone(body)
-
-
+    print(url)
+    print(body)
     if type(body) != type(None) and type(body) != type({}):
         raise ValueError(
             'body of an API call must be of type dict or noneType')
@@ -80,8 +80,10 @@ def call(method, url, body = None, token = None, crash = True):
     if crash:
         if r.status_code != 200:
             raise ValueError(r.text)
-        print(r)
-        r = r.json()
+        try:
+            r = r.json()
+        except:
+            r.text
     
         return r
     else:
@@ -96,13 +98,13 @@ def upload(url, filePath, body, token):
 
 
     conn_file = open(filePath, 'rb')
-    body['upload'] = (fileName, conn_file, 'application/octet-stream')
-    payload = MultipartEncoder(fields = body)
+    files = {'upload_file':  conn_file}
+    #payload = MultipartEncoder(fields = body)
     
     if token == None:
-        r = s.post(baseUrl + url, headers = {"Content-Type": payload.content_type}, data=payload)        
+        r = s.post(baseUrl + url, headers = {"Content-Type": payload.content_type}, data=body)        
     else:
-        r = s.post(baseUrl + url, headers = {"Authorization":token, "Content-Type": payload.content_type}, data=payload)
+        r = s.post(baseUrl + url, headers = {"Authorization":token}, data=body, files=files)
     
     if r.status_code != 200:
         raise ValueError(r.text)

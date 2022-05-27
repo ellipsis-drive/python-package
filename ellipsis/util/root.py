@@ -1,13 +1,15 @@
 import geopandas as gpd
 from shapely.geometry import Polygon
-from rasterio.features import rasterize
 from geopy.distance import geodesic
 import numpy as np
-import rasterio
 import pandas as pd
 import math
 import sys
+from datetime import datetime
+import matplotlib.pyplot as plt
+from PIL import Image
 
+from ellipsis import sanitize
 
 
 def recurse(f, body, listAll, extraKey = None):
@@ -27,55 +29,55 @@ def recurse(f, body, listAll, extraKey = None):
         r['nextPageStart'] = None
     return r
 
-def plotPolys(polys, xMin = None,xMax = None,yMin=None,yMax= None, alpha = None, image = None, colors = {0:(0,0,255)} , column= None):
-    polys.crs = {'init': 'epsg:4326'}
 
-    if str(type(xMin)) == str(type(None)):
-        polys_union = polys.unary_union
-        bbox = gpd.GeoDataFrame({'geometry':[polys_union]})
-        xMin = bbox.bounds['minx'].values[0]
-        yMin = bbox.bounds['miny'].values[0]
-        xMax = bbox.bounds['maxx'].values[0]
-        yMax = bbox.bounds['maxy'].values[0]
-        
-    bbox = gpd.GeoDataFrame( {'geometry': [Polygon([(xMin,yMin), (xMax, yMin), (xMax, yMax), (xMin, yMax)])]} )
-    bbox.crs = {'init': 'epsg:4326'}
-    bbox = bbox.to_crs({'init': 'epsg:3785'})
-    polys = polys.to_crs({'init': 'epsg:3785'})
+def stringToDate(date):
+    date = sanitize.validString('date', date, True)
 
-    if str(type(image)) == "<class 'NoneType'>":
-        if (xMax-xMin) > (yMax - yMin):
-            image = np.zeros((1024,1024* int((xMax-xMin)/(yMax-yMin)),4))
-        else:
-            image = np.zeros((1024* int((yMax-yMin)/(xMax-xMin)),1024,4))
-            
-    image = image/255
-    if column == None:
-        column = 'extra'
-        polys[column] = 0
+
+    d = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%fZ")
+    return d
+
+def dateToString(date):
+    date = sanitize.validDate('date', date , True)
     
-    transform = rasterio.transform.from_bounds(bbox.bounds['minx'], bbox.bounds['miny'], bbox.bounds['maxx'], bbox.bounds['maxy'], image.shape[1], image.shape[0])
-    rasters = np.zeros(image.shape)
-    for key in colors.keys():
-        sub_polys = polys.loc[polys[column] == key]
-        if sub_polys.shape[0] >0:
-            raster = rasterize( shapes = [ (sub_polys['geometry'].values[m], 1) for m in np.arange(sub_polys.shape[0]) ] , fill = 0, transform = transform, out_shape = (image.shape[0], image.shape[1]), all_touched = True )
-            raster = np.stack([raster * colors[key][0]/255, raster*colors[key][1]/255,raster*colors[key][2]/255, raster ], axis = 2)
-            rasters = np.add(rasters, raster)
-     
-    rasters = np.clip(rasters, 0,1)
+    d = date.strftime(date, "%Y-%m-%d %H:%M:%S.%fZ")
+    return d
 
-    image_out = rasters
-    image_out[image_out[:,:,3] == 0, :] = image [image_out[:,:,3] == 0, :]
-    if alpha != None:
-        image_out = image * (1 - alpha) + image_out*alpha 
+def plotRaster(raster):
+    raster = sanitize.validNumpyArray('raster', raster, True)
 
-    image_out = image_out *255
-    image_out = image_out.astype('uint8')
-    return(image_out)
+    if len(raster.shape) != 3:
+        raise ValueError('raster must have 3 dimensions')
+
+    if raster.shape[0] != 1 and raster.shape[0] != 3:
+        raise ValueError('raster must have either 1 band or 3 bands')
+
+    
+
+    if raster.shape[0] ==3:
+        raster = np.transpose(raster, [1,2,0])
+        minimum = np.min(raster)
+        maximum = np.max(raster)
+        if minimum == maximum:
+            maximum = minimum + 1
+        raster = raster - minimum
+        raster = raster / (maximum-minimum)
+        raster = raster * 255
+        image = Image.fromarray(raster.astype('uint8'))
+        image.show()
+
+    else:
+        plt.imshow(raster[0,:,:], interpolation='none')
+        plt.show()
+    
+def plotFeatures(features):
+    features = sanitize.validGeopandas('features', features, True)
+    features.plot()
 
 
 def chunks(l, n = 3000):
+    l = sanitize.validList('l', l, True)
+    n = sanitize.validInt('n', n , False)
     result = list()
     for i in range(0, len(l), n):
         result.append(l[i:i+n])
@@ -84,42 +86,38 @@ def chunks(l, n = 3000):
 
  
 def cover(bounds, w):
-    if str(type(bounds)) == "<class 'shapely.geometry.polygon.Polygon'>" :
-        bounds = [bounds]
-    elif str(type(bounds)) =="<class 'shapely.geometry.multipolygon.MultiPolygon'>":
-        bounds = bounds
-    else:
-        raise ValueError('bounds must be a shapely polygon or multipolygon')
+    
+    w = sanitize.validInt('w',w, True)
+    bounds = sanitize.validBounds('bounds',bounds, True)
 
-    bound = bounds[0]
-    coords_total = pd.DataFrame()
-    for bound in bounds:
-         x1, y1, x2, y2  = bound.bounds
+    x1 = bounds['xMin']
+    y1 = bounds['yMin']
+    x2 = bounds['xMax']
+    y2  = bounds['yMax']
 
-         step_y =  w/geodesic((y1,x1), (y1 - 1,x1)).meters
-         parts_y = math.floor((y2 - y1)/ step_y + 1)
+    step_y =  w/geodesic((y1,x1), (y1 - 1,x1)).meters
+    parts_y = math.floor((y2 - y1)/ step_y + 1)
 
-         y1_vec = y1 + np.arange(0, parts_y )*step_y
-         y2_vec = y1 + np.arange(1, parts_y +1 )*step_y
-             
-         steps_x = [   w/geodesic((y,x1), (y,x1+1)).meters for y in y1_vec  ]
+    y1_vec = y1 + np.arange(0, parts_y )*step_y
+    y2_vec = y1 + np.arange(1, parts_y +1 )*step_y
+        
+    steps_x = [   w/geodesic((y,x1), (y,x1+1)).meters for y in y1_vec  ]
 
-         parts_x = [math.floor( (x2-x1) /step +1 ) for step in steps_x ]      
-             
-     
-         coords = pd.DataFrame()
-         for n in np.arange(len(parts_x)):
-             x1_sq = [ x1 + j*steps_x[n] for j in np.arange(0,parts_x[n]) ]
-             x2_sq = [ x1 + j*steps_x[n] for j in np.arange(1, parts_x[n]+1) ]
-             coords_temp = {'x1': x1_sq, 'x2': x2_sq, 'y1': y1_vec[n], 'y2':y2_vec[n]}
-             coords = coords.append(pd.DataFrame(coords_temp))
-         coords_total = coords_total.append(coords)
+    parts_x = [math.floor( (x2-x1) /step +1 ) for step in steps_x ]      
+        
 
-    cover = [Polygon([ (coords_total['x1'].iloc[j] , coords_total['y1'].iloc[j]) , (coords_total['x2'].iloc[j] , coords_total['y1'].iloc[j]), (coords_total['x2'].iloc[j] , coords_total['y2'].iloc[j]), (coords_total['x1'].iloc[j] , coords_total['y2'].iloc[j]) ]) for j in np.arange(coords_total.shape[0])]
+    coords = pd.DataFrame()
+    for n in np.arange(len(parts_x)):
+        x1_sq = [ x1 + j*steps_x[n] for j in np.arange(0,parts_x[n]) ]
+        x2_sq = [ x1 + j*steps_x[n] for j in np.arange(1, parts_x[n]+1) ]
+        coords_temp = {'x1': x1_sq, 'x2': x2_sq, 'y1': y1_vec[n], 'y2':y2_vec[n]}
+        coords = coords.append(pd.DataFrame(coords_temp))
+
+    cover = [Polygon([ (coords['x1'].iloc[j] , coords['y1'].iloc[j]) , (coords['x2'].iloc[j] , coords['y1'].iloc[j]), (coords['x2'].iloc[j] , coords['y2'].iloc[j]), (coords['x1'].iloc[j] , coords['y2'].iloc[j]) ]) for j in np.arange(coords.shape[0])]
      
 
 
-    coords = gpd.GeoDataFrame({'geometry': cover, 'x1':coords_total['x1'], 'x2':coords_total['x2'], 'y1':coords_total['y1'], 'y2':coords_total['y2'] })
+    coords = gpd.GeoDataFrame({'geometry': cover, 'x1':coords['x1'], 'x2':coords['x2'], 'y1':coords['y1'], 'y2':coords['y2'] })
 
     coords.crs = {'init': 'epsg:4326'}
 
@@ -128,6 +126,10 @@ def cover(bounds, w):
 
     
 def loadingBar(count,total):
+    
+    count = sanitize.validInt('count', count, True)
+    total = sanitize.validInt('total', total, True)
+    
     if total == 0:
         return
     else:

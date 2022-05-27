@@ -1,7 +1,6 @@
 from ellipsis import apiManager, sanitize
-from ellipsis.util.root import recurse
 
-def get(pathId, token=None, memberType=None, listAll = True):
+def get(pathId, token=None, memberType=['inherited','direct']):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
     memberType = sanitize.validStringArray('memberType', memberType, False)
@@ -10,11 +9,8 @@ def get(pathId, token=None, memberType=None, listAll = True):
         'type': memberType
     }
     
-    def f(body):
-        return apiManager.get(f'/path/{pathId}/member', body, token)
+    return apiManager.get(f'/path/{pathId}/member', body, token)
     
-    r = recurse(f, body, listAll)
-    return r
 
 def delete(pathId, userId, token):
     pathId = sanitize.validUuid('pathId', pathId, True)
