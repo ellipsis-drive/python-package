@@ -23,7 +23,7 @@ def getDownsampledRaster(pathId, timestampId, bounds, width, height, layer = Non
     layer = sanitize.validObject('layer', layer, False)
 
     body = {'pathId':pathId, 'timestampId':timestampId, 'bounds':bounds, 'width':width, 'height':height}
-    r = apiManager.get('/path/' + pathId + '/timestamp/' + timestampId + '/rasterByBounds', body, token, crash = False)
+    r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/rasterByBounds', body, token, crash = False)
     if r.status_code != 200:
         raise ValueError(r.message)
 
@@ -171,7 +171,7 @@ def getAggregatedData(pathId, timestampIds, geometry, approximate=True, token = 
 
 
     body = {'timestampIds':timestampIds, 'geometry':geometry, 'approximate':approximate}
-    r = apiManager.get('/path/' + pathId + '/timestamp/analyse', body, token)
+    r = apiManager.get('/path/' + pathId + '/raster/timestamp/analyse', body, token)
     return r
 
 
@@ -236,7 +236,7 @@ def trash(pathId, timestampId, token):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)  
     timestampId = sanitize.validUuid('timestampId', timestampId, True)  
-    body = {'trash' : True}
+    body = {'trashed' : True}
     r = apiManager.put('/path/' + pathId + '/raster/timestamp/' + timestampId + '/trashed'  , body, token)
     return r
 
@@ -245,6 +245,6 @@ def recover(pathId, timestampId, token):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)  
     timestampId = sanitize.validUuid('timestampId', timestampId, True)  
-    body = {'trash' : False}
+    body = {'trashed' : False}
     r = apiManager.put('/path/' + pathId + '/raster/timestamp/' + timestampId + '/trashed'  , body, token)
     return r

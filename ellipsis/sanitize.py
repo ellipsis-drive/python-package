@@ -91,7 +91,8 @@ def validGeopandas(name, value, required):
 
     if type(value) != type(gpd.GeoDataFrame()):
         raise ValueError(name + 'must be a geopandas dataframe')
-        
+
+    value = value.copy()        
     if str(type(value.crs)) == str(type(None)) and min(value.bounds['minx']) > -180  and max(value.bounds['maxx']) < 180 and min(value.bounds['miny']) > -90  and max(value.bounds['maxy']) < 90:
         print('assuming WGS84 coordinates for ' + name)
         value.crs = {'init': 'epsg:4326'}
@@ -106,6 +107,10 @@ def validGeopandas(name, value, required):
         del value['userId']
     if 'attribution' in value.columns:
         del value['attribution']
+    if 'radius' in value.columns:
+        del value['radius']
+    if 'color' in value.columns:
+        del value['color']
         
     return(value)
 
@@ -124,8 +129,6 @@ def validObject(name, value, required):
     if not required and type(value) == type(None):
         return
 
-    if type(value) != type({}):
-        raise ValueError(name + ' must be a dictionary')
 
     try:
         json.dumps(value)

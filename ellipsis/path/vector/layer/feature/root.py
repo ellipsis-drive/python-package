@@ -2,6 +2,8 @@ from ellipsis import apiManager
 from ellipsis import sanitize
 from ellipsis.util import chunks
 from ellipsis.util import loadingBar
+from ellipsis.util.root import stringToDate
+from ellipsis.util.root import recurse
 
 import numpy as np
 import json
@@ -62,7 +64,7 @@ def add(pathId, layerId, features, token, zoomlevels = None):
 
         r = apiManager.post('/path/' + pathId + '/vector/layer/' + layerId + '/feature', body, token)
 
-        addedIds = addedIds + r.json()
+        addedIds = addedIds + r
 
         loadingBar(i*3000 + len(indices_sub),features.shape[0])
         i = i+1
@@ -86,10 +88,9 @@ def edit(pathId, layerId, featureIds, token, zoomlevels = None, features = None)
 
     indices = chunks(np.arange(len(featureIds)),1000)
     i=0
-    editedIds = []
     for i in np.arange(len(indices)):
         indices_sub = indices[i]
-        featureIds_sub = featureIds[indices_sub]
+        featureIds_sub = list( np.array(featureIds)[indices_sub])
 
         if type(features) != type(None):
             features_sub = features.iloc[indices_sub]        
@@ -106,11 +107,10 @@ def edit(pathId, layerId, featureIds, token, zoomlevels = None, features = None)
         body = {'changes':changes}
         r = apiManager.patch('/path/' + pathId + '/vector/layer/' + layerId + '/feature', body, token)
 
-        editedIds = editedIds + r.json()
+        if len(indices) > 1:
+            loadingBar(i*1000 + len(indices_sub),len(featureIds))
 
-        loadingBar(i*1000 + len(indices_sub),len(featureIds))
-
-        return editedIds
+    return r
 
 
 def delete(pathId, layerId, featureIds, token):
@@ -121,19 +121,17 @@ def delete(pathId, layerId, featureIds, token):
 
     indices = chunks(np.arange(len(featureIds)),1000)
     i=0
-    deletedIds = []
     for i in np.arange(len(indices)):
         indices_sub = indices[i]
-        featureIds_sub = featureIds[indices_sub]
+        featureIds_sub = list(np.array(featureIds)[indices_sub])
 
         body = {'featureIds': featureIds_sub, 'deleted': True}
         r = apiManager.put('/path/' + pathId + '/vector/layer/' + layerId + '/feature/deleted', body, token)
 
-        deletedIds = deletedIds + r.json()
+        if len(indices) > 1:
+            loadingBar(i*1000 + len(indices_sub),len(featureIds))
 
-        loadingBar(i*1000 + len(indices_sub),len(featureIds))
-
-    return deletedIds
+    return r
 
 
 def recover(pathId, layerId, featureIds, token):
@@ -144,40 +142,46 @@ def recover(pathId, layerId, featureIds, token):
 
     indices = chunks(np.arange(len(featureIds)),1000)
     i=0
-    deletedIds = []
     for i in np.arange(len(indices)):
         indices_sub = indices[i]
-        featureIds_sub = featureIds[indices_sub]
+        featureIds_sub = list(np.array(featureIds)[indices_sub])
 
         body = {'featureIds': featureIds_sub, 'deleted': False}
         r = apiManager.put('/path/' + pathId + '/vector/layer/' + layerId + '/feature/deleted', body, token)
 
-        deletedIds = deletedIds + r.json()
+        if len(indices) > 1:
+            loadingBar(i*1000 + len(indices_sub),len(featureIds))
 
-        loadingBar(i*1000 + len(indices_sub),len(featureIds))
-
-    return deletedIds
-
+    return r
 
 
-def versions(pathId, layerId, featureId, token = None):
+
+def versions(pathId, layerId, featureId, token = None, pageStart = None, listAll = True):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     token = sanitize.validString('token', token, False)
     featureId = sanitize.validUuid('featureId', featureId, True)
+    pageStart = sanitize.validUuid('pageStart', pageStart, False)
+    listAll = sanitize.validBool('listAll', listAll, True)
+    
+    body = {'returnType':'all'}
+    def f(body):
+        return apiManager.get('/path/' + pathId + '/vector/layer/' + layerId + '/feature/' + featureId + '/version', body, token)
 
+    r = recurse(f, body, listAll)
 
-    r = apiManager.get('/path/' + pathId + '/vector/layer' + layerId + '/feature/' + featureId + '/version')
-    r  = r.json()['result']
+    features = [ x['feature'] for x in r['result']]
+    dates = [stringToDate(x['date']) for x in r['result'] ]
+    usernames = [x['user']['username'] for x in r['result'] ]
+    userIds = [x['user']['id'] for x in r['result'] ]
 
-    sh = gpd.GeoDataFrame()
-    for v in r:
-        sh_sub = gpd.GeoDataFrame({'geometry':[v['feature']]})
-        sh_sub['editUser'] = v['editUser']
-        sh_sub['editDate'] = v['editDate']
-        sh = sh.append(sh_sub)
-
+    sh = gpd.GeoDataFrame.from_features(features)     
+    sh['username'] = usernames
+    sh['userId'] = userIds
+    sh['dates'] = dates
+    
     sh.crs = {'init': 'epsg:4326'}
-    return(sh)
+    r['result'] = sh
+    return(r)
 
 

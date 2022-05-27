@@ -25,14 +25,14 @@ def get(url, body = None, token = None, crash = True):
         body['token'] = token
     body = filterNone(body)
     
-
     for k in body.keys():
-        if type(body[k]) != type('x'):
+        if type(body[k]) != type('x') :
             body[k] = json.dumps(body[k])
 
-    body = urllib.parse.urlencode(body)
-    url = url + '?' + body
 
+    body = urllib.parse.urlencode(body)
+
+    url = url + '?' + body
             
     r = call( method = s.get, url = url, body = None, token = token, crash = crash )
 
@@ -83,7 +83,7 @@ def call(method, url, body = None, token = None, crash = True):
         try:
             r = r.json()
         except:
-            r.text
+            r = r.text
     
         return r
     else:
@@ -98,18 +98,17 @@ def upload(url, filePath, body, token):
 
 
     conn_file = open(filePath, 'rb')
-    files = {'upload_file':  conn_file}
-    #payload = MultipartEncoder(fields = body)
-    
-    if token == None:
-        r = s.post(baseUrl + url, headers = {"Content-Type": payload.content_type}, data=body)        
-    else:
-        r = s.post(baseUrl + url, headers = {"Authorization":token}, data=body, files=files)
+
+    payload = MultipartEncoder(fields = {**body, 'fileToUpload': (fileName, conn_file, 'application/octet-stream')})
+
+    token = 'Bearer ' + token
+        
+    r = s.post(baseUrl + url, headers = {"Authorization":token, "Content-Type": payload.content_type}, data=payload)
+    conn_file.close()
     
     if r.status_code != 200:
         raise ValueError(r.text)
-    conn_file.close()
-
+    return r.json()
 
 def download(url, filePath, token):
 

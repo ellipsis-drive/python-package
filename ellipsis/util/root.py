@@ -21,10 +21,12 @@ def recurse(f, body, listAll, extraKey = None):
             body['pageStart'] = nextPageStart
             r_new = f(body)
             nextPageStart = r_new['nextPageStart']
+            if 'size' in r.keys():
+                r['size'] = r['size'] + r_new['size']
             if extraKey == None:
-                r['result'] = r_new['result']
+                r['result'] =  r['result'] + r_new['result']
             else:
-                r['result'][extraKey] = r_new['result'][extraKey]
+                r['result'][extraKey] = r['result'][extraKey] +  r_new['result'][extraKey]
                 
         r['nextPageStart'] = None
     return r

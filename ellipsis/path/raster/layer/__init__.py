@@ -1,1 +1,1 @@
-from ellipsis.path.raster.layer import add, delete, edit
+from ellipsis.path.raster.layer.root import add, delete, edit

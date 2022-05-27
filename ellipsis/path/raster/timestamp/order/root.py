@@ -18,7 +18,7 @@ def order(pathId, timestampId, token, bounds = None, uploadId = None):
     
     r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/order', body, token)    
 
-    return r  
+    return r
 
 def download(orderId, filePath, token):
     
@@ -26,4 +26,4 @@ def download(orderId, filePath, token):
     orderId = sanitize.validUuid('orderId', orderId, True)
     filePath = sanitize.validString('filePath', filePath, True)
 
-    apiManager.download('/path/raster/timestamp/order/' + orderId, filePath, token)
+    apiManager.download('/path/raster/timestamp/order/' + orderId + '/download', filePath, token)

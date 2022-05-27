@@ -1,14 +1,15 @@
 from ellipsis import apiManager
 from ellipsis import sanitize
 
-def add(pathId, method, parameters, token, description = None):
+def add(pathId, name, method, parameters, token, description = None):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)    
     method = sanitize.validString('method', method, True)    
+    name = sanitize.validString('name', name, True)    
     description = sanitize.validString('description', description, False)    
     parameters = sanitize.validObject('parameters', parameters, True)
 
-    body = {'method': method, 'parameters':parameters, 'description': description}
+    body = {'name':name, 'method': method, 'parameters':parameters, 'description': description}
     r = apiManager.post('/path/' + pathId + '/raster/layer', body, token)
     return r
 

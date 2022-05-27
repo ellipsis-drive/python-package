@@ -3,6 +3,10 @@ from ellipsis import sanitize
 from ellipsis.util.root import recurse
 import geopandas as gpd
 
+from ellipsis.util import chunks
+from ellipsis.util import loadingBar
+from ellipsis.util.root import stringToDate
+
 def add(pathId, name, token, properties = None, description = None):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     name = sanitize.validString('name', name, True)
@@ -11,10 +15,10 @@ def add(pathId, name, token, properties = None, description = None):
     description = sanitize.validString('description', description, False)
 
     body = {'name':name, 'properties':properties, 'description':description}
-    r = apiManager.post('/path/' + pathId + '/layer', body, token)
+    r = apiManager.post('/path/' + pathId + '/vector/layer', body, token)
     return r
 
-def edit(pathId, layerId, description, name, token):
+def edit(pathId, layerId, token, description=None, name=None):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     name = sanitize.validString('name', name, True)
@@ -22,7 +26,7 @@ def edit(pathId, layerId, description, name, token):
     description = sanitize.validString('description', description, False)
 
     body = {'name':name,'description':description}
-    r = apiManager.patch('/path/' + pathId + '/layer/' + layerId, body, token)
+    r = apiManager.patch('/path/' + pathId + '/vector/layer/' + layerId, body, token)
     return r
     
 
@@ -31,7 +35,7 @@ def archive(pathId, layerId, token):
     layerId = sanitize.validUuid('layerId', layerId, True) 
     token = sanitize.validString('token', token, True)
     body = {'trashed':True}
-    r = apiManager.patch('/path/' + pathId + '/layer/' + layerId + '/trashed', body, token)
+    r = apiManager.put('/path/' + pathId + '/vector/layer/' + layerId + '/trashed', body, token)
     return r
 
 
@@ -40,14 +44,14 @@ def recover(pathId, layerId, token):
     layerId = sanitize.validUuid('layerId', layerId, True) 
     token = sanitize.validString('token', token, True)
     body = {'trashed':False}
-    r = apiManager.patch('/path/' + pathId + '/layer/' + layerId + '/trashed', body, token)
+    r = apiManager.put('/path/' + pathId + '/vector/layer/' + layerId + '/trashed', body, token)
     return r
 
 def delete(pathId, layerId, token):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     token = sanitize.validString('token', token, True)
-    r = apiManager.delete('/path/' + pathId + '/layer/' + layerId , None, token)
+    r = apiManager.delete('/path/' + pathId + '/vector/layer/' + layerId , None, token)
     return r
     
     
@@ -55,7 +59,7 @@ def getBounds(pathId, layerId, token = None):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     token = sanitize.validString('token', token, False)
-    r = apiManager.delete('/path/' + pathId + '/layer/' + layerId + '/bounds' , None, token)
+    r = apiManager.get('/path/' + pathId + '/vector/layer/' + layerId + '/bounds' , None, token)
 
     r['id'] = 0
     r['properties'] = {}
@@ -65,11 +69,20 @@ def getBounds(pathId, layerId, token = None):
     return r
 
 
-def getChanges(pathId, layerId, token = None):
+def getChanges(pathId, layerId, token = None, pageStart = None, listAll = False):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     token = sanitize.validString('token', token, False)
-    r = apiManager.get('/path/' + pathId + '/layer/' + layerId + '/changelog' , None, token)
+    listAll = sanitize.validBool('listAll', listAll, True)
+    pageStart = sanitize.validObject('pageStart', pageStart, False) 
+
+    body = {'pageStart':pageStart}    
+    def f(body):
+        r = apiManager.get('/path/' + pathId + '/vector/layer/' + layerId + '/changelog' , body, token)
+        return r
+    
+    r = recurse(f, body, listAll)
+    r['result'] = [ {**x, 'date':stringToDate(x['date'])} for x in r['result'] ]
     return r
 
 def editFilter(pathId, layerId, propertyFilter, token):
@@ -79,7 +92,7 @@ def editFilter(pathId, layerId, propertyFilter, token):
     propertyFilter = sanitize.validObject('propertyFilter', propertyFilter, True)
     
     body = {'filter': propertyFilter}
-    r = apiManager.post('/path/' + pathId + '/layer/' + layerId + '/filter' , body, token)
+    r = apiManager.post('/path/' + pathId + '/vector/layer/' + layerId + '/filter' , body, token)
     return r
 
 
@@ -88,10 +101,25 @@ def getFeaturesByIds(pathId, layerId, featureIds, token = None):
     layerId = sanitize.validUuid('layerId', layerId, True) 
     token = sanitize.validString('token', token, False)
     featureIds = sanitize.validUuidArray('featureIds', featureIds, True)
-    body = {'featureIds': featureIds}
-    r = apiManager.get('/path/' + pathId + '/layer/' + layerId + '/featureByIds' , body, token)
     
-    r = gpd.GeoDataFrame.from_features(r['result']['features'])    
+    id_chunks = chunks(featureIds, 10)
+
+    r = {'size': 0 , 'result': [], 'nextPageStart' : None}
+    ids = id_chunks[0]
+    i=0
+    for ids in id_chunks:
+        body = {'geometryIds': ids}
+        r_new = apiManager.get('/path/' + pathId + '/vector/layer/' + layerId + '/featuresByIds' , body, token)
+        
+        r['result'] = r['result'] + r_new['result']['features']
+        r['size'] = r['size'] + r_new['size']
+        if len(id_chunks) >0:
+            loadingBar(i*10 + len(ids),len(featureIds))
+        i=i+1
+
+        
+    sh = gpd.GeoDataFrame.from_features(r['result'])    
+    r['result'] = sh
     return r
     
 
@@ -100,18 +128,19 @@ def getFeaturesByBounds(pathId, layerId, bounds, propertyFilter = None, token = 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     token = sanitize.validString('token', token, False)
     bounds = sanitize.validBounds('bounds', bounds, True)
-    propertyFilter = sanitize.validObject('propertyFilter', propertyFilter, True)
-    listAll = sanitize.validObject('listAll', listAll, True)
+    propertyFilter = sanitize.validObject('propertyFilter', propertyFilter, False)
+    listAll = sanitize.validBool('listAll', listAll, True)
     pageStart = sanitize.validUuid('pageStart', pageStart, False) 
     
     body = {'pageStart': pageStart, 'propertyFilter':propertyFilter, 'bounds':bounds}
 
     def f(body):
-        return apiManager.get('/path/' + pathId + '/layer/' + layerId + '/featureByBounds' , body, token)
+        return apiManager.get('/path/' + pathId + '/vector/layer/' + layerId + '/featuresByBounds' , body, token)
         
     r = recurse(f, body, listAll, 'features')
 
-    r = gpd.GeoDataFrame.from_features(r['result']['features'])
+    sh = gpd.GeoDataFrame.from_features(r['result']['features'])
+    r['result'] = sh
     return r
 
 
@@ -119,18 +148,20 @@ def listFeatures(pathId, layerId, token = None, listAll = True, pageStart = None
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     token = sanitize.validString('token', token, False)
-    listAll = sanitize.validObject('listAll', listAll, True)
+    listAll = sanitize.validBool('listAll', listAll, True)
     pageStart = sanitize.validUuid('pageStart', pageStart, False) 
 
     body = {'pageStart': pageStart}
 
     def f(body):
-        return apiManager.get('/path/' + pathId + '/layer/' + layerId + '/listFeatures' , body, token)
+        return apiManager.get('/path/' + pathId + '/vector/layer/' + layerId + '/listFeatures' , body, token)
 
     r = recurse(f, body, listAll, 'features')
 
     
-    r = gpd.GeoDataFrame.from_features(r['result']['features'])    
+    sh = gpd.GeoDataFrame.from_features(r['result']['features'])    
+    r['result'] = sh
+
     return r
 
 

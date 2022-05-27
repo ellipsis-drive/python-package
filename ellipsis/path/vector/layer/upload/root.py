@@ -1,6 +1,7 @@
 from ellipsis import apiManager
 from ellipsis import sanitize
 import os
+from ellipsis.util import recurse
 
 def upload(pathId, layerId, filePath, token, epsg = None, fileFormat = 'geojson', dateColumns = None, datePatterns = None):
     token = sanitize.validString('token', token, True)
@@ -19,11 +20,16 @@ def upload(pathId, layerId, filePath, token, epsg = None, fileFormat = 'geojson'
     apiManager.upload('/path/' + pathId + '/vector/layer/' + layerId + '/upload' , filePath, body, token)
 
 
-def get(pathId, layerId, token):
+def get(pathId, layerId, token, pageStart = None, listAll = True):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
+    pageStart = sanitize.validUuid('pageStart', pageStart, False)
+    listAll = sanitize.validBool('listAll', listAll, True)
 
-    r = apiManager.get('/path/' + pathId, + '/vector/layer/' + layerId + '/upload', None, token)    
-    return r
+    body = {'pageStart': pageStart}
+    def f(body):    
+        r = apiManager.get('/path/' + pathId + '/vector/layer/' + layerId + '/upload', body, token)    
+        return r
 
+    recurse(f, body, listAll)
