@@ -8,9 +8,9 @@ import pandas as pd
 folderId = '46e1e919-8b73-42a3-a575-25c6d45fd93b'
 
 ##account
-token = el.account.logIn("demo_user", "demo_user")
-admin_token = el.account.logIn('admin', 'GQkDzhVeCC0aQ9ERyiss')
-daan_token = el.account.logIn('daan', 'Brooksrange24')
+token = el.account.logIn("demo_user", "")
+admin_token = el.account.logIn('admin', "")
+daan_token = el.account.logIn('daan', "")
 
 el.account.listRootMaps('myDrive',token)
 el.account.listRootFolders('sharedWithMe',token)
@@ -117,6 +117,13 @@ uploadId = el.path.raster.timestamp.upload.upload(mapId, timestampId, filePath, 
 uploads = el.path.raster.timestamp.upload.get(mapId, timestampId, token)
 
 el.path.raster.timestamp.activate(mapId, timestampId, token)
+
+info = el.path.get(mapId, token)
+timestamp = info['raster']['timestamps'][0]
+while timestamp['status'] != 'finished':
+    time.sleep(1)
+    info = el.path.get(mapId, token)
+    timestamp = info['raster']['timestamps'][0]
 
 
 el.path.raster.editBand(mapId, 1, 'hoi', token)
@@ -228,6 +235,12 @@ r = el.path.vector.layer.getChanges(mapId, layerId, token, listAll = True)
 
 el.path.vector.layer.editFilter(mapId, layerId, [{'property':'gml_id'}], token)
 
+r = el.path.get(mapId, token)
+blocked = r['vector']['layers'][0]['availability']['blocked']
+while blocked:
+    time.sleep(1)
+    r = el.path.get(mapId, token)
+    blocked = r['vector']['layers'][0]['availability']['blocked']
 
 
 ###feature module
@@ -305,13 +318,13 @@ orderId = el.path.vector.layer.order.order(mapId, layerId, token, bounds)['id']
 
 order = el.path.vector.layer.order.get(token)[0]
 while order['status'] != 'completed':
+    time.sleep(1)
     order = el.path.vector.layer.order.get(token)[0]
 
 file_out = '/home/daniel/Downloads/out.zip'
 el.path.vector.layer.order.download(orderId, file_out, token)
-    
-
-import ellipsis as el
+os.remove(file_out)    
+el.path.trash(mapId, token)
 
 
 
