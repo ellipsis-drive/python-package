@@ -10,6 +10,7 @@ Adds a hashtag to a map.
 
 - pathId (uuid), the id of the map to add the hashtag to
 - hashtag (string), the hashtag to add
+- token (string), your token
 
 ## delete
 
@@ -21,6 +22,7 @@ Removes a hashtag to a map.
 
 - pathId (uuid), the id of the map from which to remove the hashtag
 - hashtag (string), the hashtag to remove
+- token (string), your token
 
 ## search
 

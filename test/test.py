@@ -67,7 +67,7 @@ el.path.favorite(folderId, token=token)
 el.path.unfavorite(folderId, token=token)
 
 ###invites
-inviteId =  el.path.invite.sent(pathId = folderId, token=token, userId = daanId, access = {'accessLevel': 200, 'processingUnits':10000})['id']
+inviteId =  el.path.invite.send(pathId = folderId, token=token, userId = daanId, access = {'accessLevel': 200, 'processingUnits':10000})['id']
 
 el.path.invite.getPathInvites(folderId, token)
 
@@ -77,12 +77,12 @@ el.path.invite.getYourInvites(daan_token)
 el.path.invite.revoke(pathId = folderId, inviteId = inviteId, token = token)
 
 
-inviteId =  el.path.invite.sent(pathId = folderId, token=token, userId = daanId, access = {'accessLevel': 200, 'processingUnits':10000})['id']
+inviteId =  el.path.invite.send(pathId = folderId, token=token, userId = daanId, access = {'accessLevel': 200, 'processingUnits':10000})['id']
 
 el.path.invite.decline(folderId, inviteId, daan_token)
 
 
-inviteId =  el.path.invite.sent(pathId = folderId, token=token, userId = daanId, access = {'accessLevel': 200, 'processingUnits':10000})['id']
+inviteId =  el.path.invite.send(pathId = folderId, token=token, userId = daanId, access = {'accessLevel': 200, 'processingUnits':10000})['id']
 el.path.invite.accept(folderId, inviteId, daan_token)
 
 ##members

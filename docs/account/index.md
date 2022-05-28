@@ -26,10 +26,28 @@ List the items in a root location.
 ### Mandatory parameters
 
 - rootName (string), one of "myDrive", "sharedWithMe", "favorites" or "trash"
-- isFolder (boolean), wether to list folders or maps
 
 ### Optional parameters
 
 - pageStart (uuid), from where to start the listing
+- listAll (boolean), wether to get all results or only the first page
 
-Returns a JSON object containing thefolderes or maps in the specified root.
+Returns a JSON object containing the maps in the specified root.
+
+## listRootFolders
+
+    ellipsis.account.listRootFolders()
+
+List the items in a root location.
+
+### Mandatory parameters
+
+- rootName (string), one of "myDrive", "sharedWithMe", "favorites" or "trash"
+- token (string), your token
+
+### Optional parameters
+
+- pageStart (uuid), from where to start the listing
+- listAll (boolean), wether to get all results or only the first page
+
+Returns a JSON object containing the folders in the specified root.
