@@ -1,7 +1,7 @@
 from ellipsis import apiManager, sanitize
 
 
-def sent(pathId, access, token, userId=None, email=None):
+def send(pathId, access, token, userId=None, email=None):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, True)
     userId = sanitize.validUuid('userId', userId, False)

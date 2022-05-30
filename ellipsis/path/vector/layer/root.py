@@ -69,13 +69,13 @@ def getBounds(pathId, layerId, token = None):
     return r
 
 
-def getChanges(pathId, layerId, token = None, pageStart = None, listAll = False):
+def getChanges(pathId, layerId, token = None, pageStart = None, listAll = False, actions = None):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     token = sanitize.validString('token', token, False)
     listAll = sanitize.validBool('listAll', listAll, True)
     pageStart = sanitize.validObject('pageStart', pageStart, False) 
-
+    actions = sanitize.validObject('actions', actions, False)
     body = {'pageStart':pageStart}    
     def f(body):
         r = apiManager.get('/path/' + pathId + '/vector/layer/' + layerId + '/changelog' , body, token)
@@ -123,7 +123,8 @@ def getFeaturesByIds(pathId, layerId, featureIds, token = None):
     return r
     
 
-def getFeaturesByBounds(pathId, layerId, bounds, propertyFilter = None, token = None, listAll = True, pageStart = None):
+def getFeaturesByExtent(pathId, layerId, extent, propertyFilter = None, token = None, listAll = True, pageStart = None):
+    bounds = extent
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     token = sanitize.validString('token', token, False)

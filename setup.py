@@ -30,8 +30,7 @@ setuptools.setup(
     'rasterio',
     'Shapely',
     'geopy',
-    'xmltodict',
-    'opencv-python',
+    'scikit-image',
     'Fiona',
     'tifffile'
     ],
