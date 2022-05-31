@@ -111,7 +111,7 @@ dateFrom = datetime.datetime.now()
 dateTo = datetime.datetime.now()
 el.path.raster.timestamp.edit(mapId, timestampId, token, description = 'hoi', dateFrom = dateFrom, dateTo = dateTo)
 
-filePath = 'test/0.tif'
+filePath = '/home/daniel/Ellipsis/python-package/test/0.tif'
 uploadId = el.path.raster.timestamp.upload.upload(mapId, timestampId, filePath, token)['id']
 
 el.path.raster.timestamp.upload.delete(mapId, timestampId, uploadId, token)
@@ -136,6 +136,9 @@ el.path.raster.timestamp.trash(mapId, timestampId, token)
 el.path.raster.timestamp.recover(mapId, timestampId, token)
 el.path.raster.timestamp.trash(mapId, timestampId, token)
 el.path.raster.timestamp.delete(mapId, timestampId, admin_token)
+
+el.path.trash(mapId, token)
+el.path.delete(mapId, admin_token)
 
 ##raster information retrieval
 mapId = '59caf510-bab7-44a8-b5ea-c522cfde4ad7'
@@ -189,12 +192,12 @@ el.path.raster.layer.delete(mapId, layerId, token)
 
 
 ###vector layers
-mapId = el.path.add('vector', 'test', token)['id']
+mapId = el.path.add('vector', 'test2', token)['id']
 
 
 layerId = el.path.vector.layer.add(mapId, 'test', token)['id']
 
-el.path.vector.layer.edit(mapId, layerId, token, name = 'test2')
+el.path.vector.layer.edit(mapId, layerId, token, name = 'test3')
 
 el.path.vector.layer.archive(mapId, layerId, token)
 el.path.vector.layer.recover(mapId, layerId, token)
@@ -204,7 +207,7 @@ layerId = el.path.vector.layer.add(mapId, 'test', token)['id']
 
 
 ###vector uploads
-filePath = 'test/test.zip'
+filePath = '/home/daniel/Ellipsis/python-package/test/test.zip'
 el.path.vector.layer.upload.upload(mapId, layerId, filePath, token, fileFormat = 'zip')
 
 

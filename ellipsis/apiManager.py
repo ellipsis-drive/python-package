@@ -62,6 +62,9 @@ def delete(url, body, token = None):
 
 def call(method, url, body = None, token = None, crash = True):
     body = filterNone(body)
+    print('#####################')
+    print(body)
+    print(url)
     if type(body) != type(None) and type(body) != type({}):
         raise ValueError(
             'body of an API call must be of type dict or noneType')
