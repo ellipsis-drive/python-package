@@ -40,8 +40,8 @@ def getDownsampledRaster(pathId, timestampId, extent, width, height, layer = Non
     xMax = bounds['xMax']
     yMax = bounds['yMax']
 
-    xMinWeb, yMinWeb = transformPoint( (xMin, yMin), 'EPSG:4326', '3857')
-    xMaxWeb, yMaxWeb = transformPoint( (xMax, yMax), 'EPSG:4326', '3857')
+    xMinWeb, yMinWeb = transformPoint( (xMin, yMin), 'EPSG:4326', 'EPSG:3857')
+    xMaxWeb, yMaxWeb = transformPoint( (xMax, yMax), 'EPSG:4326', 'EPSG:3857')
 
 
     trans = rasterio.transform.from_bounds(xMinWeb, yMinWeb, xMaxWeb, yMaxWeb, r.shape[2], r.shape[1])

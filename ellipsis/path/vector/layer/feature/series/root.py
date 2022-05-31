@@ -43,8 +43,8 @@ def info(pathId, layerId, featureId, token = None):
     token = sanitize.validString('token', token, False)
     
     r = apiManager.get('/path/' + pathId + '/vector/layer/' + layerId + '/feature/' + featureId + '/series/info', None, token)
-    r['dateMin'] = stringToDate(r['dateMin'])
-    r['dateMax'] = stringToDate(r['dateMax'])
+    r['dateFrom'] = stringToDate(r['dateFrom'])
+    r['dateTo'] = stringToDate(r['dateTo'])
     return r
 
 

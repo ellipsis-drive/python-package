@@ -32,4 +32,5 @@ def get(pathId, layerId, token, pageStart = None, listAll = True):
         r = apiManager.get('/path/' + pathId + '/vector/layer/' + layerId + '/upload', body, token)    
         return r
 
-    recurse(f, body, listAll)
+    r = recurse(f, body, listAll)
+    return r

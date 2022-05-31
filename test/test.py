@@ -146,14 +146,14 @@ yMax  = 52.30339
 
 extent = {'xMin':xMin,'yMin':yMin,'xMax':xMax,'yMax':yMax } 
 
-result = el.path.raster.timestamp.getRaster(pathId = mapId, timestampId = timestampId, bounds = extent, token = token)
+result = el.path.raster.timestamp.getRaster(pathId = mapId, timestampId = timestampId, extent = extent, token = token)
 
 raster = result['raster']
 
 
 el.util.plotRaster(raster[0:3,:,:])
 
-r = el.path.raster.timestamp.getDownsampledRaster(pathId = mapId, timestampId=timestampId, bounds = extent, width = 256, height = 256, token = token)
+r = el.path.raster.timestamp.getDownsampledRaster(pathId = mapId, timestampId=timestampId, extent = extent, width = 256, height = 256, token = token)
 raster = r['raster']
 el.util.plotRaster(raster[0:3,:,:])
 
@@ -221,7 +221,7 @@ xMax = bounds.bounds[2]
 yMax = bounds.bounds[3]
 
 bounds = {'xMin':xMin, 'xMax':xMax, 'yMin':yMin, 'yMax':yMax}
-sh = el.path.vector.layer.getFeaturesByBounds(mapId, layerId, bounds)
+sh = el.path.vector.layer.getFeaturesByExtent(mapId, layerId, bounds)
 sh['result'].plot()
 
 sh = el.path.vector.layer.listFeatures(mapId, layerId, token)
