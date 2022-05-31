@@ -5,6 +5,9 @@ import time
 import numpy as np
 import pandas as pd
 
+#python3 setup.py sdist bdist_wheel
+#twine upload --repository pypi dist/*
+
 folderId = '46e1e919-8b73-42a3-a575-25c6d45fd93b'
 
 ##account

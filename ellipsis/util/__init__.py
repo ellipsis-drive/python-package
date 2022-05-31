@@ -8,5 +8,7 @@ from ellipsis.util.root import reprojectRaster
 from ellipsis.util.root import saveRaster
 from ellipsis.util.root import transformPoint
 
+__version__ = '1.3.0'
+
 
 
