@@ -1,5 +1,7 @@
 # Welcome to Ellipsis's documentation!
 
+**Plese note that we are currently still working on the documentation.**
+
 ```{toctree}
 ---
 maxdepth: 2
