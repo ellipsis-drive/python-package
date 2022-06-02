@@ -5,6 +5,9 @@ import time
 import numpy as np
 import pandas as pd
 
+#python3 setup.py sdist bdist_wheel
+#twine upload --repository pypi dist/*
+
 folderId = '46e1e919-8b73-42a3-a575-25c6d45fd93b'
 
 ##account
@@ -67,7 +70,7 @@ el.path.favorite(folderId, token=token)
 el.path.unfavorite(folderId, token=token)
 
 ###invites
-inviteId =  el.path.invite.sent(pathId = folderId, token=token, userId = daanId, access = {'accessLevel': 200, 'processingUnits':10000})['id']
+inviteId =  el.path.invite.send(pathId = folderId, token=token, userId = daanId, access = {'accessLevel': 200, 'processingUnits':10000})['id']
 
 el.path.invite.getPathInvites(folderId, token)
 
@@ -77,12 +80,12 @@ el.path.invite.getYourInvites(daan_token)
 el.path.invite.revoke(pathId = folderId, inviteId = inviteId, token = token)
 
 
-inviteId =  el.path.invite.sent(pathId = folderId, token=token, userId = daanId, access = {'accessLevel': 200, 'processingUnits':10000})['id']
+inviteId =  el.path.invite.send(pathId = folderId, token=token, userId = daanId, access = {'accessLevel': 200, 'processingUnits':10000})['id']
 
 el.path.invite.decline(folderId, inviteId, daan_token)
 
 
-inviteId =  el.path.invite.sent(pathId = folderId, token=token, userId = daanId, access = {'accessLevel': 200, 'processingUnits':10000})['id']
+inviteId =  el.path.invite.send(pathId = folderId, token=token, userId = daanId, access = {'accessLevel': 200, 'processingUnits':10000})['id']
 el.path.invite.accept(folderId, inviteId, daan_token)
 
 ##members
@@ -108,7 +111,7 @@ dateFrom = datetime.datetime.now()
 dateTo = datetime.datetime.now()
 el.path.raster.timestamp.edit(mapId, timestampId, token, description = 'hoi', dateFrom = dateFrom, dateTo = dateTo)
 
-filePath = 'test/0.tif'
+filePath = '/home/daniel/Ellipsis/python-package/test/0.tif'
 uploadId = el.path.raster.timestamp.upload.upload(mapId, timestampId, filePath, token)['id']
 
 el.path.raster.timestamp.upload.delete(mapId, timestampId, uploadId, token)
@@ -134,6 +137,9 @@ el.path.raster.timestamp.recover(mapId, timestampId, token)
 el.path.raster.timestamp.trash(mapId, timestampId, token)
 el.path.raster.timestamp.delete(mapId, timestampId, admin_token)
 
+el.path.trash(mapId, token)
+el.path.delete(mapId, admin_token)
+
 ##raster information retrieval
 mapId = '59caf510-bab7-44a8-b5ea-c522cfde4ad7'
 timestampId = 'f25e120e-ca8f-451f-a5f4-33791db0f2c5'
@@ -146,14 +152,14 @@ yMax  = 52.30339
 
 extent = {'xMin':xMin,'yMin':yMin,'xMax':xMax,'yMax':yMax } 
 
-result = el.path.raster.timestamp.getRaster(pathId = mapId, timestampId = timestampId, bounds = extent, token = token)
+result = el.path.raster.timestamp.getRaster(pathId = mapId, timestampId = timestampId, extent = extent, token = token)
 
 raster = result['raster']
 
 
 el.util.plotRaster(raster[0:3,:,:])
 
-r = el.path.raster.timestamp.getDownsampledRaster(pathId = mapId, timestampId=timestampId, bounds = extent, width = 256, height = 256, token = token)
+r = el.path.raster.timestamp.getDownsampledRaster(pathId = mapId, timestampId=timestampId, extent = extent, width = 256, height = 256, token = token)
 raster = r['raster']
 el.util.plotRaster(raster[0:3,:,:])
 
@@ -186,12 +192,12 @@ el.path.raster.layer.delete(mapId, layerId, token)
 
 
 ###vector layers
-mapId = el.path.add('vector', 'test', token)['id']
+mapId = el.path.add('vector', 'test2', token)['id']
 
 
 layerId = el.path.vector.layer.add(mapId, 'test', token)['id']
 
-el.path.vector.layer.edit(mapId, layerId, token, name = 'test2')
+el.path.vector.layer.edit(mapId, layerId, token, name = 'test3')
 
 el.path.vector.layer.archive(mapId, layerId, token)
 el.path.vector.layer.recover(mapId, layerId, token)
@@ -201,7 +207,7 @@ layerId = el.path.vector.layer.add(mapId, 'test', token)['id']
 
 
 ###vector uploads
-filePath = 'test/test.zip'
+filePath = '/home/daniel/Ellipsis/python-package/test/test.zip'
 el.path.vector.layer.upload.upload(mapId, layerId, filePath, token, fileFormat = 'zip')
 
 
@@ -221,7 +227,7 @@ xMax = bounds.bounds[2]
 yMax = bounds.bounds[3]
 
 bounds = {'xMin':xMin, 'xMax':xMax, 'yMin':yMin, 'yMax':yMax}
-sh = el.path.vector.layer.getFeaturesByBounds(mapId, layerId, bounds)
+sh = el.path.vector.layer.getFeaturesByExtent(mapId, layerId, bounds)
 sh['result'].plot()
 
 sh = el.path.vector.layer.listFeatures(mapId, layerId, token)

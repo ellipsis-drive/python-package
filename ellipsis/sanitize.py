@@ -4,6 +4,7 @@ import datetime
 import json
 import geopandas as gpd
 import pandas as pd
+from shapely import geometry
 
 def validUuid(name, value, required):
     if not required and type(value) == type(None):
@@ -41,6 +42,46 @@ def validString(name, value, required):
         raise ValueError(name + 'must be of type string')
     return(value)
 
+def validShapely(name, value, required):
+    if not required and type(value) == type(None):
+        return
+
+    if not 'shapely' in str(type(value)):
+        raise ValueError(name + 'must be a shapely geometry')
+    return(value)
+
+
+def validBoundsCrsCombination(name, value, required):
+    if not required and type(value) == type(None):
+        return
+
+    bounds = value[0]
+    crs = value[1]
+    
+    value = bounds
+    keys = ['xMin', 'xMax', 'yMin', 'yMax']
+    if type(value) != type({}):
+        raise ValueError(name[0] + ' must be a dictionary with keys ' ' '.join(keys) +
+                         ' whose values must be of type float')
+
+    for key in keys:
+        if not key in value.keys() or (not 'float' in str(type(value[key])) and not 'int' in str(type(value[key]))):
+            raise ValueError(name[0] + ' must be a dictionary with keys ' ' '.join(
+                keys) + ' whose values must be of type float')
+        value[key] = float(value[key])
+
+
+    if type(crs) != type('x'):
+        raise ValueError('crs must be of type string')
+
+    target_tile = geometry.Polygon([(bounds['xMin'],bounds['yMin']), (bounds['xMin'],bounds['yMax']), (bounds['xMax'],bounds['yMax']), (bounds['xMax'], bounds['yMin'])])
+    sh = gpd.GeoDataFrame({'geometry':[target_tile]})    
+    try:
+        sh.crs = crs
+    except:
+        raise ValueError(name[0] + ' does not fit with the projection given by ' + name[1])
+
+    return bounds, crs        
 
 def validImage(name, value, required):
     if not required and type(value) == type(None):

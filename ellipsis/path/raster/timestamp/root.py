@@ -2,9 +2,9 @@ from ellipsis import sanitize
 from ellipsis import apiManager
 from ellipsis.util import loadingBar
 from ellipsis.util import chunks
+from ellipsis.util.root import transformPoint
 
 import json
-from pyproj import Proj, transform
 import numpy as np
 from io import BytesIO
 import rasterio
@@ -15,7 +15,8 @@ from PIL import Image
 import geopandas as gpd
 import datetime
 
-def getDownsampledRaster(pathId, timestampId, bounds, width, height, layer = None, token = None):
+def getDownsampledRaster(pathId, timestampId, extent, width, height, layer = None, token = None):
+    bounds = extent
     token = sanitize.validString('token', token, False)
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
@@ -38,8 +39,9 @@ def getDownsampledRaster(pathId, timestampId, bounds, width, height, layer = Non
     yMin = bounds['yMin']
     xMax = bounds['xMax']
     yMax = bounds['yMax']
-    xMinWeb,yMinWeb =  transform(Proj(init='epsg:4326'), Proj(init='epsg:3857'), xMin, yMin)
-    xMaxWeb,yMaxWeb = transform(Proj(init='epsg:4326'), Proj(init='epsg:3857'), xMax, yMax)
+
+    xMinWeb, yMinWeb = transformPoint( (xMin, yMin), 'EPSG:4326', 'EPSG:3857')
+    xMaxWeb, yMaxWeb = transformPoint( (xMax, yMax), 'EPSG:4326', 'EPSG:3857')
 
 
     trans = rasterio.transform.from_bounds(xMinWeb, yMinWeb, xMaxWeb, yMaxWeb, r.shape[2], r.shape[1])
@@ -49,8 +51,8 @@ def getDownsampledRaster(pathId, timestampId, bounds, width, height, layer = Non
 
 
 
-def getRaster(pathId, timestampId, bounds, layer = None, threads = 1, token = None):
-
+def getRaster(pathId, timestampId, extent, layer = None, threads = 1, token = None):
+    bounds = extent
     threads = sanitize.validInt('threads', threads, True)
     token = sanitize.validString('token', token, False)
     pathId = sanitize.validUuid('pathId', pathId, True)
@@ -63,8 +65,8 @@ def getRaster(pathId, timestampId, bounds, layer = None, threads = 1, token = No
     yMin = bounds['yMin']
     xMax = bounds['xMax']
     yMax = bounds['yMax']
-    xMinWeb,yMinWeb =  transform(Proj(init='epsg:4326'), Proj(init='epsg:3857'), xMin, yMin)
-    xMaxWeb,yMaxWeb = transform(Proj(init='epsg:4326'), Proj(init='epsg:3857'), xMax, yMax)
+    xMinWeb,yMinWeb =  transformPoint((xMin, yMin), 'EPSG:4326', 'EPSG:3857')
+    xMaxWeb,yMaxWeb = transformPoint((xMax, yMax), 'EPSG:4326', 'EPSG:3857')
 
     info = apiManager.get('/path/' + pathId, None, token)
     bands =  info['raster']['bands']
@@ -160,7 +162,7 @@ def getAggregatedData(pathId, timestampIds, geometry, approximate=True, token = 
     pathId = sanitize.validUuid('pathId', pathId, True)    
     timestampIds = sanitize.validUuidArray('timestampIds', timestampIds, True)    
     approximate = sanitize.validBool(approximate, approximate, True)    
-
+    geometry = sanitize.validShapely('geometry', geometry, True)
     try:
         sh = gpd.GeoDataFrame({'geometry':[geometry]})
         geometry =sh.to_json(na='drop')

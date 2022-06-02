@@ -17,7 +17,7 @@ def editMap(pathId, token, interpolation = None, includesTransparent = None):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)
     interpolation = sanitize.validString('interpolation', interpolation, False)
-    includesTransparent = sanitize.validString('includesTransparent', includesTransparent, False)
+    includesTransparent = sanitize.validBool('includesTransparent', includesTransparent, False)
 
     body = {'interpolation':interpolation, 'includesTransparent':includesTransparent}
     r = apiManager.patch('/path/' + pathId + '/raster' , body, token)

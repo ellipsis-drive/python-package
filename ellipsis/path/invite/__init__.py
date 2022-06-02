@@ -1,1 +1,1 @@
-from ellipsis.path.invite.root import sent, accept, decline, getPathInvites, getYourInvites, revoke
+from ellipsis.path.invite.root import send, accept, decline, getPathInvites, getYourInvites, revoke
