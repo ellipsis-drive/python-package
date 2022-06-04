@@ -6,12 +6,12 @@
 
 Login to your account.
 
-### Mandatory parameters
+### Mandatory arguments
 
 - username (string), your username
 - password (string), your password
 
-### Optional parameters
+### Optional arguments
 
 - validFor (int), number of seconds the token should be valid for.
 
@@ -23,11 +23,11 @@ Returns a token.
 
 List the items in a root location.
 
-### Mandatory parameters
+### Mandatory arguments
 
 - rootName (string), one of "myDrive", "sharedWithMe", "favorites" or "trash"
 
-### Optional parameters
+### Optional arguments
 
 - pageStart (uuid), from where to start the listing
 - listAll (boolean), wether to get all results or only the first page
@@ -40,12 +40,12 @@ Returns a JSON object containing the maps in the specified root.
 
 List the items in a root location.
 
-### Mandatory parameters
+### Mandatory arguments
 
 - rootName (string), one of "myDrive", "sharedWithMe", "favorites" or "trash"
 - token (string), your token
 
-### Optional parameters
+### Optional arguments
 
 - pageStart (uuid), from where to start the listing
 - listAll (boolean), wether to get all results or only the first page
