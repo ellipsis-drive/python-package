@@ -1,10 +1,14 @@
 # Welcome to Ellipsis's documentation!
 
-**Plese note that we are currently still working on the documentation.**
+**Please note that we are currently still working on the documentation.**
+
+This is the documentation for the official python package of [Ellipsis Drive](https://ellipsis-drive.com/).
+You can find the source code of the package at <https://github.com/ellipsis-drive/python-package>.
+The package eases the use of the Ellipsis Drive API, by wrapping many of the API calls in python functions and adding some more intricate functions as well. 
 
 ```{toctree}
 ---
-maxdepth: 2
+maxdepth: 10
 caption: Contents
 ---
 account/index
@@ -16,5 +20,3 @@ vector/index
 
 &nbsp;
 &nbsp;
-
-We're using a plugin that adds markdown support. [Here's some info about it](https://myst-parser.readthedocs.io/en/latest/syntax/roles-and-directives.html#roles-directives).
