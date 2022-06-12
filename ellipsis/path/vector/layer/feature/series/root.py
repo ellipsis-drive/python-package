@@ -13,7 +13,7 @@ def get(pathId, layerId, featureId, pageStart = None, dateTo = None, userId = No
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     featureId = sanitize.validUuid('featureId', featureId, True) 
-    pageStart = sanitize.validObject('pageStart', pageStart, False)
+    pageStart = sanitize.validUuid('pageStart', pageStart, False)
     dateTo = sanitize.validDate('dateTo', dateTo, False)
     userId = sanitize.validUuid('userId', userId, False)
     seriesProperty = sanitize.validString('seriesProperty', seriesProperty, False)
@@ -136,7 +136,7 @@ def changelog(pathId, layerId, featureId, listAll = False, actions = None, userI
     listAll = sanitize.validBool('listAll', listAll, True) 
     actions = sanitize.validStringArray('actions', actions, False) 
     userId = sanitize.validUuid('userId', userId, False) 
-    pageStart = sanitize.validObject('pageStart', pageStart, False) 
+    pageStart = sanitize.validUuid('pageStart', pageStart, False) 
     token = sanitize.validString('token', token, False)
 
     body = {'userId': userId, 'actions':actions, 'pageStart':pageStart}
