@@ -1,4 +1,4 @@
-# Welcome to Ellipsis's documentation!
+# Welcome to Ellipsis' documentation!
 
 **Please note that we are currently still working on the documentation.**
 
