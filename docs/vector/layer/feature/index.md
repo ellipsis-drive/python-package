@@ -1,5 +1,13 @@
 # Feature
 
+```{toctree}
+---
+maxdepth: 3
+---
+message/index
+series/index
+```
+
 ## add
 
     ellipsis.path.vector.layer.feature.add()
