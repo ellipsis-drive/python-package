@@ -15,12 +15,14 @@ series/index
 Add a feature.
 
 **Mandatory arguments**
+
 - pathId (uuid)
 - layerId (uuid)
 - features (geopandas dataframe)
 - token (string)
 
 **Optional arguments**
+
 - zoomlevels (array of integers)
 
 ## edit
@@ -30,12 +32,14 @@ Add a feature.
 Edit a feature.
 
 **Mandatory arguments**
+
 - pathId (uuid)
 - layerId (uuid)
 - featureIds (array of uuids)
 - token (string)
 
 **Optional arguments**
+
 - zoomlevels (array of integers)
 - features (geopandas dataframe)
 
@@ -46,6 +50,7 @@ Edit a feature.
 Delete a feature.
 
 **Mandatory arguments**
+
 - pathId (uuid)
 - layerId (uuid)
 - featureIds (array of uuids)
@@ -58,6 +63,7 @@ Delete a feature.
 Recover a feature.
 
 **Mandatory arguments**
+
 - pathId (uuid)
 - layerId (uuid)
 - featureIds (array of uuids)
@@ -68,11 +74,13 @@ Recover a feature.
     ellipsis.path.vector.layer.feature.versions()
 
 **Mandatory arguments**
+
 - pathId (uuid)
 - layerId (uuid)
 - featureIds (array of uuids)
 
 **Optional arguments**
+
 - pageStart (uuid)
-- listAll (bool), whether to list all results or only the first page (default False)
+- listAll (boolean), whether to list all results or only the first page (default False)
 - token (string)

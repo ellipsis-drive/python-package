@@ -5,6 +5,7 @@
     ellipsis.path.vector.layer.featureProperty.add()
 
 **Mandatory arguments**
+
 - pathId (uuid)
 - layerId (uuid)
 - name (string)
@@ -12,28 +13,32 @@
 - token (string)
 
 **Optional arguments**
-- private (bool), default False
-- required (bool), default False
+
+- private (boolean), default False
+- required (boolean), default False
 
 ## edit
 
     ellipsis.path.vector.layer.featureProperty.edit()
 
 **Mandatory arguments**
+
 - pathId (uuid)
 - layerId (uuid)
 - featurePropertyId (uuid)
 - token (string)
 
 **Optional arguments**
-- private (bool), default False
-- required (bool), default False
+
+- private (boolean), default False
+- required (boolean), default False
 
 ## delete
 
     ellipsis.path.vector.layer.featureProperty.delete()
 
 **Mandatory arguments**
+
 - pathId (uuid)
 - layerId (uuid)
 - featurePropertyId (uuid)
@@ -44,6 +49,7 @@
     ellipsis.path.vector.layer.featureProperty.recover()
 
 **Mandatory arguments**
+
 - pathId (uuid)
 - layerId (uuid)
 - featurePropertyId (uuid)

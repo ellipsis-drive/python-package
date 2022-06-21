@@ -7,17 +7,19 @@
 Get all messages on a feature.
 
 **Mandatory arguments**
+
 - pathId (uuid),
 - layerId (uuid),
 
 **Optional arguments**
+
 - token (string), your token
-- messageIds (array of uuids), 
-- userId (uuid), 
-- bounds (bounds object), 
-- pageStart (uuid), 
-- listAll (bool), default False
-- deleted (bool), default False
+- messageIds (array of uuids),
+- userId (uuid),
+- bounds (bounds object),
+- pageStart (uuid),
+- listAll (boolean), default False
+- deleted (boolean), default False
 
 ## getImage
 
@@ -26,11 +28,13 @@ Get all messages on a feature.
 Get the image of a message.
 
 **Mandatory arguments**
+
 - pathId (uuid),
 - layerId (uuid),
 - messageId
 
 **Optional arguments**
+
 - token (string), your token
 
 ## add
@@ -40,12 +44,14 @@ Get the image of a message.
 Add message to a feature.
 
 **Mandatory arguments**
+
 - pathId (uuid),
 - layerId (uuid),
 - featureId (uuid)
 - token (string), your token
 
 **Optional arguments**
+
 - text (string)
 - image (image)
 
@@ -56,6 +62,7 @@ Add message to a feature.
 Delete a message.
 
 **Mandatory arguments**
+
 - pathId (uuid),
 - layerId (uuid),
 - messageId (uuid)
@@ -68,6 +75,7 @@ Delete a message.
 Recover a message.
 
 **Mandatory arguments**
+
 - pathId (uuid),
 - layerId (uuid),
 - featureId (uuid)

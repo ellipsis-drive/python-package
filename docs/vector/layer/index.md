@@ -1,6 +1,5 @@
 # Vector layer
 
-
 ```{toctree}
 ---
 maxdepth: 3
@@ -19,13 +18,15 @@ upload/index
 Adds a vector layer.
 
 **Mandatory arguments**
+
 - pathId (uuid),
 - name (string),
 - token (uuid), your token
 
 **Optional arguments**
+
 - properties (object), containing
-- description (string), 
+- description (string),
 
 ## edit
 
@@ -34,13 +35,15 @@ Adds a vector layer.
 Edits a vector layer.
 
 **Mandatory arguments**
+
 - pathId (uuid),
 - layerId (uuid),
 - name (string),
 - token (uuid), your token
 
 **Optional arguments**
-- description (string), 
+
+- description (string),
 
 ## archive
 
@@ -49,6 +52,7 @@ Edits a vector layer.
 Archives a vector layer.
 
 **Mandatory arguments**
+
 - pathId (uuid),
 - layerId (uuid),
 - token (uuid), your token
@@ -60,6 +64,7 @@ Archives a vector layer.
 Recovers a vector layer.
 
 **Mandatory arguments**
+
 - pathId (uuid),
 - layerId (uuid),
 - token (uuid), your token
@@ -71,6 +76,7 @@ Recovers a vector layer.
 Delete a vector layer.
 
 **Mandatory arguments**
+
 - pathId (uuid),
 - layerId (uuid),
 - token (uuid), your token
@@ -82,6 +88,7 @@ Delete a vector layer.
 Gets the bounds of a vector layer.
 
 **Mandatory arguments**
+
 - pathId (uuid),
 - layerId (uuid),
 - token (uuid), your token
@@ -91,11 +98,13 @@ Gets the bounds of a vector layer.
     ellipsis.path.vector.layer.getChanges()
 
 **Mandatory arguments**
+
 - pathId (uuid),
 - layerId (uuid),
 
 **Optional arguments**
-- listAll (bool), whether to list all results (default False)
+
+- listAll (boolean), whether to list all results (default False)
 - pageStart (object),
 - actions (object),
 - token (uuid), your token
@@ -105,6 +114,7 @@ Gets the bounds of a vector layer.
     ellipsis.path.vector.layer.editFilter()
 
 **Mandatory arguments**
+
 - pathId (uuid),
 - layerId (uuid),
 - token (uuid), your token
@@ -115,11 +125,13 @@ Gets the bounds of a vector layer.
     ellipsis.path.vector.layer.getFeaturesByIds()
 
 **Mandatory arguments**
+
 - pathId (uuid),
 - layerId (uuid),
 - featureIds (list of uuids),
 
 **Optional arguments**
+
 - token (uuid), your token
 
 ## getFeaturesByExtent
@@ -127,25 +139,29 @@ Gets the bounds of a vector layer.
     ellipsis.path.vector.layer.getFeaturesByIds()
 
 **Mandatory arguments**
+
 - pathId (uuid),
 - layerId (uuid),
 - extent (bounds object)
 
 **Optional arguments**
+
 - token (uuid), your token
 - propertyFilter
 - pageStart
-- listAll (bool), whether to list all results (default False)
+- listAll (boolean), whether to list all results (default False)
 
 ## listFeatures
 
     ellipsis.path.vector.layer.listFeatures()
 
 **Mandatory arguments**
+
 - pathId (uuid),
 - layerId (uuid),
 
 **Optional arguments**
+
 - token (uuid), your token
 - pageStart
-- listAll (bool), whether to list all results (default False)
+- listAll (boolean), whether to list all results (default False)
