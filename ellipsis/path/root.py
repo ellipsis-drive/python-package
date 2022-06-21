@@ -132,8 +132,6 @@ def get(pathId, token=None):
     r = convertPath(r)
     return r
 
-
-# This is supposed to be private
 def listMaps(pathId, pageStart=None, listAll = True, token=None):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
@@ -163,9 +161,6 @@ def listFolders(pathId, pageStart=None, listAll = True, token=None):
 
     r = recurse(f, body, listAll)
     return r
-
-
-
 
 def editMetadata(pathId, token, description=None, attribution=None, properties=None):
     pathId = sanitize.validUuid('pathId', pathId, True)
