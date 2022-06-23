@@ -10,12 +10,13 @@ import json
 import geopandas as gpd
 
 
-def add(pathId, layerId, features, token, zoomlevels = None):
+def add(pathId, layerId, features, token, zoomlevels = None, showProgress = True):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     token = sanitize.validString('token', token, True)
     features = sanitize.validGeopandas('features', features, True)
     zoomlevels = sanitize.validIntArray('zoomlevels', zoomlevels, False)
+    showProgress = sanitize.validBool('showProgress', showProgress, True)
         
     
     #check if first time
@@ -65,21 +66,22 @@ def add(pathId, layerId, features, token, zoomlevels = None):
         r = apiManager.post('/path/' + pathId + '/vector/layer/' + layerId + '/feature', body, token)
 
         addedIds = addedIds + r
-
-        loadingBar(i*3000 + len(indices_sub),features.shape[0])
+        if showProgress:
+            loadingBar(i*3000 + len(indices_sub),features.shape[0])
         i = i+1
         
     return(addedIds)
 
 
     
-def edit(pathId, layerId, featureIds, token, zoomlevels = None, features = None):
+def edit(pathId, layerId, featureIds, token, zoomlevels = None, features = None, showProgress = True):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     token = sanitize.validString('token', token, True)
     features = sanitize.validGeopandas('features', features, False)
     zoomlevels = sanitize.validIntArray('zoomlevels', zoomlevels, False)
     featureIds = sanitize.validUuidArray('featureIds', featureIds, True)
+    showProgress = sanitize.validBool('showProgress', showProgress, True)
 
 
     if type(features) != type(None) and features.shape[0] != len(featureIds):
@@ -107,17 +109,18 @@ def edit(pathId, layerId, featureIds, token, zoomlevels = None, features = None)
         body = {'changes':changes}
         r = apiManager.patch('/path/' + pathId + '/vector/layer/' + layerId + '/feature', body, token)
 
-        if len(indices) > 1:
+        if len(indices) > 1 and showProgress:
             loadingBar(i*1000 + len(indices_sub),len(featureIds))
 
     return r
 
 
-def delete(pathId, layerId, featureIds, token):
+def delete(pathId, layerId, featureIds, token, showProgress = True):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     token = sanitize.validString('token', token, True)
     featureIds = sanitize.validUuidArray('featureIds', featureIds, True)
+    showProgress = sanitize.validBool('showProgress', showProgress, True)
 
     indices = chunks(np.arange(len(featureIds)),1000)
     i=0
@@ -128,17 +131,18 @@ def delete(pathId, layerId, featureIds, token):
         body = {'featureIds': featureIds_sub, 'deleted': True}
         r = apiManager.put('/path/' + pathId + '/vector/layer/' + layerId + '/feature/deleted', body, token)
 
-        if len(indices) > 1:
+        if len(indices) > 1 and showProgress:
             loadingBar(i*1000 + len(indices_sub),len(featureIds))
 
     return r
 
 
-def recover(pathId, layerId, featureIds, token):
+def recover(pathId, layerId, featureIds, token, showProgress = True):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     token = sanitize.validString('token', token, True)
     featureIds = sanitize.validUuidArray('featureIds', featureIds, True)
+    showProgress = sanitize.validBool('showProgress', showProgress, True)
 
     indices = chunks(np.arange(len(featureIds)),1000)
     i=0
@@ -149,7 +153,7 @@ def recover(pathId, layerId, featureIds, token):
         body = {'featureIds': featureIds_sub, 'deleted': False}
         r = apiManager.put('/path/' + pathId + '/vector/layer/' + layerId + '/feature/deleted', body, token)
 
-        if len(indices) > 1:
+        if len(indices) > 1 and showProgress:
             loadingBar(i*1000 + len(indices_sub),len(featureIds))
 
     return r

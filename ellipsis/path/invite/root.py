@@ -1,18 +1,19 @@
 from ellipsis import apiManager, sanitize
 
 
-def send(pathId, access, token, userId=None, email=None):
+def send(pathId, access, token, userId=None, email=None, sendMail=True):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, True)
     userId = sanitize.validUuid('userId', userId, False)
     email = sanitize.validString('email', email, False)
     access = sanitize.validObject('access', access, True)
+    sendMail = sanitize.validBool('sendMail', access, False)
 
-    print(access)
     return apiManager.post(f'/path/{pathId}/invite', {
         'userId': userId,
         'email': email,
-        'access': access
+        'access': access,
+        'sendMail': sendMail
     }, token)
 
 

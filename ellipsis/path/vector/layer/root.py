@@ -96,11 +96,12 @@ def editFilter(pathId, layerId, propertyFilter, token):
     return r
 
 
-def getFeaturesByIds(pathId, layerId, featureIds, token = None):
+def getFeaturesByIds(pathId, layerId, featureIds, token = None, showProgress = True):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     token = sanitize.validString('token', token, False)
     featureIds = sanitize.validUuidArray('featureIds', featureIds, True)
+    showProgress = sanitize.validBool('showProgress', showProgress, True)
     
     id_chunks = chunks(featureIds, 10)
 
@@ -113,7 +114,7 @@ def getFeaturesByIds(pathId, layerId, featureIds, token = None):
         
         r['result'] = r['result'] + r_new['result']['features']
         r['size'] = r['size'] + r_new['size']
-        if len(id_chunks) >0:
+        if len(id_chunks) >0 and showProgress:
             loadingBar(i*10 + len(ids),len(featureIds))
         i=i+1
 

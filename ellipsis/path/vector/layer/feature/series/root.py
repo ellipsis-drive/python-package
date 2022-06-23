@@ -48,12 +48,13 @@ def info(pathId, layerId, featureId, token = None):
     return r
 
 
-def add(pathId, layerId, featureId, seriesData, token):
+def add(pathId, layerId, featureId, seriesData, token, showProgress = True):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     featureId = sanitize.validUuid('featureId', featureId, True) 
     token = sanitize.validString('token', token, True)
     seriesData = sanitize.validDataframe('seriesData', seriesData, True)
+    showProgress = sanitize.validBool('showProgress', showProgress, True)
 
     if 'date' in seriesData.columns:
         if str(seriesData['date'].dtypes) == 'datetime64[ns]':
@@ -85,7 +86,7 @@ def add(pathId, layerId, featureId, seriesData, token):
         r = apiManager.post("/path/" + pathId + "/vector/layer/" + layerId  + '/feature/' + featureId + '/series/element', body, token)
         
         r_total = r_total + r
-        if len(chunks_values) >1:
+        if len(chunks_values) >1 and showProgress:
             loadingBar(N*3000 + len(values_sub), len(values))
         N = N+1
     return r_total
@@ -93,29 +94,31 @@ def add(pathId, layerId, featureId, seriesData, token):
 
 
 
-def delete(pathId, layerId, featureId, seriesIds, token):
+def delete(pathId, layerId, featureId, seriesIds, token, showProgress = True):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     featureId = sanitize.validUuid('featureId', featureId, True) 
     token = sanitize.validString('token', token, True)
     seriesIds = sanitize.validUuidArray('seriesIds', seriesIds, True)
+    showProgress = sanitize.validBool('showProgress', showProgress, True)
 
     chunks_values = chunks(seriesIds)
     N = 0
     for seriesIds_sub in chunks_values:
         body = { "seriesIds":seriesIds_sub, "deleted": True}
         r = apiManager.put("/path/" + pathId + "/vector/layer/" + layerId  + '/feature/' + featureId + '/series/element/deleted', body, token)
-        
-        loadingBar(N*3000 + len(seriesIds_sub), len(seriesIds))
+        if showProgress:
+            loadingBar(N*3000 + len(seriesIds_sub), len(seriesIds))
         N = N+1
     return r
 
-def recover(pathId, layerId, featureId, seriesIds, token):
+def recover(pathId, layerId, featureId, seriesIds, token, showProgress = True):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     layerId = sanitize.validUuid('layerId', layerId, True) 
     featureId = sanitize.validUuid('featureId', featureId, True) 
     token = sanitize.validString('token', token, True)
     seriesIds = sanitize.validUuidArray('seriesIds', seriesIds, True)
+    showProgress = sanitize.validBool('showProgress', showProgress, True)
 
     chunks_values = chunks(seriesIds)
     N = 0
@@ -123,8 +126,8 @@ def recover(pathId, layerId, featureId, seriesIds, token):
     for seriesIds_sub in chunks_values:
         body = { "seriesIds":seriesIds_sub, "deleted": False}
         r = apiManager.put("/path/" + pathId + "/vector/layer/" + layerId  + '/feature/' + featureId + '/series/element/deleted', body, token)
-        
-        loadingBar(N*3000 + len(seriesIds_sub), len(seriesIds))
+        if showProgress:           
+            loadingBar(N*3000 + len(seriesIds_sub), len(seriesIds))
         N = N+1
     return r
 

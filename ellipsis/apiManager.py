@@ -62,9 +62,6 @@ def delete(url, body, token = None):
 
 def call(method, url, body = None, token = None, crash = True):
     body = filterNone(body)
-    print('#####################')
-    print(body)
-    print(url)
     if type(body) != type(None) and type(body) != type({}):
         raise ValueError(
             'body of an API call must be of type dict or noneType')
@@ -75,7 +72,8 @@ def call(method, url, body = None, token = None, crash = True):
     if token == None:
         r = method(baseUrl + url, json=body)
     else:
-        token = 'Bearer ' + token
+        if not 'Bearer' in token:
+            token = 'Bearer ' + token
         r = method(baseUrl + url , json = body, headers = {"Authorization":token})    
 
     if crash:
