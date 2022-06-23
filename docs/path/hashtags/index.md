@@ -6,7 +6,7 @@
 
 Adds a hashtag to a map.
 
-### Mandatory parameters
+**Mandatory arguments**
 
 - pathId (uuid), the id of the map to add the hashtag to
 - hashtag (string), the hashtag to add
@@ -18,7 +18,7 @@ Adds a hashtag to a map.
 
 Removes a hashtag to a map.
 
-### Mandatory parameters
+**Mandatory arguments**
 
 - pathId (uuid), the id of the map from which to remove the hashtag
 - hashtag (string), the hashtag to remove
@@ -30,6 +30,6 @@ Removes a hashtag to a map.
 
 Retrieves all existing hashtags that contain a given string.
 
-### Mandatory parameters
+**Mandatory arguments**
 
 - hashtag (string), the string to search for
