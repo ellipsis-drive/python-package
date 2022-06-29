@@ -1,4 +1,4 @@
-# members
+# member
 
 ## get
 
@@ -11,7 +11,8 @@ Retrieves the users a path has been shared with.
 - pathId (uuid), the id of the block or folder
 
 **Optional arguments**
-- memberType (array of strings),  can contain "interited" and "direct"  
+
+- memberType (array of strings), can contain "interited" and "direct"
 - token (uuid), your token
 
 ## delete
@@ -23,7 +24,7 @@ Removes a member from a path
 **Mandatory arguments**
 
 - pathId (uuid), the id of the block or folder
-- userId (uuid),  the id of the user to delete  
+- userId (uuid), the id of the user to delete
 - token (uuid), your token
 
 ## edit
