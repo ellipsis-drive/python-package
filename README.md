@@ -6,7 +6,7 @@ You can install this package using
 
 `pip install ellipsis`
 
-For documentation see https://app.ellipsis-drive.com/developer/python/documentation.
+For documentation see https://ellipsis-package.readthedocs.io
 
 This package is meant to ease the use of the Ellipsis Drive API in your Python projects.
 
@@ -20,7 +20,7 @@ Below are some code examples.
     token = el.account.logIn("username", "password")
 
     # retrieve all maps in "My Drive"
-    maps = el.account.listRootMaps("myMaps",
+    maps = el.account.listRootMaps("myDrive",
     token=token)
 
 Another example
@@ -32,8 +32,5 @@ Another example
     token = el.account.logIn("username", "password")
 
     info = el.path.get(folderId, token)
-
-    folderId = info['id']
-
     maps = el.path.listMaps(folderId, token = token, listAll = True)
     folders = el.path.listFolders(folderId, token = token, listAll = True)

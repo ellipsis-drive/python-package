@@ -281,10 +281,10 @@ def validIntArray(name, value, required):
     except:
         raise ValueError(name + ' must be an iterable')
 
-    types = np.array([not 'int' in str(type(x)) for x in value])
+    types = np.array([not 'int' in str(type(x)).lower() for x in value])
 
     if np.sum(types) > 0:
-        raise ValueError(name + ' must be a list of strings')
+        raise ValueError(name + ' must be a list of integers')
 
     value = [int(x) for x in value]
 

@@ -51,7 +51,7 @@ def getDownsampledRaster(pathId, timestampId, extent, width, height, layer = Non
 
 
 
-def getRaster(pathId, timestampId, extent, layer = None, threads = 1, token = None):
+def getRaster(pathId, timestampId, extent, layer = None, threads = 1, token = None, showProgress = True):
     bounds = extent
     threads = sanitize.validInt('threads', threads, True)
     token = sanitize.validString('token', token, False)
@@ -59,6 +59,7 @@ def getRaster(pathId, timestampId, extent, layer = None, threads = 1, token = No
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     bounds = sanitize.validBounds('bounds', bounds, True)
     layer = sanitize.validObject('layer', layer, False)
+    showProgress = sanitize.validBool('showProgress', showProgress, True)
 
         
     xMin = bounds['xMin']
@@ -122,7 +123,6 @@ def getRaster(pathId, timestampId, extent, layer = None, threads = 1, token = No
                 if r.status_code != 200:
                         r = np.zeros((num_bands,256,256))
                 else:
-                    print('tile found')
                     if type(layer) == type(None):
                         r = tifffile.imread(BytesIO(r.content))
                     else:
@@ -131,7 +131,8 @@ def getRaster(pathId, timestampId, extent, layer = None, threads = 1, token = No
 
                 r = r.astype(dtype)
                 r_total[:,y_index*256:(y_index+1)*256,x_index*256:(x_index+1)*256] = r
-                loadingBar(N, len(tiles))
+                if showProgress:
+                    loadingBar(N, len(tiles))
                 N = N + 1
             
 
