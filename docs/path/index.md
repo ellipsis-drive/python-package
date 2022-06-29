@@ -6,7 +6,7 @@ maxdepth: 5
 ---
 invites/index
 hashtags/index
-members/index
+member/index
 raster/index
 vector/index
 ```
