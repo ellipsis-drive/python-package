@@ -54,7 +54,7 @@ vector/index
 - bounds (bounds object)
 - hasVectorLayers (boolean)
 - layerNAme (string)
-- fuzzySearchOnLayerName (bool)
+- fuzzySearchOnLayerName (boolean)
 
 ## searchFolder
 
