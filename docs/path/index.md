@@ -101,7 +101,7 @@ vector/index
 **Optional arguments**
 
 - geoFence (object)
-- accessLevel (int)
+- accessLevel (integer)
 - processingUnits (integer)
 - hidden (boolean)
 

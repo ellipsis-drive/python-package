@@ -13,7 +13,7 @@ Login to your account.
 
 **Optional arguments**
 
-- validFor (int), number of seconds the token should be valid for.
+- validFor (integer), number of seconds the token should be valid for.
 
 Returns a token.
 
