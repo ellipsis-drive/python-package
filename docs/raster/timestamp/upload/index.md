@@ -4,6 +4,8 @@
 
     ellipsis.path.raster.timestamp.upload.upload()
 
+Upload a raster file.
+
 **Mandatory arguments**
 
 - token (string)
@@ -21,6 +23,8 @@
 
     ellipsis.path.raster.timestamp.upload.get()
 
+Get all uploads for a given timestamp.
+
 **Mandatory arguments**
 
 - token (string)
@@ -35,6 +39,8 @@
 ## delete
 
     ellipsis.path.raster.timestamp.upload.delete()
+
+Delete a given upload.
 
 **Mandatory arguments**
 

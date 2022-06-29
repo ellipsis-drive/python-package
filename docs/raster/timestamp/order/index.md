@@ -4,6 +4,8 @@
 
     ellipsis.path.raster.timestamp.order.order()
 
+Order a download.
+
 **Mandatory arguments**
 
 - token (string)
@@ -19,6 +21,8 @@
 
     ellipsis.path.raster.timestamp.order.get()
 
+Retrieve information on all your vector downloads.
+
 **Mandatory arguments**
 
 - token (string)
@@ -26,6 +30,8 @@
 ## download
 
     ellipsis.path.raster.timestamp.order.download()
+
+Download the ordered file.
 
 **Mandatory arguments**
 
