@@ -3,6 +3,7 @@ from ellipsis import sanitize
 from ellipsis import apiManager
 
 def get(token):
+    token = sanitize.validString('token', token, True)
     r = apiManager.get('/path/raster/timestamp/order', None, token)
     return r
 
