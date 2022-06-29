@@ -16,7 +16,7 @@ Adds a hashtag to a map.
 
     ellipsis.path.hashtags.delete()
 
-Removes a hashtag to a map.
+Removes a hashtag from a map.
 
 **Mandatory arguments**
 
