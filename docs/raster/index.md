@@ -12,6 +12,8 @@ timestamp/index
 
     ellipsis.raster.editBand()
 
+Change the name of a band.
+
 **Mandatory arguments**
 
 - token (string)
@@ -22,6 +24,8 @@ timestamp/index
 ## editMap
 
     ellipsis.raster.editMap()
+
+Edit raster map attributes.
 
 **Mandatory arguments**
 
