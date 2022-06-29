@@ -7,8 +7,6 @@ maxdepth: 5
 invites/index
 hashtags/index
 member/index
-raster/index
-vector/index
 ```
 
 ## searchRaster
