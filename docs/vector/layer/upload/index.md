@@ -13,7 +13,7 @@
 
 **Optional arguments**
 
-- epsg (int)
+- epsg (integer)
 - fileFormat (string)
 - dateColumns (array of strings)
 - datePatterns (array of strings)

@@ -6,14 +6,14 @@ maxdepth: 5
 ---
 invites/index
 hashtags/index
-members/index
-raster/index
-vector/index
+member/index
 ```
 
 ## searchRaster
 
     ellipsis.path.searchRaster()
+
+Search for rasters matching specified search criteria.
 
 **Optional arguments**
 
@@ -39,6 +39,8 @@ vector/index
 
     ellipsis.path.searchVector()
 
+Search for vectors matching specified search criteria.
+
 **Optional arguments**
 
 - token (string)
@@ -54,11 +56,13 @@ vector/index
 - bounds (bounds object)
 - hasVectorLayers (boolean)
 - layerNAme (string)
-- fuzzySearchOnLayerName (bool)
+- fuzzySearchOnLayerName (boolean)
 
 ## searchFolder
 
     ellipsis.path.searchFolder()
+
+Search for folders matching specified search criteria.
 
 **Optional arguments**
 
@@ -74,15 +78,18 @@ vector/index
 
     ellipsis.path.favorite()
 
+Add path to favorites.
+
 **Mandatory arguments**
 
 - pathId (uuid)
 - token (string)
--
 
 ## unfavorite
 
     ellipsis.path.unfavorite()
+
+Remove path from favorites.
 
 **Mandatory arguments**
 
@@ -93,6 +100,8 @@ vector/index
 
     ellipsis.path.editPublicAccess()
 
+Update the public access of a path.
+
 **Mandatory arguments**
 
 - pathId (uuid)
@@ -101,13 +110,15 @@ vector/index
 **Optional arguments**
 
 - geoFence (object)
-- accessLevel (int)
+- accessLevel (integer)
 - processingUnits (integer)
 - hidden (boolean)
 
 ## listMaps
 
     ellipsis.path.listMaps()
+
+List all maps in a pathId.
 
 **Mandatory arguments**
 
@@ -123,6 +134,8 @@ vector/index
 
     ellipsis.path.listFolders()
 
+List all folders in a pathId.
+
 **Mandatory arguments**
 
 - pathId (uuid)
@@ -136,6 +149,8 @@ vector/index
 ## editMetadata
 
     ellipsis.path.editMetadata()
+
+Update the metadata of a path.
 
 **Mandatory arguments**
 
@@ -152,6 +167,8 @@ vector/index
 
     ellipsis.path.get()
 
+Retrieves a path.
+
 **Mandatory arguments**
 
 - pathId (uuid)
@@ -163,6 +180,8 @@ vector/index
 ## move
 
     ellipsis.path.move()
+
+Moves paths to a different folder.
 
 **Mandatory arguments**
 
@@ -177,6 +196,8 @@ vector/index
 
     ellipsis.path.rename()
 
+Rename a path.
+
 **Mandatory arguments**
 
 - pathId (uuid)
@@ -190,6 +211,8 @@ vector/index
 
     ellipsis.path.trash()
 
+Place path in trash.
+
 **Mandatory arguments**
 
 - pathId (uuid)
@@ -202,22 +225,25 @@ vector/index
 
     ellipsis.path.add()
 
+Create a new folder or map.
+
 **Mandatory arguments**
 
-- pathType (string)
+- pathType (string), should be 'folder', 'raster' or 'vector'
 - name (string)
 - token (string)
 
 **Optional arguments**
 
 - parentId (uuid)
-- metadata (object)
+- metadata (object), object with properties, attribution and description
 - publicAccess (object)
--
 
 ## delete
 
     ellipsis.path.delete()
+
+Delete a path.
 
 **Mandatory arguments**
 
@@ -231,6 +257,8 @@ vector/index
 ## recover
 
     ellipsis.path.recover()
+
+Recover a path.
 
 **Mandatory arguments**
 

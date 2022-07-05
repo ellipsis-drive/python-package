@@ -4,6 +4,8 @@
 
     ellipsis.path.invite.send()
 
+Invite someone to a path. They will need to accept before they are actually added.
+
 **Mandatory arguments**
 
 - pathId (uuid), the id of the block or folder to share
@@ -19,6 +21,8 @@
 
     ellipsis.path.invite.revoke()
 
+Revoke a sent invitation.
+
 **Mandatory arguments**
 
 - pathId (uuid), the id of the map or folder
@@ -28,6 +32,8 @@
 ## accept
 
     ellipsis.path.invite.accept()
+
+Accept an invite to a map or folder.
 
 **Mandatory arguments**
 
@@ -39,6 +45,8 @@
 
     ellipsis.path.invite.decline()
 
+Decline an invite to a map or folder.
+
 **Mandatory arguments**
 
 - pathId (uuid), the id of the map or folder to share
@@ -49,6 +57,8 @@
 
     ellipsis.path.invite.getYourInvites()
 
+Retrieve pending invites.
+
 **Mandatory arguments**
 
 - token (string), your token
@@ -56,6 +66,8 @@
 ## getPathInvites
 
     ellipsis.path.invite.getPathInvites()
+
+Retrieve pending invites to a map.
 
 **Mandatory arguments**
 

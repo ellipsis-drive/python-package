@@ -5,11 +5,14 @@
 maxdepth: 2
 ---
 layer/index
+timestamp/index
 ```
 
 ## editBand
 
     ellipsis.raster.editBand()
+
+Change the name of a band.
 
 **Mandatory arguments**
 
@@ -21,6 +24,8 @@ layer/index
 ## editMap
 
     ellipsis.raster.editMap()
+
+Edit raster map attributes.
 
 **Mandatory arguments**
 
