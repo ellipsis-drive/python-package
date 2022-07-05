@@ -111,7 +111,7 @@ def validNumpyArray(name, value, required):
         return
 
     if type(value) != type(np.zeros((2,2) )):
-        raise ValueError(name + 'must be a geopandas dataframe')
+        raise ValueError(name + 'must be a numpy array')
 
     return value
 
@@ -128,11 +128,22 @@ def validList(name, value, required):
     return value
 
 
-def validGeopandas(name, value, required):
+def validGeoSeries(name, value, required):
+    if not required and type(value) == type(None):
+        return
+    try:
+        value = gpd.GeoDataFrame({'geometry':value})
+    except:
+        raise ValueError(name + ' must be a valid geoseries')
+    value = validGeopandas(name, value, True, True)
+    return value['geometry']
+
+
+def validGeopandas(name, value, required, custom = False):
     if not required and type(value) == type(None):
         return
 
-    if type(value) != type(gpd.GeoDataFrame()):
+    if not custom and type(value) != type(gpd.GeoDataFrame()):
         raise ValueError(name + 'must be a geopandas dataframe')
 
     value = value.copy()        

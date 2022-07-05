@@ -1,6 +1,9 @@
+#python3 setup.py sdist bdist_wheel
+#twine upload --repository pypi dist/*
+
 from ellipsis import account
 from ellipsis import user
 from ellipsis import path
 from ellipsis import util
 
-__version__ = '2.0.0'
+__version__ = '2.0.2'
