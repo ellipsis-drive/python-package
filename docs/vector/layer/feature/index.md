@@ -24,6 +24,11 @@ Add a feature.
 **Optional arguments**
 
 - zoomlevels (array of integers)
+- levelOfDetail1 (Geoseries or array of shapely geometries)
+- levelOfDetail2 (Geoseries or array of shapely geometries)
+- levelOfDetail3 (Geoseries or array of shapely geometries)
+- levelOfDetail4 (Geoseries or array of shapely geometries)
+- levelOfDetail5 (Geoseries or array of shapely geometries)
 
 ## edit
 
@@ -40,8 +45,13 @@ Edit a feature.
 
 **Optional arguments**
 
-- zoomlevels (array of integers)
 - features (geopandas dataframe)
+- zoomlevels (array of integers)
+- levelOfDetail1 (Geoseries or array of shapely geometries)
+- levelOfDetail2 (Geoseries or array of shapely geometries)
+- levelOfDetail3 (Geoseries or array of shapely geometries)
+- levelOfDetail4 (Geoseries or array of shapely geometries)
+- levelOfDetail5 (Geoseries or array of shapely geometries)
 
 ## delete
 
