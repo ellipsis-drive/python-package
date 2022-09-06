@@ -8,6 +8,16 @@ import pandas as pd
 #python3 setup.py sdist bdist_wheel
 #twine upload --repository pypi dist/*
 
+
+
+
+token = el.account.logIn(username = 'admin', password='6MigXH019pI0LxSvwpox')
+
+
+el.account.personalAccessToken.create(description = 'hoi', accessList = [{'pathId': 'd448bdb5-783a-4919-98bb-caf8092904aa' , 'access':{'accessLevel':100}}], token = token)
+el.account.personalAccessToken.get(token, listAll = True)
+el.account.personalAccessToken.revoke(accessTokenId = '6b737dd7-c0e3-4532-b5d5-076574dd3aea', token = token)
+
 folderId = '46e1e919-8b73-42a3-a575-25c6d45fd93b'
 
 ##account

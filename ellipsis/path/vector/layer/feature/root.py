@@ -134,12 +134,9 @@ def add(pathId, layerId, features, token, showProgress = True, zoomLevels = None
         if type(levels) != type(None):
             featuresBody = [{'feature': features_sub[i], 'zoomLevels':zoomLevels, 'levelsOfDetail': levels[i] } for i in np.arange(len(indices_sub))]
         else:
-            featuresBody = [{'feature': features_sub[i], 'zoomLevels':zoomLevels}]
+            featuresBody = [{'feature': features_sub[i], 'zoomLevels':zoomLevels } for i in np.arange(len(indices_sub))]
         body = {"features":featuresBody}
-            
-            
         r = apiManager.post('/path/' + pathId + '/vector/layer/' + layerId + '/feature', body, token)
-
         addedIds = addedIds + r
         if showProgress:
             loadingBar(i*3000 + len(indices_sub),features.shape[0])

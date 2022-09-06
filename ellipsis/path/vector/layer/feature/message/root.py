@@ -13,12 +13,13 @@ def get(pathId, layerId, featureIds = None, userId = None, messageIds = None, li
     token = sanitize.validString('token', token, False)
     userId = sanitize.validUuid('userId', userId, False)
     messageIds = sanitize.validUuidArray('messageIds', messageIds, False)
+    featureIds = sanitize.validUuidArray('featureIds', featureIds, False)
     listAll = sanitize.validBool('listAll', listAll, True)
     deleted = sanitize.validBool('deleted', deleted, True)
     bounds = sanitize.validBounds('bounds', bounds, False)
     pageStart = sanitize.validUuid('pageStart', pageStart, False)
 
-    body = {'userId': userId, 'messageIds':messageIds, 'deleted':deleted, 'bounds':bounds, 'pageStart':pageStart}
+    body = {'userId': userId, 'messageIds':messageIds, 'deleted':deleted, 'bounds':bounds, 'featureIds':featureIds, 'pageStart':pageStart}
     
     def f(body):
         r = apiManager.get('/path/' + pathId + '/vector/layer/' + layerId +  '/feature/message', body, token )
