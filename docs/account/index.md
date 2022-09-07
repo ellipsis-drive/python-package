@@ -1,5 +1,12 @@
 # Account
 
+```{toctree}
+---
+maxdepth: 5
+---
+personalAccessToken/index
+```
+
 ## logIn
 
     ellipsis.account.logIn()
