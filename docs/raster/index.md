@@ -4,7 +4,7 @@
 ---
 maxdepth: 2
 ---
-layer/index
+style/index
 timestamp/index
 ```
 

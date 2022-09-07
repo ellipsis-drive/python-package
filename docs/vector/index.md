@@ -4,5 +4,6 @@
 ---
 maxdepth: 3
 ---
-layer/index
+timestamp/index
+style/index
 ```

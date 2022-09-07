@@ -11,7 +11,7 @@ import pandas as pd
 
 
 
-token = el.account.logIn(username = 'admin', password='6MigXH019pI0LxSvwpox')
+token = el.account.logIn(username = '', password='')
 
 
 el.account.personalAccessToken.create(description = 'hoi', accessList = [{'pathId': 'd448bdb5-783a-4919-98bb-caf8092904aa' , 'access':{'accessLevel':100}}], token = token)

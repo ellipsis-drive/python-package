@@ -4,7 +4,7 @@ import urllib
 import os
 from requests_toolbelt import MultipartEncoder
 
-baseUrl = 'https://api.ellipsis-drive.com/v2'
+baseUrl = 'https://dev.api.ellipsis-drive.com/v3'
 s = requests.Session()
 
 
