@@ -199,7 +199,7 @@ def edit(pathId, timestampId, featureIds, token, features = None, showProgress =
     return r
 
 
-def delete(pathId, timestampId, featureIds, token, showProgress = True):
+def trash(pathId, timestampId, featureIds, token, showProgress = True):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, True)
@@ -212,8 +212,8 @@ def delete(pathId, timestampId, featureIds, token, showProgress = True):
         indices_sub = indices[i]
         featureIds_sub = list(np.array(featureIds)[indices_sub])
 
-        body = {'featureIds': featureIds_sub, 'deleted': True}
-        r = apiManager.put('/path/' + pathId + '/vector/timestamp/' + timestampId + '/feature/deleted', body, token)
+        body = {'featureIds': featureIds_sub, 'trashed': True}
+        r = apiManager.put('/path/' + pathId + '/vector/timestamp/' + timestampId + '/feature/trashed', body, token)
 
         if len(indices) > 1 and showProgress:
             loadingBar(i*1000 + len(indices_sub),len(featureIds))
@@ -234,8 +234,8 @@ def recover(pathId, timestampId, featureIds, token, showProgress = True):
         indices_sub = indices[i]
         featureIds_sub = list(np.array(featureIds)[indices_sub])
 
-        body = {'featureIds': featureIds_sub, 'deleted': False}
-        r = apiManager.put('/path/' + pathId + '/vector/timestamp/' + timestampId + '/feature/deleted', body, token)
+        body = {'featureIds': featureIds_sub, 'trashed': False}
+        r = apiManager.put('/path/' + pathId + '/vector/timestamp/' + timestampId + '/feature/trashed', body, token)
 
         if len(indices) > 1 and showProgress:
             loadingBar(i*1000 + len(indices_sub),len(featureIds))

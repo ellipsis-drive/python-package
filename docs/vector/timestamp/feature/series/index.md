@@ -16,7 +16,7 @@
 - dateTo (date object)
 - userId (uuid)
 - seriesProperty (string)
-- deleted (boolean)
+- trashed (boolean)
 - listAll (boolean)
 - token (string)
 
@@ -46,9 +46,9 @@
 - seriesData (pandas dataframe)
 - token (uuid)
 
-## delete
+## trash
 
-    ellipsis.path.vector.timestamp.feature.series.delete()
+    ellipsis.path.vector.timestamp.feature.series.trash()
 
 **Mandatory arguments**
 

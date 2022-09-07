@@ -70,13 +70,13 @@ def add(pathId, timestampId, featureId, token, text = None, image=None):
     return r
 
 
-def delete(pathId, timestampId, messageId, token):
+def trash(pathId, timestampId, messageId, token):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     messageId = sanitize.validUuid('messageId', messageId, True) 
     token = sanitize.validString('token', token, True)
-    body = {'deleted': True}
-    r = apiManager.put('/path/' + pathId + '/vector/timestamp/' + timestampId + '/feature/message/' + messageId + '/deleted', body, token)
+    body = {'trashed': True}
+    r = apiManager.put('/path/' + pathId + '/vector/timestamp/' + timestampId + '/feature/message/' + messageId + '/trashed', body, token)
     return r
 
 
@@ -85,8 +85,8 @@ def recover(pathId, timestampId, messageId, token):
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     messageId = sanitize.validUuid('messageId', messageId, True) 
     token = sanitize.validString('token', token, True)
-    body = {'deleted': False}
-    r = apiManager.put('/path/' + pathId + '/vector/timestamp/' + timestampId + '/feature/message/' + messageId + '/deleted', body, token)
+    body = {'trashed': False}
+    r = apiManager.put('/path/' + pathId + '/vector/timestamp/' + timestampId + '/feature/message/' + messageId + '/trashed', body, token)
     return r
 
 

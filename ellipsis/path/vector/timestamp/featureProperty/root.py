@@ -34,14 +34,14 @@ def edit(pathId, timestampId, featurePropertyId, token, private=False, required 
     return r
 
 
-def delete(pathId, timestampId, featurePropertyId, token):
+def trash(pathId, timestampId, featurePropertyId, token):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     featurePropertyId = sanitize.validUuid('featurePropertyId', featurePropertyId, True) 
     token = sanitize.validString('token', token, True)
 
-    body = {'deleted': True}
-    r = apiManager.put('/path/' + pathId + '/vector/timestamp/' + timestampId + '/property/' + featurePropertyId + '/deleted', body, token)
+    body = {'trashed': True}
+    r = apiManager.put('/path/' + pathId + '/vector/timestamp/' + timestampId + '/property/' + featurePropertyId + '/trashed', body, token)
     return r
 
 
@@ -51,8 +51,8 @@ def recover(pathId, timestampId, featurePropertyId, token):
     featurePropertyId = sanitize.validUuid('featurePropertyId', featurePropertyId, True) 
     token = sanitize.validString('token', token, True)
 
-    body = {'deleted': False}
-    r = apiManager.put('/path/' + pathId + '/vector/timestamp/' + timestampId + '/property/' + featurePropertyId + '/deleted', body, token)
+    body = {'trashed': False}
+    r = apiManager.put('/path/' + pathId + '/vector/timestamp/' + timestampId + '/property/' + featurePropertyId + '/trashed', body, token)
     return r
 
 

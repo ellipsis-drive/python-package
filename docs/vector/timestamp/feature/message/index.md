@@ -55,9 +55,9 @@ Add message to a feature.
 - text (string)
 - image (image)
 
-## delete
+## trash
 
-    ellipsis.path.vector.timestamp.feature.message.delete()
+    ellipsis.path.vector.timestamp.feature.message.trash()
 
 Delete a message.
 

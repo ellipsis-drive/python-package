@@ -33,9 +33,9 @@
 - private (boolean), default False
 - required (boolean), default False
 
-## delete
+## trash
 
-    ellipsis.path.vector.timestamp.featureProperty.delete()
+    ellipsis.path.vector.timestamp.featureProperty.trash()
 
 **Mandatory arguments**
 

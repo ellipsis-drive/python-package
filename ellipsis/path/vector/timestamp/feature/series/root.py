@@ -94,7 +94,7 @@ def add(pathId, timestampId, featureId, seriesData, token, showProgress = True):
 
 
 
-def delete(pathId, timestampId, featureId, seriesIds, token, showProgress = True):
+def trash(pathId, timestampId, featureId, seriesIds, token, showProgress = True):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     featureId = sanitize.validUuid('featureId', featureId, True) 
@@ -105,8 +105,8 @@ def delete(pathId, timestampId, featureId, seriesIds, token, showProgress = True
     chunks_values = chunks(seriesIds)
     N = 0
     for seriesIds_sub in chunks_values:
-        body = { "seriesIds":seriesIds_sub, "deleted": True}
-        r = apiManager.put("/path/" + pathId + "/vector/timestamp/" + timestampId  + '/feature/' + featureId + '/series/element/deleted', body, token)
+        body = { "seriesIds":seriesIds_sub, "trashed": True}
+        r = apiManager.put("/path/" + pathId + "/vector/timestamp/" + timestampId  + '/feature/' + featureId + '/series/element/trashed', body, token)
         if showProgress:
             loadingBar(N*3000 + len(seriesIds_sub), len(seriesIds))
         N = N+1
@@ -124,8 +124,8 @@ def recover(pathId, timestampId, featureId, seriesIds, token, showProgress = Tru
     N = 0
 
     for seriesIds_sub in chunks_values:
-        body = { "seriesIds":seriesIds_sub, "deleted": False}
-        r = apiManager.put("/path/" + pathId + "/vector/timestamp/" + timestampId  + '/feature/' + featureId + '/series/element/deleted', body, token)
+        body = { "seriesIds":seriesIds_sub, "trashed": False}
+        r = apiManager.put("/path/" + pathId + "/vector/timestamp/" + timestampId  + '/feature/' + featureId + '/series/element/trashed', body, token)
         if showProgress:           
             loadingBar(N*3000 + len(seriesIds_sub), len(seriesIds))
         N = N+1

@@ -6,4 +6,5 @@ maxdepth: 3
 ---
 timestamp/index
 style/index
+featureProperty/index
 ```

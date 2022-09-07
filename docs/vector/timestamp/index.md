@@ -5,7 +5,6 @@
 maxdepth: 3
 ---
 feature/index
-featureProperty/index
 order/index
 style/index
 upload/index

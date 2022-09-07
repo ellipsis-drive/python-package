@@ -53,9 +53,9 @@ Edit a feature.
 - levelOfDetail4 (Geoseries or array of shapely geometries)
 - levelOfDetail5 (Geoseries or array of shapely geometries)
 
-## delete
+## trash
 
-    ellipsis.path.vector.timestamp.feature.delete()
+    ellipsis.path.vector.timestamp.feature.trash()
 
 Delete a feature.
 
