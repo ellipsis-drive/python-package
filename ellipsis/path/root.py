@@ -162,17 +162,18 @@ def listFolders(pathId, pageStart=None, listAll = True, token=None):
     r = recurse(f, body, listAll)
     return r
 
-def editMetadata(pathId, token, description=None, attribution=None, properties=None):
+def editMetadata(pathId, token, description=None, attribution=None, licenseString =None, properties=None):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, True)
     attribution = sanitize.validString('attribution', attribution, False)
     description = sanitize.validString('description', description, False)
     properties = sanitize.validObject('properties', properties, False)
-
+    licenseString = sanitize.validString('licenseString', licenseString, False)
     return apiManager.patch(f'/path/{pathId}/metadata', {
         'description': description,
         'attribution': attribution,
-        'properties': properties
+        'properties': properties,
+        'license': licenseString
     }, token)
 
 

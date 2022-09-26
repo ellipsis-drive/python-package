@@ -227,6 +227,14 @@ def activate(pathId, timestampId, token):
     r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/activate'  , None, token)
     return r
 
+def pause(pathId, timestampId, token):
+    token = sanitize.validString('token', token, True)
+    pathId = sanitize.validUuid('pathId', pathId, True)  
+    timestampId = sanitize.validUuid('timestampId', timestampId, True)  
+    r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/pause'  , None, token)
+    return r
+
+
 def delete(pathId, timestampId, token):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)  

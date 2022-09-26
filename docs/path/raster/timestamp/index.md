@@ -68,6 +68,18 @@ Activate a timestamp.
 - pathId (uuid)
 - timestampId (uuid)
 
+## pause
+
+    ellipsis.path.raster.timestamp.pause()
+
+Pause a timestamp.
+
+**Mandatory arguments**
+
+- token (string)
+- pathId (uuid)
+- timestampId (uuid)
+
 ## getBounds
 
     ellipsis.path.raster.timestamp.getBounds()

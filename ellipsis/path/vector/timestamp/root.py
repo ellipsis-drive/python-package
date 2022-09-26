@@ -54,6 +54,20 @@ def delete(pathId, timestampId, token):
     r = apiManager.delete('/path/' + pathId + '/vector/timestamp/' + timestampId , None, token)
     return r
     
+
+def activate(pathId, timestampId, token):
+    token = sanitize.validString('token', token, True)
+    pathId = sanitize.validUuid('pathId', pathId, True)  
+    timestampId = sanitize.validUuid('timestampId', timestampId, True)  
+    r = apiManager.post('/path/' + pathId + '/vector/timestamp/' + timestampId + '/activate'  , None, token)
+    return r
+
+def pause(pathId, timestampId, token):
+    token = sanitize.validString('token', token, True)
+    pathId = sanitize.validUuid('pathId', pathId, True)  
+    timestampId = sanitize.validUuid('timestampId', timestampId, True)  
+    r = apiManager.post('/path/' + pathId + '/vector/timestamp/' + timestampId + '/pause'  , None, token)
+    return r
     
 def getBounds(pathId, timestampId, token = None):
     pathId = sanitize.validUuid('pathId', pathId, True) 

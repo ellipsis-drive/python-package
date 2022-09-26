@@ -4,6 +4,8 @@
 ---
 maxdepth: 5
 ---
+raster/index
+vector/index
 invites/index
 hashtags/index
 member/index

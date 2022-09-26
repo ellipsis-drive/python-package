@@ -164,3 +164,28 @@ Gets the bounds of a vector timestamp.
 - token (uuid), your token
 - pageStart
 - listAll (boolean), whether to list all results (default False)
+
+
+## activate
+
+    ellipsis.path.vector.timestamp.activate()
+
+Activate a timestamp.
+
+**Mandatory arguments**
+
+- token (string)
+- pathId (uuid)
+- timestampId (uuid)
+
+## pause
+
+    ellipsis.path.vector.timestamp.pause()
+
+Pause a timestamp.
+
+**Mandatory arguments**
+
+- token (string)
+- pathId (uuid)
+- timestampId (uuid)

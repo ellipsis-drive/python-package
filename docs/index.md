@@ -1,6 +1,5 @@
 # Welcome to Ellipsis' documentation!
 
-**Please note that we are currently still working on the documentation.**
 
 This is the documentation for the official python package of [Ellipsis Drive](https://ellipsis-drive.com/).
 You can find the source code of the package at <https://github.com/ellipsis-drive/python-package>.
@@ -62,8 +61,6 @@ caption: Contents
 account/index
 user/index
 path/index
-raster/index
-vector/index
 ```
 
 &nbsp;
