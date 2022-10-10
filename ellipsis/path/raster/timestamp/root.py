@@ -15,21 +15,21 @@ from PIL import Image
 import geopandas as gpd
 import datetime
 
-def getDownsampledRaster(pathId, timestampId, extent, width, height, layer = None, token = None):
+def getDownsampledRaster(pathId, timestampId, extent, width, height, style = None, token = None):
     bounds = extent
     token = sanitize.validString('token', token, False)
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     bounds = sanitize.validBounds('bounds', bounds, True)
-    layer = sanitize.validObject('layer', layer, False)
+    style = sanitize.validObject('style', style, False)
 
-    body = {'pathId':pathId, 'timestampId':timestampId, 'bounds':bounds, 'width':width, 'height':height}
-    r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/rasterByBounds', body, token, crash = False)
+    body = {'pathId':pathId, 'timestampId':timestampId, 'extent':bounds, 'width':width, 'height':height}
+    r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/rasterByExtent', body, token, crash = False)
     if r.status_code != 200:
         raise ValueError(r.message)
 
 
-    if type(layer) == type(None):
+    if type(style) == type(None):
         r = tifffile.imread(BytesIO(r.content))
     else:
         r = np.array(Image.open(BytesIO(r.content)))
@@ -51,14 +51,14 @@ def getDownsampledRaster(pathId, timestampId, extent, width, height, layer = Non
 
 
 
-def getRaster(pathId, timestampId, extent, layer = None, threads = 1, token = None, showProgress = True):
+def getRaster(pathId, timestampId, extent, style = None, threads = 1, token = None, showProgress = True):
     bounds = extent
     threads = sanitize.validInt('threads', threads, True)
     token = sanitize.validString('token', token, False)
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     bounds = sanitize.validBounds('bounds', bounds, True)
-    layer = sanitize.validObject('layer', layer, False)
+    style = sanitize.validObject('style', style, False)
     showProgress = sanitize.validBool('showProgress', showProgress, True)
 
         
@@ -71,7 +71,7 @@ def getRaster(pathId, timestampId, extent, layer = None, threads = 1, token = No
 
     info = apiManager.get('/path/' + pathId, None, token)
     bands =  info['raster']['bands']
-    if type(layer) == type(None):
+    if type(style) == type(None):
         num_bands = len(bands)
         dtype = info['raster']['format']
     else:
@@ -85,7 +85,7 @@ def getRaster(pathId, timestampId, extent, layer = None, threads = 1, token = No
     
     zoom = next(item for item in timestamps if item["id"] == timestampId)['zoom']
 
-    body = {'layer':layer}
+    body = {'style':style}
 
     LEN = 2.003751e+07
 
@@ -123,7 +123,7 @@ def getRaster(pathId, timestampId, extent, layer = None, threads = 1, token = No
                 if r.status_code != 200:
                         r = np.zeros((num_bands,256,256))
                 else:
-                    if type(layer) == type(None):
+                    if type(style) == type(None):
                         r = tifffile.imread(BytesIO(r.content))
                     else:
                         r = np.array(Image.open(BytesIO(r.content)))
@@ -158,12 +158,14 @@ def getRaster(pathId, timestampId, extent, layer = None, threads = 1, token = No
     return {'raster': r_total, 'transform':trans, 'extent': {'xMin' : xMinWeb, 'yMin': yMinWeb, 'xMax': xMaxWeb, 'yMax': yMaxWeb}, 'crs':"EPSG:3857"}
 
 
-def getAggregatedData(pathId, timestampIds, geometry, approximate=True, token = None):
+def analyse(pathId, timestampIds, geometry, returnType= 'all', approximate=True, token = None):
     token = sanitize.validString('token', token, False)
     pathId = sanitize.validUuid('pathId', pathId, True)    
     timestampIds = sanitize.validUuidArray('timestampIds', timestampIds, True)    
     approximate = sanitize.validBool(approximate, approximate, True)    
     geometry = sanitize.validShapely('geometry', geometry, True)
+    returnType = sanitize.validString('returnType', returnType, True)
+
     try:
         sh = gpd.GeoDataFrame({'geometry':[geometry]})
         geometry =sh.to_json(na='drop')
@@ -173,39 +175,34 @@ def getAggregatedData(pathId, timestampIds, geometry, approximate=True, token = 
         raise ValueError('geometry must be a shapely geometry')
 
 
-    body = {'timestampIds':timestampIds, 'geometry':geometry, 'approximate':approximate}
+    body = {'timestampIds':timestampIds, 'geometry':geometry, 'approximate':approximate, returnType:returnType}
     r = apiManager.get('/path/' + pathId + '/raster/timestamp/analyse', body, token)
     return r
 
 
-def add(pathId, token, dateFrom = None, dateTo = None, description= None,  appendToTimestampId = None):
+def add(pathId, token, description= None, date ={'from': datetime.datetime.now(), 'to': datetime.datetime.now()}):
     
-    if type(dateFrom) == type(None):
-        dateFrom = datetime.datetime.now()
-    if type(dateTo) == type(None):
-        dateTo = datetime.datetime.now()
-
 
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)  
-    dateFrom = sanitize.validDate('dateFrom', dateFrom, True)    
-    dateTo = sanitize.validDate('dateTo', dateTo, True)    
+    date = sanitize.validDateRange('date', date, True)    
     description = sanitize.validString('description', description, False)    
-    appendToTimestampId = sanitize.validUuid('appendToTimestampId', appendToTimestampId, False)    
 
-    body = {'dateFrom' : dateFrom, 'dateTo':dateTo, 'description': description, 'appendToTimestampId': appendToTimestampId}    
+    body = { 'date': date, 'description': description}    
     r = apiManager.post('/path/' + pathId + '/raster/timestamp'  , body, token)
     return r
     
-def edit(pathId, timestampId, token, dateFrom = None, dateTo = None, description= None):
+def edit(pathId, timestampId, token, date=None, description= None):
+
+    
+    
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)  
     timestampId = sanitize.validUuid('timestampId', timestampId, True)  
-    dateFrom = sanitize.validDate('dateFrom', dateFrom, False)    
-    dateTo = sanitize.validDate('dateTo', dateTo, False)    
     description = sanitize.validString('description', description, False)    
+    date = sanitize.validDateRange('date', date, False)    
 
-    body = {'dateFrom' : dateFrom, 'dateTo':dateTo, 'description': description}    
+    body = {'date':date, 'description': description}    
     r = apiManager.patch('/path/' + pathId + '/raster/timestamp/' + timestampId  , body, token)
     return r
 
@@ -214,8 +211,8 @@ def getBounds(pathId, timestampId, token = None):
     pathId = sanitize.validUuid('pathId', pathId, True)  
     timestampId = sanitize.validUuid('timestampId', timestampId, True)  
     r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/bounds'  , None, token)
-    r['id'] = 0
-    r['properties'] = {}
+    r = {'id': 0, 'properties':{}, 'geometry':r}
+
     r  = gpd.GeoDataFrame.from_features([r])
     r = r.unary_union
     return r
@@ -227,11 +224,11 @@ def activate(pathId, timestampId, token):
     r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/activate'  , None, token)
     return r
 
-def pause(pathId, timestampId, token):
+def deactivate(pathId, timestampId, token):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)  
     timestampId = sanitize.validUuid('timestampId', timestampId, True)  
-    r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/pause'  , None, token)
+    r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/deactivate'  , None, token)
     return r
 
 
@@ -242,6 +239,7 @@ def delete(pathId, timestampId, token):
 
     r = apiManager.delete('/path/' + pathId + '/raster/timestamp/' + timestampId  , None, token)
     return r
+
 
 def trash(pathId, timestampId, token):
     token = sanitize.validString('token', token, True)

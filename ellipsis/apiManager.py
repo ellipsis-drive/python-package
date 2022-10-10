@@ -4,7 +4,7 @@ import urllib
 import os
 from requests_toolbelt import MultipartEncoder
 
-baseUrl = 'https://dev.api.ellipsis-drive.com/v3'
+baseUrl = 'https://api.ellipsis-drive.com/v3'
 s = requests.Session()
 
 
@@ -111,14 +111,16 @@ def upload(url, filePath, body, token):
 
 def download(url, filePath, token):
 
-    if token == None:    
-        r = s.get(baseUrl + url, headers={"Authorization": token})
-    else:
-        r = s.get(baseUrl + url)
+    
+    with requests.get(baseUrl + url, stream=True, headers={"Authorization": token}) as r:
+        r.raise_for_status()
+        with open(filePath, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192): 
+                # If you have chunk encoded response uncomment if
+                # and set chunk_size parameter to None.
+                #if chunk: 
+                f.write(chunk)
 
-    if int(str(r).split('[')[1].split(']')[0]) != 200:
-        raise ValueError(r.text)
 
-    open(filePath , 'wb').write(r.content)    
     
     

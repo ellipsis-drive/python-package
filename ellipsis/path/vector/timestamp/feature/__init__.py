@@ -1,4 +1,4 @@
-from ellipsis.path.vector.timestamp.feature.root import add, delete, recover, edit, versions
+from ellipsis.path.vector.timestamp.feature.root import add, trash, recover, edit, versions
 from ellipsis.path.vector.timestamp.feature import message
-from ellipsis.prath.vector.timestamp.feature import series
+from ellipsis.path.vector.timestamp.feature import series
 

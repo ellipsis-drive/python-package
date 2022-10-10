@@ -9,7 +9,7 @@ def create(description, accessList, token, validFor= None):
 
 
 
-    return apiManager.post('/account/security/personalAccessToken', {
+    return apiManager.post('/account/security/accessToken', {
         'description': description,
         'validFor': validFor,
         'accessList': accessList,
@@ -21,7 +21,7 @@ def revoke(accessTokenId, token):
     accessTokenId = sanitize.validUuid('accessTokenId', accessTokenId, True)
     token = sanitize.validString('token', token, True)
 
-    return apiManager.delete(f'/account/security/personalAccessToken/{accessTokenId}', None, token)
+    return apiManager.delete(f'/account/security/accessToken/{accessTokenId}', None, token)
 
 
 def get(token, pageStart = None, listAll = False):
@@ -32,7 +32,7 @@ def get(token, pageStart = None, listAll = False):
     body = {'pageStart':pageStart}
 
     def f(body):
-        return apiManager.get('/account/security/personalAccessToken', body, token)
+        return apiManager.get('/account/security/accessToken', body, token)
     
     r = recurse(f, body, listAll)
     return r

@@ -15,6 +15,20 @@ def validUuid(name, value, required):
         raise ValueError(name + ' must be of type string and be a uuid')
     return(value)
 
+def validDateRange(name, value, required):
+
+    if not required and type(value) == type(None):
+        return
+    
+    
+    if  ( type(value) != type({}) or 'from' not in value.keys() or 'to' not in value.keys()): 
+        raise ValueError('date must be a dictionary with properties from and to that should be of type datetime')
+
+    dateFrom = value['from']
+    dateTo = value['to']
+    dateFrom = validDate('dateFrom', dateFrom, False)    
+    dateTo = validDate('dateTo', dateTo, False)    
+    return {'from':dateFrom, 'to':dateTo}
 
 def validUuidArray(name, value, required):
     if not required and type(value) == type(None):

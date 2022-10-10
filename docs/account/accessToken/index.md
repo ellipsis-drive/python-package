@@ -2,7 +2,7 @@
 
 ## create
 
-    ellipsis.account.personalAccessToken.create()
+    ellipsis.account.accessToken.create()
 
 Create an access token.
 
@@ -19,7 +19,7 @@ Create an access token.
 
 ## revoke
 
-    ellipsis.account.personalAccessToken.revoke()
+    ellipsis.account.accessToken.revoke()
 
 Revoke a personal access token.
 
@@ -30,7 +30,7 @@ Revoke a personal access token.
 
 ## get
 
-    ellipsis.account.personalAccessToken.get()
+    ellipsis.account.accessToken.get()
 
 Retrieve all current tokens.
 

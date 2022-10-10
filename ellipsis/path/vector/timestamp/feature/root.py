@@ -77,13 +77,13 @@ def zipLevels(levelOfDetail1, levelOfDetail2, levelOfDetail3, levelOfDetail4, le
     return levels
     
 def add(pathId, timestampId, features, token, showProgress = True, zoomLevels = None, levelOfDetail1 = None, levelOfDetail2 = None, levelOfDetail3 = None, levelOfDetail4 = None, levelOfDetail5 = None):
-    pathId = sanitize.validUuid('pathId', pathId, True) 
-    timestampId = sanitize.validUuid('timestampId', timestampId, True) 
+    pathId = sanitize.validUuid('pathId', pathId, True)
+    timestampId = sanitize.validUuid('timestampId', timestampId, True)
     token = sanitize.validString('token', token, True)
     features = sanitize.validGeopandas('features', features, True)
     zoomLevels = sanitize.validIntArray('zoomLevels', zoomLevels, False)
     showProgress = sanitize.validBool('showProgress', showProgress, True)
-
+    
     levelOfDetail1, levelOfDetail2, levelOfDetail3, levelOfDetail4, levelOfDetail5 = manageLevels(levelOfDetail1, levelOfDetail2, levelOfDetail3, levelOfDetail4, levelOfDetail5, features)
     features_json = features.to_json(na='drop')
     features_json = json.loads(features_json)
@@ -91,10 +91,9 @@ def add(pathId, timestampId, features, token, showProgress = True, zoomLevels = 
     
     #check if first time
     firstTime = apiManager.get('/path/' + pathId, None, token)
-    firstTime = [x for x in firstTime['vector']['timestamps'] if x['id'] == timestampId]
-    if len(firstTime)==0:
-        raise ValueError('timestamp does not exist')
-    firstTime = len(firstTime[0]['properties']) ==0
+    if not 'vector' in firstTime.keys():
+        raise ValueError('Can only add features if path is of type vector')
+    firstTime = len(firstTime['vector']['properties']) ==0
     
     if firstTime:
         print('no properties known for this timestamp adding them automatically')
@@ -120,7 +119,7 @@ def add(pathId, timestampId, features, token, showProgress = True, zoomLevels = 
 
             ###date
             body = {'name': c , 'type': propertyType , 'required': False, 'private': False}
-            apiManager.post('/path/' + pathId + '/vector/timestamp/' + timestampId + '/property', body, token)                
+            apiManager.post('/path/' + pathId + '/vector/property', body, token)
     indices = chunks(np.arange(features.shape[0]))
 
 

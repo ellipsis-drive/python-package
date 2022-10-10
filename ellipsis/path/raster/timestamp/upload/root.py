@@ -3,14 +3,14 @@ from ellipsis import sanitize
 from ellipsis.util.root import recurse
 import os
 
-def upload(pathId, timestampId, filePath, token, epsg = None, noDataValue = None, fileFormat = 'tif'):
+def upload(pathId, timestampId, filePath, token, fileFormat, epsg = None, noDataValue = None):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     filePath = sanitize.validString('filePath', filePath, True)
     noDataValue = sanitize.validFloat('noDataValue', noDataValue, False)    
     epsg = sanitize.validInt('epsg', epsg, False)    
-    fileFormat = sanitize.validString('fileFormat', fileFormat, False)    
+    fileFormat = sanitize.validString('fileFormat', fileFormat, True)    
         
     seperator = os.path.sep    
     fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
@@ -32,6 +32,27 @@ def get(pathId, timestampId, token, pageStart= None, listAll = True):
     r = recurse(f, {'pageStart':pageStart}, listAll)
     return r
     
+
+def trash(pathId, timestampId, uploadId, token):
+    token = sanitize.validString('token', token, True)
+    pathId = sanitize.validUuid('pathId', pathId, True) 
+    uploadId = sanitize.validUuid('uploadId', uploadId, True) 
+    timestampId = sanitize.validUuid('timestampId', timestampId, True) 
+
+    r = apiManager.put('/path/' + pathId + '/raster/timestamp/' + timestampId + '/upload/' + uploadId + '/trashed', {'trashed':True}, token)    
+    return r
+
+
+def recover(pathId, timestampId, uploadId, token):
+    token = sanitize.validString('token', token, True)
+    pathId = sanitize.validUuid('pathId', pathId, True) 
+    uploadId = sanitize.validUuid('uploadId', uploadId, True) 
+    timestampId = sanitize.validUuid('timestampId', timestampId, True) 
+
+    r = apiManager.put('/path/' + pathId + '/raster/timestamp/' + timestampId + '/upload/' + uploadId + '/trashed', {'trashed':False}, token)    
+    return r
+
+
 
 def delete(pathId, timestampId, uploadId, token):
     token = sanitize.validString('token', token, True)

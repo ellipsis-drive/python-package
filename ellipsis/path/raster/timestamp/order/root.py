@@ -7,15 +7,15 @@ def get(token):
     r = apiManager.get('/path/raster/timestamp/order', None, token)
     return r
 
-def order(pathId, timestampId, token, bounds = None, uploadId = None):
+def order(pathId, timestampId, token, extent = None, uploadId = None):
     
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
-    bounds = sanitize.validBounds('bounds', bounds, False)
+    extent = sanitize.validBounds('extent', extent, False)
     uploadId = sanitize.validUuid('uploadId', uploadId, False)
 
-    body = {'uploadId': uploadId, 'bounds':bounds}
+    body = {'uploadId': uploadId, 'extent':extent}
     
     r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/order', body, token)    
 

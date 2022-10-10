@@ -4,4 +4,5 @@ from ellipsis.path import invite
 from ellipsis.path import member
 from ellipsis.path import raster
 from ellipsis.path import vector
+from ellipsis.path import usage
 

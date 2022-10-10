@@ -7,30 +7,37 @@ from ellipsis.util import chunks
 from ellipsis.util import loadingBar
 from ellipsis.util.root import stringToDate
 
-def add(pathId, name, token, properties = None, description = None):
+import datetime
+
+def add(pathId,  token, properties = None, description = None, date ={'from': datetime.datetime.now(), 'to': datetime.datetime.now()}):
+
     pathId = sanitize.validUuid('pathId', pathId, True) 
-    name = sanitize.validString('name', name, True)
     token = sanitize.validString('token', token, True)
+    date = sanitize.validDateRange('date', date, True)    
     properties = sanitize.validObject('properties', properties, False)
     description = sanitize.validString('description', description, False)
 
-    body = {'name':name, 'properties':properties, 'description':description}
+    body = {'properties':properties, 'date': date, 'description':description}
     r = apiManager.post('/path/' + pathId + '/vector/timestamp', body, token)
     return r
 
-def edit(pathId, timestampId, token, description=None, name=None):
+def edit(pathId, timestampId, token, description=None, date=None):
+
+
+    
+    
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
-    name = sanitize.validString('name', name, True)
     token = sanitize.validString('token', token, True)
     description = sanitize.validString('description', description, False)
+    date = sanitize.validDateRange('date', date, False)    
 
-    body = {'name':name,'description':description}
+    body = {'date':date,'description':description}
     r = apiManager.patch('/path/' + pathId + '/vector/timestamp/' + timestampId, body, token)
     return r
     
 
-def archive(pathId, timestampId, token):
+def trash(pathId, timestampId, token):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, True)
@@ -62,11 +69,11 @@ def activate(pathId, timestampId, token):
     r = apiManager.post('/path/' + pathId + '/vector/timestamp/' + timestampId + '/activate'  , None, token)
     return r
 
-def pause(pathId, timestampId, token):
+def deactivate(pathId, timestampId, token):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)  
     timestampId = sanitize.validUuid('timestampId', timestampId, True)  
-    r = apiManager.post('/path/' + pathId + '/vector/timestamp/' + timestampId + '/pause'  , None, token)
+    r = apiManager.post('/path/' + pathId + '/vector/timestamp/' + timestampId + '/deactivate'  , None, token)
     return r
     
 def getBounds(pathId, timestampId, token = None):
@@ -74,9 +81,8 @@ def getBounds(pathId, timestampId, token = None):
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, False)
     r = apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/bounds' , None, token)
-
-    r['id'] = 0
-    r['properties'] = {}
+    print(r)
+    r = {'id': 0, 'properties':{}, 'geometry':r}
     r  = gpd.GeoDataFrame.from_features([r])
     r = r.unary_union
 
@@ -130,19 +136,18 @@ def getFeaturesByIds(pathId, timestampId, featureIds, token = None, showProgress
     
 
 def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, token = None, listAll = True, pageStart = None):
-    bounds = extent
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, False)
-    bounds = sanitize.validBounds('bounds', bounds, True)
+    extent = sanitize.validBounds('extent', extent, True)
     propertyFilter = sanitize.validObject('propertyFilter', propertyFilter, False)
     listAll = sanitize.validBool('listAll', listAll, True)
     pageStart = sanitize.validUuid('pageStart', pageStart, False) 
     
-    body = {'pageStart': pageStart, 'propertyFilter':propertyFilter, 'bounds':bounds}
+    body = {'pageStart': pageStart, 'propertyFilter':propertyFilter, 'extent':extent}
 
     def f(body):
-        return apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/featuresByBounds' , body, token)
+        return apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/featuresByExtent' , body, token)
         
     r = recurse(f, body, listAll, 'features')
 

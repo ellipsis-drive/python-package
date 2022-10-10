@@ -25,6 +25,7 @@ setuptools.setup(
     'geopandas==0.9.0',
     'pyproj==3.0.1',
     'numpy',
+    'imagecodecs',
     'requests',
     'requests-toolbelt',
     'rasterio',

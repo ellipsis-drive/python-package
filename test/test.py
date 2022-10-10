@@ -11,18 +11,21 @@ import pandas as pd
 
 
 
-token = el.account.logIn(username = '', password='')
+token = el.account.logIn(username = 'admin', password='')
 
-
-el.account.personalAccessToken.create(description = 'hoi', accessList = [{'pathId': 'd448bdb5-783a-4919-98bb-caf8092904aa' , 'access':{'accessLevel':100}}], token = token)
-el.account.personalAccessToken.get(token, listAll = True)
-el.account.personalAccessToken.revoke(accessTokenId = '6b737dd7-c0e3-4532-b5d5-076574dd3aea', token = token)
+##access token
+el.account.accessToken.create(description = 'hoi', accessList = [{'pathId': 'd448bdb5-783a-4919-98bb-caf8092904aa' , 'access':{'accessLevel':100}}], token = token)
+tokenId = el.account.accessToken.get(token, listAll = True)['result'][0]['id']
+el.account.accessToken.revoke(accessTokenId = tokenId, token = token)
 
 folderId = '46e1e919-8b73-42a3-a575-25c6d45fd93b'
 
+
+
+
 ##account
 token = el.account.logIn("demo_user", "")
-admin_token = el.account.logIn('admin', "")
+admin_token = el.account.logIn(username = 'admin', password='')
 daan_token = el.account.logIn('daan', "")
 
 el.account.listRootMaps('myDrive',token)
@@ -108,6 +111,12 @@ el.path.member.edit(pathId = folderId, userId = daanMemberId, access = {'accessL
 
 el.path.member.delete(folderId, daanMemberId, token)
 
+##usage
+pathId = '8a11c27b-74c3-4570-bcd0-64829f7cd311'
+
+users = el.path.usage.getActiveUsers(pathId = pathId, token = token, listAll=True)
+el.path.usage.getUsage(pathId = pathId, userId = users['result'][0]['user']['id'], token =token)
+el.path.usage.getAggregatedUsage(pathId = pathId, loggedIn = False, token = token)
 
 ##raster and uploads
 mapId = el.path.add('raster', 'test', token, parentId = folderId)['id']
@@ -119,16 +128,22 @@ timestampId = el.path.raster.timestamp.add(mapId, token)['id']
 
 dateFrom = datetime.datetime.now()
 dateTo = datetime.datetime.now()
-el.path.raster.timestamp.edit(mapId, timestampId, token, description = 'hoi', dateFrom = dateFrom, dateTo = dateTo)
+el.path.raster.timestamp.edit(mapId, timestampId, token, description = 'hoi', date={'from': dateFrom, 'to':dateTo})
 
 filePath = '/home/daniel/Ellipsis/python-package/test/0.tif'
-uploadId = el.path.raster.timestamp.upload.upload(mapId, timestampId, filePath, token)['id']
+uploadId = el.path.raster.timestamp.upload.upload(pathId = mapId, timestampId = timestampId, filePath = filePath, fileFormat = 'tif', token = token)['id']
 
+el.path.raster.timestamp.upload.trash(pathId = mapId, timestampId = timestampId, uploadId= uploadId, token = token)
+el.path.raster.timestamp.upload.recover(pathId = mapId, timestampId = timestampId, uploadId= uploadId, token = token)
+el.path.raster.timestamp.upload.trash(pathId = mapId, timestampId = timestampId, uploadId= uploadId, token = token)
 el.path.raster.timestamp.upload.delete(mapId, timestampId, uploadId, token)
-uploadId = el.path.raster.timestamp.upload.upload(mapId, timestampId, filePath, token)['id']
+uploadId = el.path.raster.timestamp.upload.upload(pathId = mapId, timestampId = timestampId, filePath=filePath, fileFormat='tif', token = token)['id']
 
 uploads = el.path.raster.timestamp.upload.get(mapId, timestampId, token)
 
+
+el.path.raster.timestamp.activate(mapId, timestampId, token)
+el.path.raster.timestamp.deactivate(mapId, timestampId, token)
 el.path.raster.timestamp.activate(mapId, timestampId, token)
 
 info = el.path.get(mapId, token)
@@ -148,12 +163,16 @@ el.path.raster.timestamp.trash(mapId, timestampId, token)
 el.path.raster.timestamp.delete(mapId, timestampId, admin_token)
 
 el.path.trash(mapId, token)
+el.path.recover(mapId, token)
+el.path.trash(mapId, token)
 el.path.delete(mapId, admin_token)
 
 ##raster information retrieval
 mapId = '59caf510-bab7-44a8-b5ea-c522cfde4ad7'
 timestampId = 'f25e120e-ca8f-451f-a5f4-33791db0f2c5'
 
+
+styleId = el.path.get(mapId, token)['raster']['styles'][0]['id']
 
 xMin  = 5.60286
 yMin=  52.3031    
@@ -169,14 +188,14 @@ raster = result['raster']
 
 el.util.plotRaster(raster[0:3,:,:])
 
-r = el.path.raster.timestamp.getDownsampledRaster(pathId = mapId, timestampId=timestampId, extent = extent, width = 256, height = 256, token = token)
+r = el.path.raster.timestamp.getDownsampledRaster(pathId = mapId, timestampId=timestampId, style=styleId, extent = extent, width = 1024, height = 1024, token = token)
 raster = r['raster']
 el.util.plotRaster(raster[0:3,:,:])
 
 
 bounds = el.path.raster.timestamp.getBounds(mapId, timestampId, token)
 
-data = el.path.raster.timestamp.getAggregatedData(mapId, [timestampId], bounds, token=token)
+data = el.path.raster.timestamp.analyse(mapId, [timestampId], bounds, token=token)
 
 ###raster downloads
 mapId = '1eea3d2f-27b3-4874-b716-87852c3407c1'
@@ -192,12 +211,14 @@ os.remove(file_out)
 
 pendinDownloads = el.path.raster.timestamp.order.get(token)
 
+
+####raster styling
 parameters = {"angle":45,"bandNumber":1,"alpha":1}
 method = "hillShade"
-layerId = el.path.raster.layer.add(mapId, 'hoi', method, parameters, token, 'hoi')['id']
+layerId = el.path.raster.style.add(mapId, 'hoi', method, parameters, token,  default = True)['id']
 
-el.path.raster.layer.edit(mapId, layerId, method= method, parameters = parameters,token = token, description =  'doei')
-el.path.raster.layer.delete(mapId, layerId, token)
+el.path.raster.style.edit(mapId, layerId, method= method, parameters = parameters,token = token, default = False)
+el.path.raster.style.delete(mapId, layerId, token)
 
 
 
@@ -205,31 +226,31 @@ el.path.raster.layer.delete(mapId, layerId, token)
 mapId = el.path.add('vector', 'test2', token)['id']
 
 
-layerId = el.path.vector.layer.add(mapId, 'test', token)['id']
+layerId = el.path.vector.timestamp.add(mapId,  token = token)['id']
 
-el.path.vector.layer.edit(mapId, layerId, token, name = 'test3')
+el.path.vector.timestamp.edit(mapId, layerId, token, description = 'adsfd')
 
-el.path.vector.layer.archive(mapId, layerId, token)
-el.path.vector.layer.recover(mapId, layerId, token)
-el.path.vector.layer.archive(mapId, layerId, token)
-el.path.vector.layer.delete(mapId, layerId, admin_token)
-layerId = el.path.vector.layer.add(mapId, 'test', token)['id']
+el.path.vector.timestamp.trash(mapId, layerId, token)
+el.path.vector.timestamp.recover(mapId, layerId, token)
+el.path.vector.timestamp.trash(mapId, layerId, token)
+el.path.vector.timestamp.delete(mapId, layerId, token)
+layerId = el.path.vector.timestamp.add(mapId, description = 'test', token = token)['id']
 
 
 ###vector uploads
 filePath = '/home/daniel/Ellipsis/python-package/test/test.zip'
-el.path.vector.layer.upload.upload(mapId, layerId, filePath, token, fileFormat = 'zip')
+el.path.vector.timestamp.upload.upload(pathId = mapId, timestampId = layerId, filePath = filePath, token = token, fileFormat = 'zip')
 
 
-upload = el.path.vector.layer.upload.get(mapId, layerId, token)['result'][0]
+upload = el.path.vector.timestamp.upload.get(pathId = mapId,  timestampId = layerId, token = token)['result'][0]
 
 while upload['status'] != 'completed':
     time.sleep(1)
-    upload = el.path.vector.layer.upload.get(mapId, layerId, token)['result'][0]
+    upload = el.path.vector.timestamp.upload.get(pathId = mapId, timestampId = layerId, token = token)['result'][0]
 
 
 #layer methods
-bounds = el.path.vector.layer.getBounds(mapId, layerId, token)
+bounds = el.path.vector.timestamp.getBounds(mapId, layerId, token)
 
 xMin = bounds.bounds[0]
 yMin = bounds.bounds[1]
@@ -237,22 +258,22 @@ xMax = bounds.bounds[2]
 yMax = bounds.bounds[3]
 
 bounds = {'xMin':xMin, 'xMax':xMax, 'yMin':yMin, 'yMax':yMax}
-sh = el.path.vector.layer.getFeaturesByExtent(mapId, layerId, bounds)
+sh = el.path.vector.timestamp.getFeaturesByExtent(pathId = mapId, timestampId = layerId, extent =  bounds, token = token)
 sh['result'].plot()
 
-sh = el.path.vector.layer.listFeatures(mapId, layerId, token)
+sh = el.path.vector.timestamp.listFeatures(mapId, layerId, token)
 
 featureIds = sh['result']['id'].values
 
-r =  el.path.vector.layer.getFeaturesByIds(mapId, layerId, featureIds, token)
+r =  el.path.vector.timestamp.getFeaturesByIds(mapId, layerId, featureIds, token)
 
 
-r = el.path.vector.layer.getChanges(mapId, layerId, token, listAll = True)
+r = el.path.vector.timestamp.getChanges(mapId, layerId, token, listAll = True)
 
-el.path.vector.layer.editFilter(mapId, layerId, [{'property':'gml_id'}], token)
+el.path.vector.editFilter(mapId, [{'property':'gml_id'}], token)
 
 r = el.path.get(mapId, token)
-blocked = r['vector']['layers'][0]['availability']['blocked']
+blocked = r['vector']['timestamps'][0]['availability']['blocked']
 while blocked:
     time.sleep(1)
     r = el.path.get(mapId, token)
@@ -263,82 +284,82 @@ while blocked:
 features = sh['result'][1:2]
 featureIds = features['id'].values
 
-el.path.vector.layer.feature.add(mapId, layerId, features, token)
+el.path.vector.timestamp.feature.add(mapId, layerId, features, token)
 
 
-el.path.vector.layer.feature.edit(mapId, layerId, featureIds = features['id'].values, token = token, features = features)
+el.path.vector.timestamp.feature.edit(mapId, layerId, featureIds = features['id'].values, token = token, features = features)
 
-el.path.vector.layer.feature.delete(mapId, layerId, featureIds, token)
-el.path.vector.layer.feature.recover(mapId, layerId, featureIds, token)
+el.path.vector.timestamp.feature.trash(mapId, layerId, featureIds, token)
+el.path.vector.timestamp.feature.recover(mapId, layerId, featureIds, token)
 featureId = featureIds[0]
-el.path.vector.layer.feature.versions(mapId, layerId, featureId, token)
+el.path.vector.timestamp.feature.versions(mapId, layerId, featureId, token)
 
 
 ###message module
-el.path.vector.layer.feature.message.add(mapId, layerId, featureId, token, text= 'hoi')
+el.path.vector.timestamp.feature.message.add(mapId, layerId, featureId, token, text= 'hoi')
 image = np.zeros((256,256))
-el.path.vector.layer.feature.message.add(mapId, layerId, featureId, token, text= 'hoi', image = image)
+el.path.vector.timestamp.feature.message.add(mapId, layerId, featureId, token, text= 'hoi', image = image)
 
-messages = el.path.vector.layer.feature.message.get(mapId, layerId, featureIds=[featureId], token = token)
+messages = el.path.vector.timestamp.feature.message.get(mapId, layerId, featureIds=[featureId], token = token)
 
 messageId = [m for m in messages['result'] if m['thumbnail'] != None][0]['id']
 
 
-el.path.vector.layer.feature.message.getImage(mapId, layerId, messageId, token)
+el.path.vector.timestamp.feature.message.getImage(mapId, layerId, messageId, token)
 
-el.path.vector.layer.feature.message.delete(mapId, layerId, messageId, token)
-el.path.vector.layer.feature.message.recover(mapId, layerId, messageId, token)
+el.path.vector.timestamp.feature.message.trash(mapId, layerId, messageId, token)
+el.path.vector.timestamp.feature.message.recover(mapId, layerId, messageId, token)
 
 
 ###series module
 date = datetime.datetime.now()
 seriesData = pd.DataFrame({'x': [1,2,3,4]})
 seriesData['date'] = date
-el.path.vector.layer.feature.series.add(pathId = mapId, layerId = layerId, featureId = featureId, seriesData = seriesData, token = token)
+el.path.vector.timestamp.feature.series.add(pathId = mapId, timestampId = layerId, featureId = featureId, seriesData = seriesData, token = token)
 
 
-el.path.vector.layer.feature.series.info(mapId, layerId, featureId,token)
+el.path.vector.timestamp.feature.series.info(mapId, layerId, featureId,token)
 
-r = el.path.vector.layer.feature.series.get(mapId, layerId, featureId, token = token)
+r = el.path.vector.timestamp.feature.series.get(mapId, layerId, featureId, token = token, listAll = True)
 
 
 seriesId = r['result']['id'].values[0]
 
-el.path.vector.layer.feature.series.delete(mapId, layerId, featureId, [seriesId], token)
+el.path.vector.timestamp.feature.series.trash(mapId, layerId, featureId, [seriesId], token)
 
-el.path.vector.layer.feature.series.recover(mapId, layerId, featureId, [seriesId], token)
+el.path.vector.timestamp.feature.series.recover(mapId, layerId, featureId, [seriesId], token)
 
-el.path.vector.layer.feature.series.changelog(mapId, layerId, featureId)
+el.path.vector.timestamp.feature.series.changelog(mapId, layerId, featureId, token = token)
 
 
-
+0
 #style module
 
 parameters = {"alpha":0.5,"width":2,"radius":{"method":"constant","parameters":{"value":7}},"property":"gml_id"}
-styleId = el.path.vector.layer.style.add(mapId, layerId, 'test', 'random', parameters, token)['id']
+styleId = el.path.vector.style.add(mapId, 'test', 'random', parameters, token = token, default = False)['id']
 
-el.path.vector.layer.style.edit(mapId, layerId, styleId, token, name = 'sfd')
-el.path.vector.layer.style.delete(mapId, layerId, styleId, token)
+el.path.vector.style.edit(mapId, styleId, token, name = 'sfd', default = False)
+el.path.vector.style.delete(mapId, styleId, token)
 
 
 ## properties module
-featurePropertyId = el.path.vector.layer.featureProperty.add(mapId, layerId, 'new', 'string', token)['id']
-el.path.vector.layer.featureProperty.delete(mapId, layerId, featurePropertyId, token)
+featurePropertyId = el.path.vector.featureProperty.add(pathId = mapId, name = 'new', featurePropertyType = 'string', token = token)['id']
+el.path.vector.featureProperty.trash(mapId,  featurePropertyId, token)
 
-el.path.vector.layer.featureProperty.recover(mapId, layerId, featurePropertyId, token)
-el.path.vector.layer.featureProperty.edit(mapId, layerId, featurePropertyId, token, required = True)
+el.path.vector.featureProperty.recover(mapId, featurePropertyId, token)
+el.path.vector.featureProperty.edit(mapId, featurePropertyId, token, required = True)
 
 ### order module
 
-orderId = el.path.vector.layer.order.order(mapId, layerId, token, bounds)['id']
+orderId = el.path.vector.timestamp.order.order(mapId, layerId, token, {'xMin':xMin, 'xMax':xMax, 'yMin':yMin, 'yMax':yMax})['id']
 
-order = el.path.vector.layer.order.get(token)[0]
+order = el.path.vector.timestamp.order.get(token)[0]
 while order['status'] != 'completed':
     time.sleep(1)
-    order = el.path.vector.layer.order.get(token)[0]
+    order = el.path.vector.timestamp.order.get(token)[0]
 
 file_out = '/home/daniel/Downloads/out.zip'
-el.path.vector.layer.order.download(orderId, file_out, token)
+el.path.vector.timestamp.order.download(orderId, file_out, token)
 os.remove(file_out)    
 el.path.trash(mapId, token)
 

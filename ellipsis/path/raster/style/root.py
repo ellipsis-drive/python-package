@@ -1,15 +1,15 @@
 from ellipsis import apiManager
 from ellipsis import sanitize
 
-def add(pathId, name, method, parameters, token, description = None):
+def add(pathId, name, method, parameters, token, default=True):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)    
     method = sanitize.validString('method', method, True)    
     name = sanitize.validString('name', name, True)    
-    description = sanitize.validString('description', description, False)    
+    default = sanitize.validBool('default', default, True)    
     parameters = sanitize.validObject('parameters', parameters, True)
 
-    body = {'name':name, 'method': method, 'parameters':parameters, 'description': description}
+    body = {'name':name, 'method': method, 'parameters':parameters, 'default':default}
     r = apiManager.post('/path/' + pathId + '/raster/style', body, token)
     return r
 
@@ -23,14 +23,14 @@ def delete(pathId, styleId, token):
     return r
 
 
-def edit(pathId, styleId, method, parameters, token, description = None):
+def edit(pathId, styleId, method, parameters, token, default = None):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)    
     method = sanitize.validString('method', method, True)    
-    description = sanitize.validString('description', description, False)    
     parameters = sanitize.validObject('parameters', parameters, True)
+    default = sanitize.validBool('default', default, False)    
 
-    body = {'method': method, 'parameters':parameters, 'description': description}
+    body = {'method': method, 'parameters':parameters, 'default':default}
     r = apiManager.patch('/path/' + pathId + '/raster/style/' + styleId, body, token)
     return r
 

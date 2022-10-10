@@ -275,6 +275,9 @@ def unfavorite(pathId, token):
     
 def convertPath(path):
     if path['type'] == 'raster':
-        path['raster']['timestamps'] = [ {**x, 'dateFrom' : stringToDate(x['dateFrom']), 'dateTo' : stringToDate(x['dateTo']) } for x in path['raster']['timestamps'] ]
+        path['raster']['timestamps'] = [ {**x, 'date' : {'from':stringToDate(x['date']['from']), 'to' : stringToDate(x['date']['to']) }} for x in path['raster']['timestamps'] ]
+    if path['type'] == 'vector':
+        path['vector']['timestamps'] = [ {**x, 'date' : {'from':stringToDate(x['date']['from']), 'to' : stringToDate(x['date']['to']) }} for x in path['vector']['timestamps'] ]
+        
     return(path)
 

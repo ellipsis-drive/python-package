@@ -5,7 +5,7 @@
 ---
 maxdepth: 2
 ---
-personalAccessToken/index
+accessToken/index
 ```
 ## logIn
 

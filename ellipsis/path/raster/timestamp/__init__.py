@@ -2,9 +2,9 @@ from ellipsis.path.raster.timestamp.root import add
 from ellipsis.path.raster.timestamp.root import edit
 from ellipsis.path.raster.timestamp.root import delete
 from ellipsis.path.raster.timestamp.root import activate
-from ellipsis.path.raster.timestamp.root import pause
+from ellipsis.path.raster.timestamp.root import deactivate
 from ellipsis.path.raster.timestamp.root import getBounds
-from ellipsis.path.raster.timestamp.root import getAggregatedData
+from ellipsis.path.raster.timestamp.root import analyse
 from ellipsis.path.raster.timestamp.root import getRaster
 from ellipsis.path.raster.timestamp.root import getDownsampledRaster
 from ellipsis.path.raster.timestamp.root import trash

@@ -3,14 +3,14 @@ from ellipsis import sanitize
 import os
 from ellipsis.util.root import recurse
 
-def upload(pathId, timestampId, filePath, token, epsg = None, fileFormat = 'geojson', dateColumns = None, datePatterns = None, method= 'simplify', fastUpload = False):
+def upload(pathId, timestampId, filePath, token, fileFormat, epsg = None, dateColumns = None, datePatterns = None, method= 'simplify', fastUpload = False):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     filePath = sanitize.validString('filePath', filePath, True)
     epsg = sanitize.validInt('epsg', epsg, False)
     method = sanitize.validString('method', method, True)
-    fileFormat = sanitize.validString('fileFormat', fileFormat, False)    
+    fileFormat = sanitize.validString('fileFormat', fileFormat, True)    
     dateColumns = sanitize.validStringArray('dateColumns', dateColumns, False)    
     datePatterns = sanitize.validStringArray('datePatterns', datePatterns, False)    
     fastUpload = sanitize.validBool('fastUpload', fastUpload, True)
