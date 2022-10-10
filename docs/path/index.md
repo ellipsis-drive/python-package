@@ -6,9 +6,10 @@ maxdepth: 5
 ---
 raster/index
 vector/index
-invites/index
-hashtags/index
+invite/index
+hashtag/index
 member/index
+usage/index
 ```
 
 ## searchRaster

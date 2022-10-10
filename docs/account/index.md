@@ -7,6 +7,7 @@ maxdepth: 2
 ---
 accessToken/index
 ```
+
 ## logIn
 
     ellipsis.account.logIn()
