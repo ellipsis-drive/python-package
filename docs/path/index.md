@@ -117,15 +117,16 @@ Update the public access of a path.
 - processingUnits (integer)
 - hidden (boolean)
 
-## listMaps
+## listPath
 
-    ellipsis.path.listMaps()
+    ellipsis.path.listPath()
 
-List all maps in a pathId.
+List all paths in a folder.
 
 **Mandatory arguments**
 
 - pathId (uuid)
+- pathType (one of 'layer' or 'folder')
 
 **Optional arguments**
 
@@ -133,21 +134,6 @@ List all maps in a pathId.
 - pageStart (uuid)
 - listAll (boolean)
 
-## listFolders
-
-    ellipsis.path.listFolders()
-
-List all folders in a pathId.
-
-**Mandatory arguments**
-
-- pathId (uuid)
-
-**Optional arguments**
-
-- token (string)
-- pageStart (uuid)
-- listAll (boolean)
 
 ## editMetadata
 

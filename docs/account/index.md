@@ -25,11 +25,11 @@ Login to your account.
 
 Returns a token.
 
-## listRootMaps
+## listRootLayers
 
-    ellipsis.account.listRootMaps()
+    ellipsis.account.listRootLayers()
 
-List the items in a root location.
+List the layers in a root location.
 
 **Mandatory arguments**
 

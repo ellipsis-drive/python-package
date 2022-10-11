@@ -17,7 +17,7 @@ Retrieving all maps in "My Drive".
     token = el.account.logIn("username", "password")
 
     # retrieve all maps in "My Drive"
-    maps = el.account.listRootMaps("myDrive", token=token)
+    layers = el.account.listRoot("myDrive", pathType = 'folder', token=token)
 
 Retrieve all maps and folders inside a specific folder, and retreive information about the folder itself.
 
@@ -28,8 +28,8 @@ Retrieve all maps and folders inside a specific folder, and retreive information
     token = el.account.logIn("username", "password")
 
     info = el.path.get(folderId, token)
-    maps = el.path.listMaps(folderId, token = token, listAll = True)
-    folders = el.path.listFolders(folderId, token = token, listAll = True)
+    layers = el.path.listPath(folderId, pathType = 'layer', token = token, listAll = True)
+    folders = el.path.lisPath(folderId, pathType = 'folder', token = token, listAll = True)
 
 **Uploading files**
 

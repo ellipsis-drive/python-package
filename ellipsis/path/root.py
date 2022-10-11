@@ -132,13 +132,21 @@ def get(pathId, token=None):
     r = convertPath(r)
     return r
 
-def listMaps(pathId, pageStart=None, listAll = True, token=None):
+def listPath(pathId, pathType, pageStart=None, listAll = True, token=None):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
     pageStart = sanitize.validUuid('pageStart', pageStart, False)
     listAll = sanitize.validBool('listAll', listAll, False)
 
-    body  = {'pageStart': pageStart, 'isFolder':False}
+    if type(pathType) != type('x') or (pathType != 'folder' and pathType !='layer' ) :
+        raise ValueError("pathType must be one of 'layer' or 'folder'")
+        
+    isFolder = False
+    if pathType == 'folder':
+        isFolder = True        
+
+
+    body  = {'pageStart': pageStart, 'isFolder':isFolder}
     
     def f(body):
         
@@ -147,20 +155,6 @@ def listMaps(pathId, pageStart=None, listAll = True, token=None):
     r = recurse(f, body, listAll)
     return r
 
-def listFolders(pathId, pageStart=None, listAll = True, token=None):
-    pathId = sanitize.validUuid('pathId', pathId, True)
-    token = sanitize.validString('token', token, False)
-    pageStart = sanitize.validUuid('pageStart', pageStart, False)
-    listAll = sanitize.validBool('listAll', listAll, False)
-
-    body  = {'pageStart': pageStart, 'isFolder':True}
-    
-    def f(body):
-        
-        return apiManager.get(f'/path/{pathId}/list', body, token)
-
-    r = recurse(f, body, listAll)
-    return r
 
 def editMetadata(pathId, token, description=None, attribution=None, licenseString =None, properties=None):
     pathId = sanitize.validUuid('pathId', pathId, True)

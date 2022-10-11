@@ -24,12 +24,13 @@ folderId = '46e1e919-8b73-42a3-a575-25c6d45fd93b'
 
 
 ##account
-demo_token = el.account.logIn("demo_user", "")
+demo_token = el.account.logIn("demo_user", "demo_user")
 admin_token = el.account.logIn(username = 'admin', password='')
 daan_token = el.account.logIn('daan', "")
 
-el.account.listRootMaps('myDrive',token)
-el.account.listRootFolders('sharedWithMe',token)
+el.account.listRoot('myDrive', pathType = 'layer', token = demo_token)
+
+el.account.listRoot('sharedWithMe','folder', demo_token)
 
 r_raster = el.path.searchRaster(token=token);
 
@@ -51,8 +52,8 @@ rasterInfo = el.path.get('59caf510-bab7-44a8-b5ea-c522cfde4ad7', token)
 info = el.path.get(folderId, token)
 
 folderId = info['id']
-maps = el.path.listMaps(folderId, token = token, listAll = True)
-folders = el.path.listFolders(folderId, token = token, listAll = True)
+maps = el.path.listPath(folderId, pathType='layer', token = token, listAll = True)
+folders = el.path.listPath(folderId, pathType='folder', token = token, listAll = True)
 
 mapId = [ m for m in maps['result'] if not m['trashed'] ][0]['id']
 

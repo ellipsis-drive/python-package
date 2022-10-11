@@ -20,7 +20,7 @@ Below are some code examples.
     token = el.account.logIn("username", "password")
 
     # retrieve all maps in "My Drive"
-    maps = el.account.listRootMaps("myDrive",
+    maps = el.account.listRoot("myDrive", pathType='layer',
     token=token)
 
 Another example
@@ -32,5 +32,5 @@ Another example
     token = el.account.logIn("username", "password")
 
     info = el.path.get(folderId, token)
-    maps = el.path.listMaps(folderId, token = token, listAll = True)
-    folders = el.path.listFolders(folderId, token = token, listAll = True)
+    layers = el.path.listPath(folderId, pathType='layer', token = token, listAll = True)
+    folders = el.path.listPath(folderId, pathType='folder', token = token, listAll = True)

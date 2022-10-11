@@ -16,15 +16,20 @@ def logIn(username, password, validFor = None):
 
         return(token)
 
-def listRootMaps(rootName, token, pageStart = None, listAll = True):
+def listRoot(rootName, pathType, token, pageStart = None, listAll = True):
     token = sanitize.validString('token', token, True)
     rootName = sanitize.validString('rootName', rootName, True)
     pageStart = sanitize.validUuid('pageStart', pageStart, False)
     listAll = sanitize.validBool('listAll', listAll, True)        
-
+    if type(pathType) != type('x') or (pathType != 'folder' and pathType !='layer' ) :
+        raise ValueError("pathType must be one of 'layer' or 'folder'")
+        
+    isFolder = False
+    if pathType == 'folder':
+        isFolder = True        
 
     url = "/account/root/" + rootName
-    body = {"isFolder": False, "pageStart": pageStart}
+    body = {"isFolder": isFolder, "pageStart": pageStart}
 
 
     def f(body):
@@ -36,22 +41,5 @@ def listRootMaps(rootName, token, pageStart = None, listAll = True):
     return r
 
 
-def listRootFolders(rootName, token, pageStart = None, listAll = True):
-    token = sanitize.validString('token', token, True)
-    rootName = sanitize.validString('rootName', rootName, True)
-    pageStart = sanitize.validUuid('pageStart', pageStart, False)
-    listAll = sanitize.validBool('listAll', listAll, True)        
 
-
-    url = "/account/root/" + rootName
-    body = {"isFolder": True, "pageStart": pageStart}
-
-
-    def f(body):
-        r = apiManager.get(url, body, token)
-        return r
-
-    r = recurse(f, body, listAll)
-        
-    return r
 
