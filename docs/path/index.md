@@ -30,7 +30,7 @@ Search for rasters matching specified search criteria.
 - canView (boolean)
 - pageStart (uuid)
 - hashtag (string)
-- bounds (bounds object)
+- extent (a dictionary with properties xMin, xMax, yMin, yMax of type float)
 - bands (array of strings)
 - dateFrom (date object)
 - dateTo (date object)
@@ -56,7 +56,7 @@ Search for vectors matching specified search criteria.
 - canView (boolean)
 - pageStart (uuid)
 - hashtag (string)
-- bounds (bounds object)
+- extent (a dictionary with properties xMin, xMax, yMin, yMax of type float)
 - hasVectorLayers (boolean)
 - layerNAme (string)
 - fuzzySearchOnLayerName (boolean)
@@ -237,10 +237,9 @@ Create a new folder or map.
 - token (string)
 
 **Optional arguments**
-
+- properties (any json serializable object)
 - parentId (uuid)
-- metadata (object), object with properties, attribution and description
-- publicAccess (object)
+- metadata (dictionary with properties attribution and description as string and properties as any json serializable object)
 
 ## delete
 

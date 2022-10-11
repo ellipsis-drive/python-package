@@ -2,8 +2,10 @@ from ellipsis import apiManager
 from ellipsis import sanitize
 import os
 from ellipsis.util.root import recurse
+import numpy as np
+import geopandas as gpd
 
-def upload(pathId, timestampId, filePath, token, fileFormat, epsg = None, dateColumns = None, datePatterns = None, method= 'simplify', fastUpload = False):
+def add(pathId, timestampId, filePath, token, fileFormat, epsg = None, dateColumns = None, datePatterns = None, method= 'simplify', fastUpload = False):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
@@ -36,6 +38,11 @@ def get(pathId, timestampId, token, pageStart = None, listAll = True):
     body = {'pageStart': pageStart}
     def f(body):    
         r = apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/upload', body, token)    
+        
+        for i in np.arange( len(r['result'])):
+            if 'info' in r['result'][i].keys() and 'bounds' in r['result'][i]['info'].keys() and type(r['result'][i]['info']['bounds']) != type(None):
+                r['result'][i]['info']['bounds'] = gpd.GeoDataFrame.from_features([{'id': 0, 'properties':{}, 'geometry':r['result'][i]['info']['bounds']}]).unary_union
+
         return r
 
     r = recurse(f, body, listAll)

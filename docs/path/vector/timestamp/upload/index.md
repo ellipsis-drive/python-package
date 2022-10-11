@@ -2,7 +2,7 @@
 
 ## upload
 
-    ellipsis.path.vector.timestamp.upload.upload()
+    ellipsis.path.vector.timestamp.upload.add()
 
 **Mandatory arguments**
 

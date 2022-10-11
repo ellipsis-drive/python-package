@@ -17,7 +17,7 @@
 - token (string)
 
 **Optional arguments**
-- bounds (bounds)
+- extent (dictionary, with properties xMin, xMax, yMin and yMax of type float)
 - uploadId (uuid)
 
 ## download

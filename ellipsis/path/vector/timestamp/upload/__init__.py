@@ -1,2 +1,2 @@
-from ellipsis.path.vector.timestamp.upload.root import get, upload
+from ellipsis.path.vector.timestamp.upload.root import get, add
 

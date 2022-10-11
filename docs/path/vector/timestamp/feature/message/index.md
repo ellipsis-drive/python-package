@@ -16,7 +16,7 @@ Get all messages on a feature.
 - token (string), your token
 - messageIds (array of uuids),
 - userId (uuid),
-- bounds (bounds object),
+- extent (a dictionary with properties xMin, xMax, yMin, yMax of type float)
 - pageStart (uuid),
 - listAll (boolean), default False
 - deleted (boolean), default False

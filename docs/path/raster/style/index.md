@@ -8,13 +8,32 @@ Adds a raster style.
 
 **Mandatory arguments**
 - pathId (uuid),
-- name (string),
 - method (string),
 - parameters (object), containing
 - token (uuid), your token
 
 **Optional arguments**
-- description (string), 
+
+- default (boolean), default value is True
+
+## edit
+
+    ellipsis.path.raster.style.edit()
+
+Edit a raster style.
+
+**Mandatory arguments**
+- pathId (uuid),
+- styleId (uuid),
+- token (string)
+
+**Optional arguments**
+
+- method (string)
+- parameters (object)
+- token (string)
+- default (boolean)
+
 
 ## delete
 
@@ -26,20 +45,5 @@ Delete a raster style.
 
 - pathId (uuid),
 - styleId (uuid), 
-- token (uuid), your token
+- token (string)
 
-## edit
-
-    ellipsis.path.raster.style.edit()
-
-Edit a raster style.
-
-**Mandatory arguments**
-- pathId (uuid),
-- name (string),
-- method (string),
-- parameters (object), containing
-- token (uuid), your token
-
-**Optional arguments**
-- description (string), 

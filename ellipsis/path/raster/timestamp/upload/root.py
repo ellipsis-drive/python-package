@@ -6,7 +6,7 @@ import os
 import numpy as np
 import geopandas as gpd
 
-def upload(pathId, timestampId, filePath, token, fileFormat, epsg = None, noDataValue = None):
+def add(pathId, timestampId, filePath, token, fileFormat, epsg = None, noDataValue = None):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
@@ -31,10 +31,8 @@ def get(pathId, timestampId, token, pageStart= None, listAll = True):
     def f(body):
         r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/upload', None, token)    
         for i in np.arange( len(r['result'])):
-            if 'bounds' in r['results'][i].keys() and type(r['results'][i]['bounds']) != type(None):
-                r['result'][i]['bounds'] = gpd.GeoDataFrame.from_features([{'id': 0, 'properties':{}, 'geometry':r['result'][i]['bounds']}]).unary_union
-        
-
+            if 'info' in r['result'][i].keys() and 'bounds' in r['result'][i]['info'].keys() and type(r['result'][i]['info']['bounds']) != type(None):
+                r['result'][i]['info']['bounds'] = gpd.GeoDataFrame.from_features([{'id': 0, 'properties':{}, 'geometry':r['result'][i]['info']['bounds']}]).unary_union
         
         return r
 

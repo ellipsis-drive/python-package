@@ -3,7 +3,7 @@ from ellipsis import sanitize
 from ellipsis.util.root import recurse
 from ellipsis.util.root import stringToDate
 
-def searchRaster(root=None, name=None, fuzzySearchOnName=False, userId=None, disabled=False, canView=None, pageStart=None, hashtag=None, bounds=None, bands=None, resolution=None, dateFrom=None, dateTo=None, hasTimestamp=None, timestampSize=None, listAll= False, token=None):
+def searchRaster(root=None, name=None, fuzzySearchOnName=False, userId=None, disabled=False, canView=None, pageStart=None, hashtag=None, extent=None, bands=None, resolution=None, dateFrom=None, dateTo=None, hasTimestamp=None, timestampSize=None, listAll= False, token=None):
     token = sanitize.validString('token', token, False)
     root = sanitize.validStringArray('root', root, False)
     listAll = sanitize.validBool('listAll', listAll, True)
@@ -15,7 +15,7 @@ def searchRaster(root=None, name=None, fuzzySearchOnName=False, userId=None, dis
     canView = sanitize.validBool('canView', canView, False)
     pageStart = sanitize.validUuid('pageStart', pageStart, False)
     hashtag = sanitize.validString('hashtag', hashtag, False)
-    bounds = sanitize.validBounds('bounds', bounds, False)
+    extent = sanitize.validBounds('extent', extent, False)
     bands = sanitize.validStringArray('bands', bands, False)
     dateFrom = sanitize.validDate('dateFrom', dateFrom, False)
     dateTo = sanitize.validDate('dateTo', dateTo, False)
@@ -33,7 +33,7 @@ def searchRaster(root=None, name=None, fuzzySearchOnName=False, userId=None, dis
         'canView': canView,
         'pagestart': pageStart,
         'hashtag': hashtag,
-        'bounds': bounds,
+        'extent': extent,
         'bands': bands,
         'resolution': resolution,
         'dateFrom': dateFrom,
@@ -48,7 +48,7 @@ def searchRaster(root=None, name=None, fuzzySearchOnName=False, userId=None, dis
     return r
 
 
-def searchVector(root=None, name=None, fuzzySearchOnName=False, userId=None, disabled=False, canView=None, pageStart=None, hashtag=None, bounds=None, hasVectorLayers=None, layerName=None, fuzzySearchOnLayerName=None, listAll=False, token=None):
+def searchVector(root=None, name=None, fuzzySearchOnName=False, userId=None, disabled=False, canView=None, pageStart=None, hashtag=None, extent=None, hasVectorLayers=None, layerName=None, fuzzySearchOnLayerName=None, listAll=False, token=None):
     token = sanitize.validString('token', token, False)
     listAll = sanitize.validBool('listAll', listAll, True)
     root = sanitize.validStringArray('root', root, False)
@@ -60,7 +60,7 @@ def searchVector(root=None, name=None, fuzzySearchOnName=False, userId=None, dis
     canView = sanitize.validBool('canView', canView, False)
     pageStart = sanitize.validUuid('pageStart', pageStart, False)
     hashtag = sanitize.validString('hashtag', hashtag, False)
-    bounds = sanitize.validBounds('bounds', bounds, False)
+    extent = sanitize.validBounds('extent', extent, False)
     hasVectorLayers = sanitize.validBool(
         'hasVectorLayers', hasVectorLayers, False)
     layerName = sanitize.validString('layerName', layerName, False)
@@ -81,7 +81,7 @@ def searchVector(root=None, name=None, fuzzySearchOnName=False, userId=None, dis
         'canView': canView,
         'pagestart': pageStart,
         'hashtag': hashtag,
-        'bounds': bounds,
+        'extent': extent,
         'hasVectorLayers': hasVectorLayers,
         'layerName': layerName,
         'fuzzySearchOnLayerName': fuzzySearchOnLayerName

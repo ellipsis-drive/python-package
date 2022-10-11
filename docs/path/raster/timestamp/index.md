@@ -21,10 +21,8 @@ Add a timestamp to a raster map.
 
 **Optional arguments**
 
-- dateFrom (date), default current time
-- dateTo (date), default current time
+- date (dictionary with properties to and from, both of type date)
 - description (string)
-- appendToTimestampId (uuid)
 
 ## edit
 
@@ -40,8 +38,7 @@ Edit a timestamp of a raster map.
 
 **Optional arguments**
 
-- dateFrom (date)
-- dateTo (date)
+- date (dictionary with properties to and from, both of type date)
 - description (string)
 
 ## delete
@@ -68,11 +65,11 @@ Activate a timestamp.
 - pathId (uuid)
 - timestampId (uuid)
 
-## pause
+## deactivate
 
-    ellipsis.path.raster.timestamp.pause()
+    ellipsis.path.raster.timestamp.deactivate()
 
-Pause a timestamp.
+Deactivate a timestamp.
 
 **Mandatory arguments**
 
@@ -95,9 +92,9 @@ Request to obtain the aggregated data for a certain geometry.
 
 - token (string)
 
-## getAggregatedData
+## analyse
 
-    ellipsis.path.raster.timestamp.getAggregatedData()
+    ellipsis.path.raster.timestamp.analyse()
 
 Request to obtain the aggregated data for a certain geometry.
 
@@ -105,12 +102,12 @@ Request to obtain the aggregated data for a certain geometry.
 
 - pathId (uuid)
 - timestampIds (array of uuids)
-- approximate (boolean)
 - geometry (shapely geometry), a GeoJSON of the area of interest in WGS84
 
 **Optional arguments**
-
+- approximate (boolean) default True
 - token (string)
+- returnType (one of 'all' or 'statistics') default 'all'
 
 ## getRaster
 
@@ -120,15 +117,16 @@ Get a raster.
 
 **Mandatory arguments**
 
-- extent (bounds)
-- threads (integer)
+- extent (a dictionary with properties xMin, xMax, yMin, yMax of type float)
 - pathId (uuid)
 - timestampId (uuid)
 
 **Optional arguments**
 
 - token (string)
-- layer (object)
+- style (either uuid or dictionary describing a style). If no style given raw data is returned. Also see https://docs.ellipsis-drive.com/developers/api-v3/path-raster/styles/add-style
+- threads (integer) default 1
+- showProgress (bool) default True
 
 ## getDownsampledRaster
 
@@ -140,11 +138,13 @@ Get a downsampled raster.
 
 - pathId (uuid)
 - timestampId (uuid)
-- extent (bounds object)
+- extent (a dictionary with properties xMin, xMax, yMin, yMax of type float)
+- width (int)
+- height (int)
 
 **Optional arguments**
 
-- layer (object)
+- style (either uuid or dictionary describing a style). If no style given raw data is returned. Also see https://docs.ellipsis-drive.com/developers/api-v3/path-raster/styles/add-style
 - token (string)
 
 ## trash

@@ -6,7 +6,6 @@ maxdepth: 3
 ---
 feature/index
 order/index
-style/index
 upload/index
 ```
 
@@ -19,13 +18,12 @@ Adds a vector timestamp.
 **Mandatory arguments**
 
 - pathId (uuid),
-- name (string),
 - token (uuid), your token
 
 **Optional arguments**
 
-- properties (object), containing
-- description (string),
+- date (dictionary with properties to and from, both of type date)
+- description (string)
 
 ## edit
 
@@ -37,11 +35,10 @@ Edits a vector timestamp.
 
 - pathId (uuid),
 - timestampId (uuid),
-- name (string),
 - token (uuid), your token
 
 **Optional arguments**
-
+- date (dictionary with properties to and from, both of type date)
 - description (string),
 
 ## archive
@@ -141,7 +138,7 @@ Gets the bounds of a vector timestamp.
 
 - pathId (uuid),
 - timestampId (uuid),
-- extent (bounds object)
+- extent (a dictionary with properties xMin, xMax, yMin, yMax of type float)
 
 **Optional arguments**
 

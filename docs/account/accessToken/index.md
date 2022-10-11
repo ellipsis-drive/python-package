@@ -1,4 +1,4 @@
-# Personal Access Tokens
+# Access Tokens
 
 ## create
 

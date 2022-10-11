@@ -1,2 +1,2 @@
-from ellipsis.path.raster.timestamp.upload.root import upload, get, delete, trash, recover
+from ellipsis.path.raster.timestamp.upload.root import add, get, delete, trash, recover
 

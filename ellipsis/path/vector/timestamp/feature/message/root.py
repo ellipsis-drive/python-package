@@ -7,7 +7,7 @@ from io import BytesIO
 import base64
 
 
-def get(pathId, timestampId, featureIds = None, userId = None, messageIds = None, listAll = True, deleted = False, bounds = None, pageStart = None, token = None ):
+def get(pathId, timestampId, featureIds = None, userId = None, messageIds = None, listAll = True, deleted = False, extent = None, pageStart = None, token = None ):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, False)
@@ -16,10 +16,10 @@ def get(pathId, timestampId, featureIds = None, userId = None, messageIds = None
     featureIds = sanitize.validUuidArray('featureIds', featureIds, False)
     listAll = sanitize.validBool('listAll', listAll, True)
     deleted = sanitize.validBool('deleted', deleted, True)
-    bounds = sanitize.validBounds('bounds', bounds, False)
+    extent = sanitize.validBounds('extent', extent, False)
     pageStart = sanitize.validUuid('pageStart', pageStart, False)
 
-    body = {'userId': userId, 'messageIds':messageIds, 'deleted':deleted, 'bounds':bounds, 'featureIds':featureIds, 'pageStart':pageStart}
+    body = {'userId': userId, 'messageIds':messageIds, 'deleted':deleted, 'extent':extent, 'featureIds':featureIds, 'pageStart':pageStart}
     
     def f(body):
         r = apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId +  '/feature/message', body, token )

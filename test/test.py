@@ -368,17 +368,17 @@ el.path.trash(mapId, token)
 
 ########3some more specific bounds tests
 rasterId = '56e20fa2-f014-44c1-b46a-cde78e7e6b7e'
-timestampId = el.path.get(rasterId,token)['rater']['timestamps'][0]['id']
-el.path.raster.upload.get(pathId = rasterId, timestampId = timestampId, token = token)
+timestampId = el.path.get(rasterId,token)['raster']['timestamps'][0]['id']
+el.path.raster.timestamp.upload.get(pathId = rasterId, timestampId = timestampId, token = token)
 
 el.path.raster.timestamp.getBounds(pathId = rasterId, timestampId = timestampId, token=token)
 
 vectorId = '67e66823-8bbc-4ace-816a-c4e34282676c'
 timestampId = 'bc73c75a-cc74-4bb5-a609-ef01992bcc9a'
 
-el.path.vector.upload.get(pathId = rasterId, timestampId = timestampId, token = token)
+el.path.vector.timestamp.upload.get(pathId = vectorId, timestampId = timestampId, token = token)
 
-el.path.vector.timestamp.getBounds(pathId = rasterId, timestampId = timestampId, token=token)
+el.path.vector.timestamp.getBounds(pathId = vectorId, timestampId = timestampId, token=token)
 
 
 

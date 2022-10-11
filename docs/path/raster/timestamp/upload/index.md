@@ -2,7 +2,7 @@
 
 ## upload
 
-    ellipsis.path.raster.timestamp.upload.upload()
+    ellipsis.path.raster.timestamp.upload.add()
 
 Upload a raster file.
 
