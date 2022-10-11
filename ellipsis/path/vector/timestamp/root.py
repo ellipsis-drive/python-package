@@ -81,7 +81,7 @@ def getBounds(pathId, timestampId, token = None):
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, False)
     r = apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/bounds' , None, token)
-    print(r)
+
     r = {'id': 0, 'properties':{}, 'geometry':r}
     r  = gpd.GeoDataFrame.from_features([r])
     r = r.unary_union

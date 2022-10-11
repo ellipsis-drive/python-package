@@ -1,7 +1,10 @@
 from ellipsis import apiManager
 from ellipsis import sanitize
 from ellipsis.util.root import recurse
+
 import os
+import numpy as np
+import geopandas as gpd
 
 def upload(pathId, timestampId, filePath, token, fileFormat, epsg = None, noDataValue = None):
     token = sanitize.validString('token', token, True)
@@ -27,6 +30,12 @@ def get(pathId, timestampId, token, pageStart= None, listAll = True):
 
     def f(body):
         r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/upload', None, token)    
+        for i in np.arange( len(r['result'])):
+            if 'bounds' in r['results'][i].keys() and type(r['results'][i]['bounds']) != type(None):
+                r['result'][i]['bounds'] = gpd.GeoDataFrame.from_features([{'id': 0, 'properties':{}, 'geometry':r['result'][i]['bounds']}]).unary_union
+        
+
+        
         return r
 
     r = recurse(f, {'pageStart':pageStart}, listAll)

@@ -23,7 +23,7 @@ def getDownsampledRaster(pathId, timestampId, extent, width, height, style = Non
     bounds = sanitize.validBounds('bounds', bounds, True)
     style = sanitize.validObject('style', style, False)
 
-    body = {'pathId':pathId, 'timestampId':timestampId, 'extent':bounds, 'width':width, 'height':height}
+    body = {'pathId':pathId, 'timestampId':timestampId, 'extent':bounds, 'width':width, 'height':height, 'style':style}
     r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/rasterByExtent', body, token, crash = False)
     if r.status_code != 200:
         raise ValueError(r.message)

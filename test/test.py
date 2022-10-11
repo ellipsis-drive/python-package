@@ -24,7 +24,7 @@ folderId = '46e1e919-8b73-42a3-a575-25c6d45fd93b'
 
 
 ##account
-token = el.account.logIn("demo_user", "")
+demo_token = el.account.logIn("demo_user", "")
 admin_token = el.account.logIn(username = 'admin', password='')
 daan_token = el.account.logIn('daan', "")
 
@@ -148,7 +148,7 @@ el.path.raster.timestamp.activate(mapId, timestampId, token)
 
 info = el.path.get(mapId, token)
 timestamp = info['raster']['timestamps'][0]
-while timestamp['status'] != 'finished':
+while timestamp['status'] != 'active':
     time.sleep(1)
     info = el.path.get(mapId, token)
     timestamp = info['raster']['timestamps'][0]
@@ -181,7 +181,7 @@ yMax  = 52.30339
 
 extent = {'xMin':xMin,'yMin':yMin,'xMax':xMax,'yMax':yMax } 
 
-result = el.path.raster.timestamp.getRaster(pathId = mapId, timestampId = timestampId, extent = extent, token = token)
+result = el.path.raster.timestamp.getRaster(pathId = mapId, timestampId = timestampId, style=styleId, extent = extent, token = token)
 
 raster = result['raster']
 
@@ -351,7 +351,7 @@ el.path.vector.featureProperty.edit(mapId, featurePropertyId, token, required = 
 
 ### order module
 
-orderId = el.path.vector.timestamp.order.order(mapId, layerId, token, {'xMin':xMin, 'xMax':xMax, 'yMin':yMin, 'yMax':yMax})['id']
+orderId = el.path.vector.timestamp.order.order(mapId, layerId, token, extent = {'xMin':xMin, 'xMax':xMax, 'yMin':yMin, 'yMax':yMax})['id']
 
 order = el.path.vector.timestamp.order.get(token)[0]
 while order['status'] != 'completed':
@@ -364,6 +364,21 @@ os.remove(file_out)
 el.path.trash(mapId, token)
 
 
+
+
+########3some more specific bounds tests
+rasterId = '56e20fa2-f014-44c1-b46a-cde78e7e6b7e'
+timestampId = el.path.get(rasterId,token)['rater']['timestamps'][0]['id']
+el.path.raster.upload.get(pathId = rasterId, timestampId = timestampId, token = token)
+
+el.path.raster.timestamp.getBounds(pathId = rasterId, timestampId = timestampId, token=token)
+
+vectorId = '67e66823-8bbc-4ace-816a-c4e34282676c'
+timestampId = 'bc73c75a-cc74-4bb5-a609-ef01992bcc9a'
+
+el.path.vector.upload.get(pathId = rasterId, timestampId = timestampId, token = token)
+
+el.path.vector.timestamp.getBounds(pathId = rasterId, timestampId = timestampId, token=token)
 
 
 

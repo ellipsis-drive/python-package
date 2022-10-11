@@ -38,20 +38,20 @@ The below example uploads a raster file.
     import ellipsis as el
 
     token = el.account.logIn("username", "password")
-    rasterMapId = el.path.add("raster", "some name", token)['id']
-    timestampId = el.path.raster.timestamp.add(rasterMapId, token)
-    el.path.raster.timestamp.upload.upload(rasterMapId, timestampId, pathToYourLocalFile, token)
+    rasterLayerId = el.path.add("raster", "some name", token)['id']
+    timestampId = el.path.raster.timestamp.add(rasterLayerId, token)
+    el.path.raster.timestamp.upload.upload(rasterLayerId, timestampId, pathToYourLocalFile, token)
     #don't forget to activate the timestamp once upload is completed
-    el.path.raster.timestamp.activate(rasterMapId, timestampId, token)
+    el.path.raster.timestamp.activate(rasterLayerId, timestampId, token)
 
 Similarly, the below example uploads a vector file.
 
     import ellipsis as el
 
     token = el.account.logIn("username", "password")
-    vectorMapId = el.path.add("vector", "some name", token)['id']
-    layerId = el.path.vector.layer.add(vectorMapId, token)
-    el.path.vector.layer.upload.upload(vectorMapId, layerId, pathToYourLocalFile, token)
+    vectorLayerId = el.path.add("vector", "some name", token)['id']
+    timestampId = el.path.vector.timestamp.add(vectorLayerId, token)
+    el.path.vector.timestamp.upload.upload(vectorLayerId, timestampId, pathToYourLocalFile, token)
 
 ```{toctree}
 ---
