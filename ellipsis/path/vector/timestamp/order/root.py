@@ -6,7 +6,7 @@ def get(token):
     r = apiManager.get('/path/vector/timestamp/order', None, token)
     return r
 
-def order(pathId, timestampId, token, extent = None, uploadId = None):
+def add(pathId, timestampId, token, extent = None, uploadId = None):
     
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)

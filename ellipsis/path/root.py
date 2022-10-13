@@ -230,10 +230,10 @@ def delete(pathId, token, recursive = False):
     if recursive:
         info = get(pathId, token)
         if info['type'] == 'folder':
-            folders = listFolders(pathId, token=token)['result']
+            folders = listPath(pathId, pathType='folder', token=token)['result']
             for f in folders:
                 delete(f['id'], token, True)
-            maps = listMaps(pathId, token=token)['result']
+            maps = listPath(pathId, pathType='layer', token=token)['result']
             for m in maps:
                 delete(m['id'], token, True)
         apiManager.delete(f'/path/{pathId}', None, token)            

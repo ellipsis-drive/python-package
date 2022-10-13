@@ -102,19 +102,14 @@ def add(pathId, timestampId, features, token, showProgress = True, zoomLevels = 
         for c in columns:
             if 'int' in str(features.dtypes[c]) or 'Int' in str(features.dtypes[c]):
                 propertyType = 'integer'
-                features[c] = [ int(d) if not np.isnan(d) and d != None else  np.nan for d in features[c].values ]
             elif 'float' in str(features.dtypes[c]) or 'Float' in str(features.dtypes[c]):
                 propertyType = 'float'
-                features[c] = [ float(d) if not np.isnan(d) and d != None else  np.nan for d in features[c].values ]
             elif 'bool' in str(features.dtypes[c]):
                 propertyType = 'boolean'
-                features[c] = [ bool(d) if not np.isnan(d) and d != None else  np.nan for d in features[c].values ]
             elif 'datetime' in str(features.dtypes[c]):
                 propertyType = 'datetime'
-                features[c] = [ d.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3] for d in features[c].values ]
             else:
                 propertyType = 'string'
-                features[c] = [ str(d) if d != None else  np.nan for d in features[c].values ]
 
 
             ###date

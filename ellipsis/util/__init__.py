@@ -8,3 +8,5 @@ from ellipsis.util.root import reprojectRaster
 from ellipsis.util.root import saveRaster
 from ellipsis.util.root import transformPoint
 
+from ellipsis.util.root import stringToDate
+from ellipsis.util.root import dateToString

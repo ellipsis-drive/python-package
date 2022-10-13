@@ -7,15 +7,16 @@ def get(token):
     r = apiManager.get('/path/raster/timestamp/order', None, token)
     return r
 
-def order(pathId, timestampId, token, extent = None, uploadId = None):
+def add(pathId, timestampId, token, extent = None, epsg=4326, uploadId = None):
     
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     extent = sanitize.validBounds('extent', extent, False)
     uploadId = sanitize.validUuid('uploadId', uploadId, False)
+    epsg = sanitize.validInt('epsg', epsg, True)
 
-    body = {'uploadId': uploadId, 'extent':extent}
+    body = {'uploadId': uploadId, 'extent':extent, 'epsg':epsg}
     
     r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/order', body, token)    
 

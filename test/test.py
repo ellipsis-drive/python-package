@@ -24,7 +24,7 @@ folderId = '46e1e919-8b73-42a3-a575-25c6d45fd93b'
 
 
 ##account
-demo_token = el.account.logIn("demo_user", "demo_user")
+demo_token = el.account.logIn("demo_user", "")
 admin_token = el.account.logIn(username = 'admin', password='')
 daan_token = el.account.logIn('daan', "")
 
@@ -132,19 +132,25 @@ dateTo = datetime.datetime.now()
 el.path.raster.timestamp.edit(mapId, timestampId, token, description = 'hoi', date={'from': dateFrom, 'to':dateTo})
 
 filePath = '/home/daniel/Ellipsis/python-package/test/0.tif'
-uploadId = el.path.raster.timestamp.upload.upload(pathId = mapId, timestampId = timestampId, filePath = filePath, fileFormat = 'tif', token = token)['id']
+uploadId = el.path.raster.timestamp.upload.add(pathId = mapId, timestampId = timestampId, filePath = filePath, fileFormat = 'tif', token = token)['id']
 
 el.path.raster.timestamp.upload.trash(pathId = mapId, timestampId = timestampId, uploadId= uploadId, token = token)
 el.path.raster.timestamp.upload.recover(pathId = mapId, timestampId = timestampId, uploadId= uploadId, token = token)
 el.path.raster.timestamp.upload.trash(pathId = mapId, timestampId = timestampId, uploadId= uploadId, token = token)
 el.path.raster.timestamp.upload.delete(mapId, timestampId, uploadId, token)
-uploadId = el.path.raster.timestamp.upload.upload(pathId = mapId, timestampId = timestampId, filePath=filePath, fileFormat='tif', token = token)['id']
+uploadId = el.path.raster.timestamp.upload.add(pathId = mapId, timestampId = timestampId, filePath=filePath, fileFormat='tif', token = token)['id']
 
 uploads = el.path.raster.timestamp.upload.get(mapId, timestampId, token)
 
 
 el.path.raster.timestamp.activate(mapId, timestampId, token)
+
+while el.path.get(mapId, token)['raster']['timestamps'][0]['status'] != 'active':
+    time.sleep(2)
+
 el.path.raster.timestamp.deactivate(mapId, timestampId, token)
+while el.path.get(mapId, token)['raster']['timestamps'][0]['status'] != 'passive':
+    time.sleep(2)
 el.path.raster.timestamp.activate(mapId, timestampId, token)
 
 info = el.path.get(mapId, token)
@@ -189,7 +195,7 @@ raster = result['raster']
 
 el.util.plotRaster(raster[0:3,:,:])
 
-r = el.path.raster.timestamp.getDownsampledRaster(pathId = mapId, timestampId=timestampId, style=styleId, extent = extent, width = 1024, height = 1024, token = token)
+r = el.path.raster.timestamp.getSampledRaster(pathId = mapId, timestampId=timestampId, style=styleId, extent = extent, width = 1024, height = 1024, token = token)
 raster = r['raster']
 el.util.plotRaster(raster[0:3,:,:])
 
@@ -204,12 +210,14 @@ timestampId = "ba5b418a-a39e-4d84-9411-e23c096085a3"
 uploads = el.path.raster.timestamp.upload.get(mapId, timestampId, token)
 uploadId = uploads['result'][0]['id']
 
-downloadId = el.path.raster.timestamp.order.order(mapId, timestampId, token, uploadId = uploadId)['id']
+downloadId = el.path.raster.timestamp.order.add(mapId, timestampId, token, uploadId = uploadId)['id']
 
 file_out = '/home/daniel/Downloads/out.tif'
 el.path.raster.timestamp.order.download(downloadId, file_out, token)
 os.remove(file_out)
 
+
+##from here
 pendinDownloads = el.path.raster.timestamp.order.get(token)
 
 
@@ -240,7 +248,7 @@ layerId = el.path.vector.timestamp.add(mapId, description = 'test', token = toke
 
 ###vector uploads
 filePath = '/home/daniel/Ellipsis/python-package/test/test.zip'
-el.path.vector.timestamp.upload.upload(pathId = mapId, timestampId = layerId, filePath = filePath, token = token, fileFormat = 'zip')
+el.path.vector.timestamp.upload.add(pathId = mapId, timestampId = layerId, filePath = filePath, token = token, fileFormat = 'zip')
 
 
 upload = el.path.vector.timestamp.upload.get(pathId = mapId,  timestampId = layerId, token = token)['result'][0]
@@ -259,7 +267,7 @@ xMax = bounds.bounds[2]
 yMax = bounds.bounds[3]
 
 bounds = {'xMin':xMin, 'xMax':xMax, 'yMin':yMin, 'yMax':yMax}
-sh = el.path.vector.timestamp.getFeaturesByExtent(pathId = mapId, timestampId = layerId, extent =  bounds, token = token)
+sh = el.path.vector.timestamp.getFeaturesByExtent(pathId = mapId, timestampId = layerId, extent =  bounds, token = token, listAll = False)
 sh['result'].plot()
 
 sh = el.path.vector.timestamp.listFeatures(mapId, layerId, token)
@@ -278,7 +286,7 @@ blocked = r['vector']['timestamps'][0]['availability']['blocked']
 while blocked:
     time.sleep(1)
     r = el.path.get(mapId, token)
-    blocked = r['vector']['layers'][0]['availability']['blocked']
+    blocked = r['vector']['timestamps'][0]['availability']['blocked']
 
 
 ###feature module
@@ -286,6 +294,10 @@ features = sh['result'][1:2]
 featureIds = features['id'].values
 
 el.path.vector.timestamp.feature.add(mapId, layerId, features, token)
+
+levelsOfDetail1 = features.simplify(tolerance = 1, preserve_topology = True)
+el.path.vector.timestamp.feature.add(pathId = mapId, timestampId =  layerId, features=features, levelOfDetail1=levelsOfDetail1, token=token)
+
 
 
 el.path.vector.timestamp.feature.edit(mapId, layerId, featureIds = features['id'].values, token = token, features = features)
@@ -352,7 +364,7 @@ el.path.vector.featureProperty.edit(mapId, featurePropertyId, token, required = 
 
 ### order module
 
-orderId = el.path.vector.timestamp.order.order(mapId, layerId, token, extent = {'xMin':xMin, 'xMax':xMax, 'yMin':yMin, 'yMax':yMax})['id']
+orderId = el.path.vector.timestamp.order.add(mapId, layerId, token, extent = {'xMin':xMin, 'xMax':xMax, 'yMin':yMin, 'yMax':yMax})['id']
 
 order = el.path.vector.timestamp.order.get(token)[0]
 while order['status'] != 'completed':

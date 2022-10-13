@@ -96,13 +96,13 @@ Request to obtain the aggregated data for a certain geometry.
 
     ellipsis.path.raster.timestamp.analyse()
 
-Request to obtain the aggregated data for a certain geometry.
+Request to obtain pixel values within a certain geometry.
 
 **Mandatory arguments**
 
 - pathId (uuid)
 - timestampIds (array of uuids)
-- geometry (shapely geometry), a GeoJSON of the area of interest in WGS84
+- geometry (shapely geometry in WGS84)
 
 **Optional arguments**
 - approximate (boolean) default True
@@ -128,7 +128,7 @@ Get a raster.
 - threads (integer) default 1
 - showProgress (bool) default True
 
-## getDownsampledRaster
+## getSampledRaster
 
     ellipsis.path.raster.timestamp.getDownsampledRaster()
 
@@ -145,6 +145,7 @@ Get a downsampled raster.
 **Optional arguments**
 
 - style (either uuid or dictionary describing a style). If no style given raw data is returned. Also see https://docs.ellipsis-drive.com/developers/api-v3/path-raster/styles/add-style
+- epsg (int), default 3857 (webmercator)
 - token (string)
 
 ## trash

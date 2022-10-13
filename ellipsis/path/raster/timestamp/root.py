@@ -15,15 +15,19 @@ from PIL import Image
 import geopandas as gpd
 import datetime
 
-def getDownsampledRaster(pathId, timestampId, extent, width, height, style = None, token = None):
+
+def getDownsampledRaster(pathId, timestampId, extent, width, height, epsg=3857, style = None, token = None):
+    return getSampledRaster(pathId, timestampId, extent, width, height, epsg, style, token)
+
+def getSampledRaster(pathId, timestampId, extent, width, height, epsg=3857, style = None, token = None):
     bounds = extent
     token = sanitize.validString('token', token, False)
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     bounds = sanitize.validBounds('bounds', bounds, True)
     style = sanitize.validObject('style', style, False)
-
-    body = {'pathId':pathId, 'timestampId':timestampId, 'extent':bounds, 'width':width, 'height':height, 'style':style}
+    epsg = sanitize.validInt('epsg', epsg, True)
+    body = {'pathId':pathId, 'timestampId':timestampId, 'extent':bounds, 'width':width, 'height':height, 'style':style, 'epsg':epsg}
     r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/rasterByExtent', body, token, crash = False)
     if r.status_code != 200:
         raise ValueError(r.message)
@@ -46,7 +50,7 @@ def getDownsampledRaster(pathId, timestampId, extent, width, height, style = Non
 
     trans = rasterio.transform.from_bounds(xMinWeb, yMinWeb, xMaxWeb, yMaxWeb, r.shape[2], r.shape[1])
 
-    return {'raster': r, 'transform':trans, 'extent': {'xMin' : xMinWeb, 'yMin': yMinWeb, 'xMax': xMaxWeb, 'yMax': yMaxWeb}, 'crs':"EPSG:3857"}
+    return {'raster': r, 'transform':trans, 'extent': {'xMin' : xMinWeb, 'yMin': yMinWeb, 'xMax': xMaxWeb, 'yMax': yMaxWeb}, 'crs':"EPSG:" + str(epsg) }
 
 
 
