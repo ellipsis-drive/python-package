@@ -3,6 +3,7 @@ from ellipsis import apiManager
 from ellipsis.util import loadingBar
 from ellipsis.util import chunks
 from ellipsis.util.root import transformPoint
+from rasterio.io import MemoryFile
 
 import json
 import numpy as np
@@ -44,18 +45,54 @@ def getSampledRaster(pathId, timestampId, extent, width, height, epsg=3857, styl
     xMax = bounds['xMax']
     yMax = bounds['yMax']
 
-    xMinWeb, yMinWeb = transformPoint( (xMin, yMin), 'EPSG:4326', 'EPSG:3857')
-    xMaxWeb, yMaxWeb = transformPoint( (xMax, yMax), 'EPSG:4326', 'EPSG:3857')
 
 
-    trans = rasterio.transform.from_bounds(xMinWeb, yMinWeb, xMaxWeb, yMaxWeb, r.shape[2], r.shape[1])
+    trans = rasterio.transform.from_bounds(xMin, yMin, xMax, yMax, r.shape[2], r.shape[1])
 
-    return {'raster': r, 'transform':trans, 'extent': {'xMin' : xMinWeb, 'yMin': yMinWeb, 'xMax': xMaxWeb, 'yMax': yMaxWeb}, 'crs':"EPSG:" + str(epsg) }
-
-
+    return {'raster': r, 'transform':trans, 'extent': {'xMin' : xMin, 'yMin': yMin, 'xMax': xMax, 'yMax': yMax}, 'crs':"EPSG:" + str(epsg) }
 
 
-def getRaster(pathId, timestampId, extent, style = None, threads = 1, token = None, showProgress = True):
+def getValuesAlongLine(pathId, timestampId, line, token = None):
+    pathId = sanitize.validUuid('pathId', pathId, True)
+    timestampId = sanitize.validUuid('timestampId', timestampId, True)
+    token = sanitize.validString('token', token, False)
+    line = sanitize.validShapely('line', line, True)
+
+    if line.type != 'LineString':
+        raise ValueError('line must be a shapely lineString')
+
+    line = list(line.coords)
+    
+    
+    x_of_line = [p[0] for p in line]
+    y_of_line = [p[1] for p in line]
+
+    #the first action is to cacluate a bounding box for the raster we need to retrieve
+    xMin = min(x_of_line)
+    xMax = max(x_of_line)
+    yMin = min(y_of_line)
+    yMax = max(y_of_line)
+
+    #now we retrieve the needed raster we use epsg = 4326 but we can use other coordinates as well
+    extent = {'xMin': xMin, 'xMax':xMax, 'yMin':yMin, 'yMax':yMax}
+
+    size = 1000
+    r = getSampledRaster(pathId = pathId, timestampId = timestampId, extent = extent, width = size, height = size, epsg=4326)
+    raster = r['raster']
+    raster = np.transpose(raster, [2,0,1])
+
+    memfile =  MemoryFile()
+    dataset = memfile.open( driver='GTiff', dtype='float32', height=size, width=size, count = raster.shape[0], crs= r['crs'], transform=r['transform'])
+    dataset.write(raster)
+
+    values = list(dataset.sample(line, indexes = [1]))
+    values = [ v[0] for v in values ]
+    return values
+
+    
+    
+
+def getRaster(pathId, timestampId, extent, style = None, threads = 1, token = None, showProgress = True, inWgs = True):
     bounds = extent
     threads = sanitize.validInt('threads', threads, True)
     token = sanitize.validString('token', token, False)
@@ -70,8 +107,10 @@ def getRaster(pathId, timestampId, extent, style = None, threads = 1, token = No
     yMin = bounds['yMin']
     xMax = bounds['xMax']
     yMax = bounds['yMax']
-    xMinWeb,yMinWeb =  transformPoint((xMin, yMin), 'EPSG:4326', 'EPSG:3857')
-    xMaxWeb,yMaxWeb = transformPoint((xMax, yMax), 'EPSG:4326', 'EPSG:3857')
+    
+    if inWgs:
+        xMinWeb,yMinWeb =  transformPoint((xMin, yMin), 'EPSG:4326', 'EPSG:3857')
+        xMaxWeb,yMaxWeb = transformPoint((xMax, yMax), 'EPSG:4326', 'EPSG:3857')
 
     info = apiManager.get('/path/' + pathId, None, token)
     bands =  info['raster']['bands']

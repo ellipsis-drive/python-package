@@ -236,22 +236,11 @@ def validBounds(name, value, required):
 
     for key in keys:
         if not key in value.keys() or (not 'float' in str(type(value[key])) and not 'int' in str(type(value[key]))):
-            raise ValueError(name + ' must be a dictionary with keys ' ' '.join(
+            raise ValueError(name + ' must be a dictionary with keys ' + ' '.join(
                 keys) + ' whose values must be of type float')
         value[key] = float(value[key])
 
-    if value['xMin'] > 180 or value['xMin'] < -180:
-        raise ValueError('xMin must be between -180 and 180')
-    if value['xMax'] > 180 or value['xMax'] < -180:
-        raise ValueError('xMax must be between -180 and 180')
-    if value['yMin'] > 85 or value['yMin'] < -85:
-        raise ValueError('yMin must be between -85 and 85')
-    if value['yMax'] > 85 or value['yMax'] < -85:
-        raise ValueError('yMax must be between -180 and 180')
-    if value['yMax'] <= value['yMin']:
-        raise ValueError('yMax must be strictly greater than yMin')
-    if value['xMax'] <= value['xMin']:
-        raise ValueError('xMax must be strictly greater than xMin')
+
 
 
     return(value)

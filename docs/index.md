@@ -29,7 +29,7 @@ Retrieve all maps and folders inside a specific folder, and retreive information
 
     info = el.path.get(folderId, token)
     layers = el.path.listPath(folderId, pathType = 'layer', token = token, listAll = True)
-    folders = el.path.lisPath(folderId, pathType = 'folder', token = token, listAll = True)
+    folders = el.path.listPath(folderId, pathType = 'folder', token = token, listAll = True)
 
 **Uploading files**
 
@@ -37,21 +37,26 @@ The below example uploads a raster file.
 
     import ellipsis as el
 
+    pathToYourLocalFile = ""
+    
     token = el.account.logIn("username", "password")
     rasterLayerId = el.path.add("raster", "some name", token)['id']
-    timestampId = el.path.raster.timestamp.add(rasterLayerId, token)
-    el.path.raster.timestamp.upload.upload(rasterLayerId, timestampId, pathToYourLocalFile, token)
+    timestampId = el.path.raster.timestamp.add(rasterLayerId, token)['id']
+    el.path.raster.timestamp.upload.add(pathId =rasterLayerId, timestampId=timestampId, filePath= pathToYourLocalFile, fileFormat='tif', token=token)
     #don't forget to activate the timestamp once upload is completed
     el.path.raster.timestamp.activate(rasterLayerId, timestampId, token)
+
 
 Similarly, the below example uploads a vector file.
 
     import ellipsis as el
 
+    pathToYourLocalFile = ""
+
     token = el.account.logIn("username", "password")
     vectorLayerId = el.path.add("vector", "some name", token)['id']
-    timestampId = el.path.vector.timestamp.add(vectorLayerId, token)
-    el.path.vector.timestamp.upload.upload(vectorLayerId, timestampId, pathToYourLocalFile, token)
+    timestampId = el.path.vector.timestamp.add(vectorLayerId, token)['id']
+    el.path.vector.timestamp.upload.add(vectorLayerId, timestampId, pathToYourLocalFile, token)
 
 ```{toctree}
 ---

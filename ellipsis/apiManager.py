@@ -4,7 +4,7 @@ import urllib
 import os
 from requests_toolbelt import MultipartEncoder
 
-baseUrl = 'https://api.ellipsis-drive.com/v3'
+baseUrl = 'https://api.stg1.ellipsis-drive.com/v3'
 s = requests.Session()
 
 
@@ -61,6 +61,7 @@ def delete(url, body, token = None):
 
 
 def call(method, url, body = None, token = None, crash = True):
+
     body = filterNone(body)
     if type(body) != type(None) and type(body) != type({}):
         raise ValueError(

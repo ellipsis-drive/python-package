@@ -13,6 +13,7 @@ from PIL import Image
 from skimage.transform import resize
 import os
 import subprocess
+
 from ellipsis import sanitize
 from rasterio.warp import reproject as warp, Resampling, calculate_default_transform
 
@@ -59,11 +60,11 @@ def dateToString(date):
 def plotRaster(raster):
     raster = sanitize.validNumpyArray('raster', raster, True)
 
-    if len(raster.shape) != 3:
-        raise ValueError('raster must have 3 dimensions')
+    if len(raster.shape) != 3 and len(raster.shape) != 2:
+        raise ValueError('raster must have 2 or 3 dimensions')
 
-    if raster.shape[0] != 1 and raster.shape[0] != 3:
-        raise ValueError('raster must have either 1 band or 3 bands')
+    if len(raster.shape) == 2:
+        raster = np.expand_dims(raster, 0)
 
     
 

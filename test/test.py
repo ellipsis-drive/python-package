@@ -11,7 +11,7 @@ import pandas as pd
 
 
 
-token = el.account.logIn(username = 'admin', password='')
+token = el.account.logIn(username = 'admin', password='6MigXH019pI0LxSvwpox')
 
 ##access token
 el.account.accessToken.create(description = 'hoi', accessList = [{'pathId': 'd448bdb5-783a-4919-98bb-caf8092904aa' , 'access':{'accessLevel':100}}], token = token)
@@ -195,7 +195,7 @@ raster = result['raster']
 
 el.util.plotRaster(raster[0:3,:,:])
 
-r = el.path.raster.timestamp.getSampledRaster(pathId = mapId, timestampId=timestampId, style=styleId, extent = extent, width = 1024, height = 1024, token = token)
+r = el.path.raster.timestamp.getSampledRaster(pathId = mapId, timestampId=timestampId, style=styleId, extent = extent, width = 1024, height = 1024, epsg=4326, token = token)
 raster = r['raster']
 el.util.plotRaster(raster[0:3,:,:])
 
