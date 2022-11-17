@@ -7,9 +7,9 @@
 **Mandatory arguments**
 - token (string)
 
-## order
+## add
 
-    ellipsis.path.vector.timestamp.order.order()
+    ellipsis.path.vector.timestamp.order.add()
 
 **Mandatory arguments**
 - pathId (uuid)

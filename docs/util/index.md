@@ -1,0 +1,125 @@
+# Util
+
+## reprojectRaster
+
+    ellipsis.util.reprojectRaster()
+
+Reproject a numpy array raster.
+
+**Mandatory arguments**
+
+- r (3D numpy array), the raster to be reprojected
+- sourceExtent (dictionary), dictionary with xMin, xMax, yMin, yMax giving the extent of the raster
+- targetExtent (dictionary), dictionary with xMin, xMax, yMin, yMax giving the extent of target raster
+- sourceEpsg (ing) epsg code of the raster
+- targetEpsg (ing) epsg code of the target raster
+- targetWidth (int) width of the target raster
+- targetHeight (int) height of the target raster
+
+**Optional arguments**
+
+- interpolation (string) one of bilinear or nearest
+
+## reprojectVector
+
+    ellipsis.util.reprojectVector()
+
+Reprojects a geopandas dataframe
+
+**Mandatory arguments**
+
+- features (geopandas dataframe) geopandas dataframe to be reprojected
+- targetEpsg (int) epsg to reproject to
+
+**Optional arguments**
+
+- cores (int) number of processes to use
+
+
+## saveRaster
+
+    ellipsis.util.saveRaster()
+
+Saves numpy array as tif
+
+**Mandatory arguments**
+
+- targetFile (string) path to write ot
+- r (3D numpy array) numpy array of the data of the raster to write
+- epsg (int) epsg code of the raster
+
+**Optional arguments**
+
+- extent (dictionary), dictionary with xMin, xMax, yMin, yMax giving the extent of the raster
+- transform (rasterio transform), the transform of the raster
+
+## saveVector
+
+    ellipsis.util.saveVector()
+
+Saves numpy array as tif
+
+**Mandatory arguments**
+
+- targetFile (string) path to write ot
+- features (geopandas data frame) a geopandas dataframe to save
+
+**Optional arguments**
+
+- extent (dictionary), dictionary with xMin, xMax, yMin, yMax giving the extent of the raster
+- transform (rasterio transform), the transform of the raster
+
+
+
+## plotRaster
+
+    ellipsis.util.plotRaster()
+
+Plots a numpy array containing raster data
+
+**Mandatory arguments**
+
+- r (numpy array) numpy array of the data of the raster to write
+
+
+## plotVector
+
+    ellipsis.util.plotVector()
+
+Plots a geopandas data frame
+
+**Mandatory arguments**
+
+- features (geopandas dataframe) a geopandas dataframe with features to plot
+
+
+## cutIntoTiles
+
+    ellipsis.util.cutIntoTiles()
+
+Splits up a geopandas dataframe into tile of a requested zoomlevel. This function is meant as a vector tiles creator
+
+**Mandatory arguments**
+
+- features (geopandas dataframe) a geopandas dataframe with features to cut
+- zoom (int) the zoomlevel to cut the features into
+
+**Optional arguments**
+
+- buffer (float), a buffer in meters to use when cutting into the tiles.
+- cores (int), number of processes to commit.
+
+## cover
+
+    ellipsis.util.cover()
+
+Cover a given shapely polygon or multi polygon with tiles of a given width
+
+**Mandatory arguments**
+
+- bounds (shapely polygon or mulitpolygon) a geometry indicating the region to cover
+- width (float) size of the tiles to cover the region with in meters.
+
+
+
+

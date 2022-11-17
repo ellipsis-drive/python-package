@@ -1,8 +1,9 @@
 from ellipsis import sanitize
+from ellipsis.util.root import getActualExtent
 from ellipsis import apiManager
 from ellipsis.util import loadingBar
 from ellipsis.util import chunks
-from ellipsis.util.root import transformPoint
+from ellipsis.util.root import reprojectRaster
 from rasterio.io import MemoryFile
 
 import json
@@ -52,7 +53,7 @@ def getSampledRaster(pathId, timestampId, extent, width, height, epsg=3857, styl
     return {'raster': r, 'transform':trans, 'extent': {'xMin' : xMin, 'yMin': yMin, 'xMax': xMax, 'yMax': yMax}, 'crs':"EPSG:" + str(epsg) }
 
 
-def getValuesAlongLine(pathId, timestampId, line, token = None):
+def getValuesAlongLine(pathId, timestampId, line, token = None, epsg = 4326):
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     token = sanitize.validString('token', token, False)
@@ -61,9 +62,12 @@ def getValuesAlongLine(pathId, timestampId, line, token = None):
     if line.type != 'LineString':
         raise ValueError('line must be a shapely lineString')
 
+    temp = gpd.GeoDataFrame({'geometry':[line]})
+    temp.crs = 'EPSG:' + str(epsg)
+    temp = temp.to_crs('EPSG:4326')
+    line = temp['geometry'].values[0]
     line = list(line.coords)
-    
-    
+        
     x_of_line = [p[0] for p in line]
     y_of_line = [p[1] for p in line]
 
@@ -85,14 +89,14 @@ def getValuesAlongLine(pathId, timestampId, line, token = None):
     dataset = memfile.open( driver='GTiff', dtype='float32', height=size, width=size, count = raster.shape[0], crs= r['crs'], transform=r['transform'])
     dataset.write(raster)
 
-    values = list(dataset.sample(line, indexes = [1]))
-    values = [ v[0] for v in values ]
+    values = list(dataset.sample(line))
+
     return values
 
     
     
 
-def getRaster(pathId, timestampId, extent, style = None, threads = 1, token = None, showProgress = True, inWgs = True):
+def getRaster(pathId, timestampId, extent, style = None, threads = 1, token = None, showProgress = True, epsg = 3857):
     bounds = extent
     threads = sanitize.validInt('threads', threads, True)
     token = sanitize.validString('token', token, False)
@@ -107,11 +111,18 @@ def getRaster(pathId, timestampId, extent, style = None, threads = 1, token = No
     yMin = bounds['yMin']
     xMax = bounds['xMax']
     yMax = bounds['yMax']
-    
-    if inWgs:
-        xMinWeb,yMinWeb =  transformPoint((xMin, yMin), 'EPSG:4326', 'EPSG:3857')
-        xMaxWeb,yMaxWeb = transformPoint((xMax, yMax), 'EPSG:4326', 'EPSG:3857')
 
+    res = getActualExtent(xMin, xMax, yMin, yMax, 'EPSG:' + str(epsg))
+    if res['status'] == '400':
+        raise ValueError('Invalid epsg and extent combination')
+        
+    bounds = res['message']
+
+    xMinWeb = bounds['xMin']
+    yMinWeb = bounds['yMin']
+    xMaxWeb = bounds['xMax']
+    yMaxWeb = bounds['yMax']
+    
     info = apiManager.get('/path/' + pathId, None, token)
     bands =  info['raster']['bands']
     if type(style) == type(None):
@@ -195,19 +206,28 @@ def getRaster(pathId, timestampId, extent, style = None, threads = 1, token = No
     max_y_index = max(int(math.floor((y_end- y1_osm)*256 +1)), min_y_index + 1)
 
     r_total = r_total[:,min_y_index:max_y_index,min_x_index:max_x_index]
- 
-    trans = rasterio.transform.from_bounds(xMinWeb, yMinWeb, xMaxWeb, yMaxWeb, r_total.shape[2], r_total.shape[1])
 
-    return {'raster': r_total, 'transform':trans, 'extent': {'xMin' : xMinWeb, 'yMin': yMinWeb, 'xMax': xMaxWeb, 'yMax': yMaxWeb}, 'crs':"EPSG:3857"}
+    mercatorExtent =  {'xMin' : xMinWeb, 'yMin': yMinWeb, 'xMax': xMaxWeb, 'yMax': yMaxWeb}
+    if epsg == 3857:
+        trans = rasterio.transform.from_bounds(xMinWeb, yMinWeb, xMaxWeb, yMaxWeb, r_total.shape[2], r_total.shape[1])
+    
+        return {'raster': r_total, 'transform':trans, 'extent':mercatorExtent, 'epsg':3857}
+    else:
+        return reprojectRaster(r = r_total, sourceExtent = mercatorExtent, targetExtent = extent, targetWidth=r_total.shape[2], targetHeight=r_total.shape[1], sourceEpsg = 3857, targetEpsg= epsg, interpolation = 'nearest')
 
 
-def analyse(pathId, timestampIds, geometry, returnType= 'all', approximate=True, token = None):
+def analyse(pathId, timestampIds, geometry, returnType= 'all', approximate=True, token = None, epsg = 4326):
     token = sanitize.validString('token', token, False)
     pathId = sanitize.validUuid('pathId', pathId, True)    
     timestampIds = sanitize.validUuidArray('timestampIds', timestampIds, True)    
     approximate = sanitize.validBool(approximate, approximate, True)    
     geometry = sanitize.validShapely('geometry', geometry, True)
     returnType = sanitize.validString('returnType', returnType, True)
+
+    temp = gpd.GeoDataFrame({'geometry':[geometry]})
+    temp.crs = 'EPSG:' + str(epsg)
+    temp = temp.to_crs('EPSG:4326')
+    geometry = temp['geometry'].values[0]
 
     try:
         sh = gpd.GeoDataFrame({'geometry':[geometry]})

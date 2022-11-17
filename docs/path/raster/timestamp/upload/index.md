@@ -1,6 +1,6 @@
 # Upload
 
-## upload
+## add
 
     ellipsis.path.raster.timestamp.upload.add()
 

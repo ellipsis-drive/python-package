@@ -1,8 +1,8 @@
 # Order
 
-## order
+## add
 
-    ellipsis.path.raster.timestamp.order.order()
+    ellipsis.path.raster.timestamp.order.add()
 
 Order a download.
 

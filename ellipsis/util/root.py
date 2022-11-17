@@ -13,9 +13,14 @@ from PIL import Image
 from skimage.transform import resize
 import os
 import subprocess
+from concurrent.futures import ProcessPoolExecutor as Pool
+import multiprocessing
+import warnings
 
 from ellipsis import sanitize
 from rasterio.warp import reproject as warp, Resampling, calculate_default_transform
+
+warnings.simplefilter("ignore")
 
 
 def recurse(f, body, listAll, extraKey = None):
@@ -84,7 +89,7 @@ def plotRaster(raster):
         plt.imshow(raster[0,:,:], interpolation='none')
         plt.show()
     
-def plotFeatures(features):
+def plotVector(features):
     features = sanitize.validGeopandas('features', features, True)
     features.plot()
 
@@ -99,8 +104,8 @@ def chunks(l, n = 3000):
     
 
  
-def cover(bounds, w):
-    
+def cover(bounds, width):
+    w = width
     w = sanitize.validInt('w',w, True)
     bounds = sanitize.validBounds('bounds',bounds, True)
 
@@ -151,233 +156,56 @@ def loadingBar(count,total):
         sys.stdout.write("\r" + str(int(count)).rjust(3,'0')+"/"+str(int(total)).rjust(3,'0') + ' [' + '='*int(percent) + ' '*(100-int(percent)) + ']')
 
 
-def reprojectRaster(r, sourceExtent, targetExtent, targetWidth, targetHeight, targetCrs, tempFolder, interpolation = 'nearest'):
+def reprojectRaster(r, sourceExtent, targetExtent, targetWidth, targetHeight, sourceEpsg, targetEpsg, interpolation = 'nearest'):
     
     sanitize.validNumpyArray('r', r, True)
-    targetExtent, targetCrs = sanitize.validBoundsCrsCombination(['targetExtent', 'targetCrs'], [targetExtent, targetCrs], True)
-    tempFolder = sanitize.validString('tempFolder', tempFolder, True)
+    targetExtent, targetCrs = sanitize.validBoundsCrsCombination(['targetExtent', 'targetEpsg'], [targetExtent, 'EPSG:' + str(targetEpsg)], True)
+    sourceExtent, sourceCrs = sanitize.validBoundsCrsCombination(['sourceExtent', 'sourceEpsg'], [sourceExtent, 'EPSG:' + str(sourceEpsg)], True)
     targetWidth = sanitize.validInt('targetWidth', targetWidth, True)
     targetHeight = sanitize.validInt('targetHeight', targetHeight, True)
     interpolation = sanitize.validString('interpolation', interpolation, True)
     
-    if not os.path.exists(tempFolder):
-        raise ValueError(tempFolder + ' not found')
-    if not os.path.isdir(tempFolder):
-        raise ValueError(tempFolder + ' must be a path to a folder')
+    if not interpolation in ['nearest', 'bilinear']:
+        raise ValueError('interpolation must be one of nearest or bilinear')
+    
     if len(r.shape) !=3:
         raise ValueError('r must be 3 dimensional')
     if interpolation != 'nearest' and interpolation != 'linear':
         raise ValueError('interpolation must be either nearest or linear')
         
-    dtype = r.dtype
-    def mercatorBlowUp(y):
-       factor = math.cos(y * 2 * math.pi/360)
-       return(factor)    
-    ###STEP 1
-    #calculate zoom
-    target_tile = geometry.Polygon([(targetExtent['xMin'],targetExtent['yMin']), (targetExtent['xMin'],targetExtent['yMax']), (targetExtent['xMax'],targetExtent['yMax']), (targetExtent['xMax'], targetExtent['yMin'])])
-    target_tile = gpd.GeoDataFrame({"geometry": [target_tile]})
-    target_tile.crs = targetCrs
-    
-    wgs_tile = target_tile.to_crs('epsg:4326')
-    minx_wgs = wgs_tile.bounds['minx'].values[0]
-    miny_wgs = wgs_tile.bounds['miny'].values[0]
-    maxx_wgs = wgs_tile.bounds['maxx'].values[0]
-    maxy_wgs = wgs_tile.bounds['maxy'].values[0]
-    if minx_wgs < -180 or maxx_wgs > 180 or miny_wgs < -85 or maxy_wgs > 85:
-        raise ValueError('Bounds must be within 85 degrees south and 85 degrees north')
-    native_transform = rasterio.transform.from_bounds(targetExtent['xMin'], targetExtent['yMin'], targetExtent['xMax'], targetExtent['yMax'], targetWidth, targetHeight)
-    source_transform = rasterio.transform.from_bounds(sourceExtent['xMin'], sourceExtent['yMin'], sourceExtent['xMax'], sourceExtent['yMax'], r.shape[2], r.shape[1])
-
-
-    M = [[native_transform[0], native_transform[1]] , [native_transform[3], native_transform[4]] ]
-    bias = [native_transform[2], native_transform[5]]
-    Minv = np.linalg.inv(M)
-
-    x_res, y_res = getResolution(minx_wgs, maxx_wgs, miny_wgs, maxy_wgs, targetCrs, Minv, bias)
-    resolution = min(x_res, y_res)
-    zoom = math.log(40000000 / (resolution*256 )) / math.log(2)
-    zoom = math.floor(zoom + 1) #+ 0.85)
-    
-    zoom = zoom -5
-    zoom = max(0, zoom)
-
-    #####STEP 2    
-    #step 1 on create raster of zoom - 4 blocks
-    source_tile = geometry.Polygon([(sourceExtent['xMin'],sourceExtent['yMin']), (sourceExtent['xMin'],sourceExtent['yMax']), (sourceExtent['xMax'],sourceExtent['yMax']), (sourceExtent['xMax'], sourceExtent['yMin'])])
-    source_tile = gpd.GeoDataFrame({"geometry": [source_tile]})
-    source_tile.crs = 'epsg:3857'
-    
-    minx_merc_target = source_tile.bounds['minx'].values[0]
-    miny_merc_target = source_tile.bounds['miny'].values[0]
-    maxx_merc_target = source_tile.bounds['maxx'].values[0]
-    maxy_merc_target = source_tile.bounds['maxy'].values[0]
-
-    LEN = 2.003751e+07
-
-    x_start = 2**zoom * (minx_merc_target + LEN) / (2* LEN)
-    x_end = 2**zoom * (maxx_merc_target + LEN) / (2* LEN)
-    y_start = 2**zoom * (miny_merc_target + LEN) / (2* LEN)
-    y_end = 2**zoom * (maxy_merc_target + LEN) / (2* LEN)
-
-    x1_osm = math.floor(x_start)
-    x2_osm = math.floor(x_end)
-    y1_osm = math.floor(y_start)
-    y2_osm = math.floor(y_end)
-    
-    raster_merc_x1 = 2*LEN * x1_osm /2**zoom - LEN 
-    raster_merc_x2 = 2*LEN * (x2_osm+1) /2**zoom - LEN 
-    raster_merc_y1 = 2*LEN * y1_osm /2**zoom - LEN 
-    raster_merc_y2 = 2*LEN * (y2_osm +1) /2**zoom - LEN 
-    bounds_mercator = {'xMin': raster_merc_x1,'xMax': raster_merc_x2, 'yMin': raster_merc_y1, 'yMax': raster_merc_y2 }
-    
         
 
-    w = (x2_osm - x1_osm + 1) * 256*2**5
-    h = (y2_osm - y1_osm + 1) * 256*2**5
-    
-    raster = np.zeros((r.shape[0], h, w), dtype = dtype)
+    src_transform = rasterio.transform.from_bounds(sourceExtent['xMin'], sourceExtent['yMin'], sourceExtent['xMax'], sourceExtent['yMax'], r.shape[2], r.shape[1])
+    dst_transform = rasterio.transform.from_bounds(targetExtent['xMin'], targetExtent['yMin'], targetExtent['xMax'], targetExtent['yMax'], targetWidth, targetHeight)
+    destination = np.zeros((r.shape[0],targetHeight,targetWidth))
 
-    ###STEP 2    
-    #place r on this raster
-    x_frac = (x_start - x1_osm) / (x2_osm - x1_osm + 1)
-    y_frac = (y2_osm + 1 - y_end) / (y2_osm - y1_osm + 1)
-    
-    #######33
-    full_raster_tile = geometry.Polygon([(raster_merc_x1,raster_merc_y1), (raster_merc_x1, raster_merc_y2), (raster_merc_x2, raster_merc_y2), (raster_merc_x2, raster_merc_y1)])
-    full_raster_tile = gpd.GeoDataFrame({"geometry": [full_raster_tile]})
-    full_raster_tile.crs = 'EPSG:3857'
-    
-    xStart = math.floor(w * x_frac)
-    xEnd = xStart + r.shape[2]
-    yStart = math.floor(h * y_frac)
-    yEnd = yStart + r.shape[1]
-    
-    
-    ############################
-
-    newW, newH = getVirtualSize(bounds_mercator, targetCrs, native_transform)
-    
-    
-    
-    if 'float' in str(dtype).lower():
-        raster[:,:,:] = np.nan
-    raster[:, yStart:yEnd,xStart:xEnd] = r
-
-
-    ##interpolation work
-    if interpolation == 'linear':
-        order = 1
-        resampleMethod = Resampling.bilinear
-        interpolationString = '-r bilinear '
+    if interpolation == 'nearest':
+        interpolation = Resampling.nearest        
     else:
-        order = 0
-        resampleMethod = Resampling.nearest
-        interpolationString = '-r near '
+        interpolation = Resampling.bilinear
+
+    for i in np.arange(r.shape[0]):
+        warp(
+            r[i,:,:],
+            destination[i,:,:],
+            src_transform=src_transform,
+            src_crs=sourceCrs,
+            dst_transform=dst_transform,
+            dst_crs=targetCrs,
+            resampling=interpolation)
     
 
-    ####STEP 3
-    #resize
-
-    raster = np.transpose(raster, [1,2,0])
-    raster = resize(raster, ( newH, newW), anti_aliasing= False, order = order, mode = 'edge',preserve_range=True)
-    raster = np.transpose(raster, [2,0,1])
-    raster = raster.astype(dtype)
-    saveRaster( targetFile =  os.path.join(tempFolder,'resized_temp.tif'), r = raster, extent = bounds_mercator, crs = 'EPSG:3857')
+    return {'raster':destination, 'transform':dst_transform, 'extent':targetExtent, 'epsg':targetEpsg}
 
 
-
-    ####step 6 gdalwarp on smaller raster
-    
-    extent = '-te ' + str(targetExtent['xMin']) + ' ' + str(targetExtent['yMin']) + ' ' + str(targetExtent['xMax']) + ' ' + str(targetExtent['yMax']) + " "
-    outsize = '-ts ' + str(targetWidth) + ' ' + str(targetHeight) + " "
-    epsgString = " -t_srs " + targetCrs + " "
-    
-
-    cmd = "gdalwarp -overwrite " + outsize + interpolationString  +  extent + " -s_srs EPSG:3857 " + epsgString + os.path.join(tempFolder,'resized_temp.tif') + " " + os.path.join(tempFolder, 'output_temp.tif')
-    try:
-        status = subprocess.check_output(cmd, shell=True)
-    except:
-        raise ValueError('No gdal instalation found')
-    
-    del raster
-    with rasterio.open(os.path.join(tempFolder, 'output_temp.tif')) as con:
-        raster = con.read()
-
-    os.remove( os.path.join(tempFolder,'resized_temp.tif'))
-    os.remove( os.path.join(tempFolder,'output_temp.tif'))
-
-    raster = np.transpose(raster, [1,2,0])
-    raster = resize(raster, ( targetHeight, targetWidth), anti_aliasing= False, order = order, mode = 'edge',preserve_range=True)
-    raster = np.transpose(raster, [2,0,1])
-    raster = raster.astype(dtype)
+def swapXY(extent):
+    return {'xMin': extent['yMin'], 'xMax':extent['yMax'], 'yMin':extent['xMin'], 'yMax':extent['xMax']}
 
 
+def transformPoint( point, sourceEpsg, targetEpsg):
+    sourceCrs = 'EPSG:' + str(sourceEpsg)
+    targetCrs = 'EPSG:' + str(targetEpsg)
 
-    return {'raster':raster, 'transform':native_transform, 'extent':targetExtent, 'crs':targetCrs}
-
-def getResolution(minx_wgs, maxx_wgs, miny_wgs, maxy_wgs, crs, Minv, bias):
-    STEPS = 10
-    
-    x_step = (maxx_wgs - minx_wgs) / STEPS
-    y_step = (maxy_wgs - miny_wgs) / STEPS
-
-    
-    pixelPositions = {}
-    n=0
-    m=0
-    for n in [0,1]:
-        for m in [0,1]:
-            if m != 1 or n !=1:
-                points = [ geometry.Point((minx_wgs + (i+n) * x_step, miny_wgs + (j+m) * y_step))  for i in np.arange(STEPS) for j in np.arange(STEPS)]
-                df_wgs = gpd.GeoDataFrame({'geometry':points})
-                df_wgs.crs = 'epsg:4326'
-                df_native = df_wgs.to_crs(crs)
-                pixelPositions[str(n) + '_' + str(m)] = np.array([ np.matmul(Minv , [point.x - bias[0], point.y -bias[1]] ) for point in df_native['geometry'].values])
-
-    distances_x = [geodesic( (miny_wgs + j * y_step, minx_wgs + i * x_step), (miny_wgs + j * y_step, minx_wgs + (i+1) * x_step)).m  for i in np.arange(STEPS) for j in np.arange(STEPS)]
-    distances_y = [geodesic( (miny_wgs + j * y_step, minx_wgs + i * x_step), (miny_wgs + (j+1) * y_step, minx_wgs + i * x_step)).m  for i in np.arange(STEPS) for j in np.arange(STEPS)]
-    dif_pixel_x  = pixelPositions['1_0'] - pixelPositions['0_0']
-    dif_pixel_y  = pixelPositions['0_1'] - pixelPositions['0_0']
-    
-    distances_pixel_x = [math.sqrt( p[0]**2 + p[1]**2) for p in dif_pixel_x]
-    distances_pixel_y = [math.sqrt( p[0]**2 + p[1]**2) for p in dif_pixel_y]
-
-    x_res = np.divide(distances_x, distances_pixel_x)
-    y_res = np.divide(distances_y, distances_pixel_y)
-    
-    x_res = np.min(x_res)
-    y_res = np.min(y_res)
-    
-    return x_res, y_res
-
-def getVirtualSize(bounds_mercator, targetCrs, native_transform):
-    M = [[native_transform[1], native_transform[2]] , [native_transform[4], native_transform[5]] ]
-    bias = [native_transform[0], native_transform[3]]
-    
-    Minv = np.linalg.inv(M)
-    
-    #convert bounds_tile to raster crs
-    lowerLeft = transformPoint( (bounds_mercator['xMin'],bounds_mercator['yMin']), 'EPSG:3857', targetCrs)
-    upperLeft = transformPoint( (bounds_mercator['xMin'],bounds_mercator['yMax']), 'EPSG:3857', targetCrs)
-    lowerRight = transformPoint( (bounds_mercator['xMax'],bounds_mercator['yMin']), 'EPSG:3857', targetCrs)
-    
-    #calculate pixels using inverse transform of 3 points
-    lowerLeft_pixel = np.matmul(Minv , [lowerLeft[0] - bias[0], lowerLeft[1] -bias[1]] ) 
-    upperLeft_pixel = np.matmul(Minv , [upperLeft[0] - bias[0], upperLeft[1] -bias[1]] ) 
-    lowerRight_pixel = np.matmul(Minv , [lowerRight[0] - bias[0], lowerRight[1] -bias[1]] ) 
-    
-    #calculate pixel distance
-    w = math.sqrt( (lowerLeft_pixel[0] - lowerRight_pixel[0] )**2 + (lowerLeft_pixel[1] - lowerRight_pixel[1] )**2 )    
-    h = math.sqrt( (lowerLeft_pixel[0] - upperLeft_pixel[0] )**2 + (lowerLeft_pixel[1] - upperLeft_pixel[1] )**2 )    
-    
-    w = math.floor(w+1)
-    h = math.floor(h+1)
-    
-    return w,h
-    
-
-def transformPoint( point, sourceCrs, targetCrs):
     try:
         point = geometry.Point(point)
     except:
@@ -397,7 +225,12 @@ def transformPoint( point, sourceCrs, targetCrs):
     return(x,y)
 
 #funciton to store image given bounds, and raster and crs
-def saveRaster(targetFile, r, crs, extent = None, transform = None):
+def saveRaster(targetFile, r, epsg, extent = None, transform = None):
+    
+    if type(extent) == type(None) and type(transform) == type(None):
+        raise ValueError('You must provide either an extent or a transform')
+        
+    crs = 'EPSG:' + str(epsg)
     if type(extent) != type(None):
         sanitize.validBoundsCrsCombination([extent, crs], [extent, crs], True)
         
@@ -418,3 +251,196 @@ def saveRaster(targetFile, r, crs, extent = None, transform = None):
     
     con.write(r)
     con.close()
+
+def saveVector(targetFile, features):
+    features.to_file(targetFile)
+
+
+q_running = multiprocessing.Queue()
+
+def cutIntoTiles(features, zoom, cores = 1, buffer = 0):
+    features, bounds = reprojectWithBounds(sh = features, targetCrs = 'EPSG:3857', cores= cores)
+    count  = features.shape[0]
+
+    LEN = 2.003751e+07
+    tile = {'xMin' : -LEN, 'xMax': LEN, 'yMin':-LEN, 'yMax':LEN} 
+    args = (tile, 0, zoom, features, bounds, cores, buffer, count)
+    sh_end = manageTile(args)
+
+    return sh_end
+    
+    
+
+def manageTile(args):
+    tile, depth, zoom, sh, bounds, cores, buffer, count = args
+    if zoom == depth:
+        return sh
+
+    newTiles = splitTile(tile, buffer)
+    shs = []
+    tile = newTiles[0]
+    args = []
+    maxCount = 0
+    for tile in newTiles:        
+        sh_new, bounds_new = cut(sh, bounds, tile)
+        if sh_new.shape[0] > maxCount:
+            maxCount = sh_new.shape[0]
+        if sh_new.shape[0] > 0:
+            args = args + [(tile, depth+1, zoom, sh_new, bounds_new, cores, buffer, count)]
+    
+    
+    if q_running.qsize() < cores -1 and  count * 0.2 > maxCount :
+        q_running.put('x')        
+        with Pool(4) as p:
+            shs = p.map(manageTile, args)
+        shs = list(shs)
+        q_running.get()
+    else:
+        for arg in args:
+            sh_new = manageTile(arg)
+            shs = shs + [sh_new]
+        
+        
+    sh_total = pd.concat(shs)
+    return sh_total
+
+
+def cut(sh, bounds, tile):
+        #remove things without
+        isWithout = np.logical_or( np.logical_or(bounds['minx'].values > tile['xMax'],bounds['maxx'].values < tile['xMin'] ), np.logical_or(bounds['miny'].values > tile['yMax'],bounds['maxy'].values < tile['yMin'] ))
+                
+        sh_inside = sh[ np.logical_not( isWithout) ]
+        bounds_inside = bounds[np.logical_not( isWithout)]
+        
+        #remove things within
+        isWithinX = np.logical_and( np.logical_and(bounds_inside['minx'].values < tile['xMax'],bounds_inside['minx'].values > tile['xMin'] ), np.logical_and(bounds_inside['maxx'].values < tile['xMax'],bounds_inside['maxx'].values > tile['xMin'] ))
+        isWithinY = np.logical_and( np.logical_and(bounds_inside['miny'].values < tile['yMax'],bounds_inside['miny'].values > tile['yMin'] ), np.logical_and(bounds_inside['maxy'].values < tile['yMax'],bounds_inside['maxy'].values > tile['yMin'] ))
+        isWithin = np.logical_and(isWithinX, isWithinY)
+
+        sh_within = sh_inside[isWithin]        
+        bounds_within = bounds_inside[isWithin]
+        
+        #now intersect
+        sh_intersects = sh_inside[np.logical_not(isWithin)]
+        poly = tileToPolygon(tile)
+        sh_intersects['geometry'] = sh_intersects.intersection(poly)
+        bounds_intersects = sh_intersects.bounds
+
+        sh_result = pd.concat([sh_intersects, sh_within])
+        bounds_result = pd.concat([bounds_intersects, bounds_within])
+
+
+        return sh_result, bounds_result
+
+def tileToPolygon(tile):
+    return geometry.Polygon([ (tile['xMin'], tile['yMin']), (tile['xMin'], tile['yMax']), (tile['xMax'], tile['yMax']), (tile['xMax'], tile['yMin']) ])    
+    
+
+def splitTile(tile, buffer):
+    
+    b = buffer * (tile['xMax'] - tile['xMin'])
+    xMiddle = tile['xMin'] + (tile['xMax'] - tile['xMin'])/2
+    yMiddle = tile['yMin'] + (tile['yMax'] - tile['yMin'])/2
+    yMin = tile['yMin']
+    xMin = tile['xMin']
+    yMax = tile['yMax']
+    xMax = tile['xMax']
+    
+    
+    T1 = {'xMin': xMin -b, 'xMax':xMiddle+b, 'yMin': yMin-b, 'yMax': yMiddle+b  }
+    T2 = {'xMin': xMin-b, 'xMax':xMiddle+b, 'yMin': yMiddle-b, 'yMax': yMax+b  }
+    
+    T3 = {'xMin': xMiddle-b, 'xMax':xMax+b, 'yMin': yMin-b, 'yMax': yMiddle+b  }
+    T4 = {'xMin': xMiddle-b, 'xMax':xMax+b, 'yMin': yMiddle-b, 'yMax': yMax+b  }
+    
+    
+    return [T1, T2, T3, T4]
+
+    
+
+def reprojectVector(features, targetEpsg, cores = 1):
+    sh = features
+    targetCrs = 'EPSG:' + str(targetEpsg)
+    shs = np.array_split(sh, cores)
+    args = list(zip(shs, np.repeat(targetCrs, cores) ))
+    with Pool(cores) as p:
+        shs = p.map(reprojectSub, args )
+    
+    sh = pd.concat([x[0] for x in shs])
+    return sh
+
+def reprojectWithBounds(sh, targetCrs, cores = 1):
+
+    N = max(round(sh.shape[0]/ 50000),1)
+    
+    shs_1 = np.array_split(sh, N)
+    shs_total = []
+    for sh in shs_1:
+        shs = np.array_split(sh, cores)
+        args = list(zip(shs, np.repeat(targetCrs, cores) ))
+        with Pool(cores) as p:
+            shs = p.map(reprojectSub, args )
+        shs = list(shs)
+        shs_total = shs_total + shs
+        
+    sh = pd.concat([x[0] for x in shs_total])
+    bounds = pd.concat([x[1] for x in shs_total])
+    return sh, bounds
+
+
+def reprojectSub(args):
+    sh = args[0]
+    targetCrs = args[1]
+    sh = sh.to_crs(targetCrs)
+    sh['geometry'] = sh.buffer(0)
+    sh = sh[sh.is_valid]
+    sh = sh[ np.logical_not(sh.is_empty)]
+    bounds = sh.bounds
+    
+    return sh, bounds
+
+
+
+def getActualExtent(minx, maxx, miny, maxy, crs):
+    
+    LEN = 2.003751e+07
+    STEPS = 10
+    
+    x_step = (maxx - minx) / STEPS
+    y_step = (maxy - miny) / STEPS
+    
+    points = [ geometry.Point((minx + (i) * x_step, miny + (j) * y_step))  for i in np.arange(STEPS+1) for j in np.arange(STEPS+1)]
+    df = gpd.GeoDataFrame({'geometry':points})
+    try:
+        df.crs =  crs
+    except:
+        return {'status': 400, 'message': 'Invalid epsg code'}
+        
+    try:
+        df_wgs = df.to_crs('EPSG:3857')
+    except:
+        return {'status': 400, 'message': 'Invalid extent and epsg combination'}
+
+
+    #in case points fall outside defined area we restrict to the -85, 85, 180, -180 region
+    xs = df_wgs.bounds['minx'].values
+    ys = df_wgs.bounds['miny'].values
+    xs[xs == np.inf] = LEN    
+    xs[xs == -np.inf] = -LEN    
+    ys[ys == np.inf] = LEN    
+    ys[ys == -np.inf] = -LEN    
+    
+    minX = np.min(xs)
+    maxX = np.max(xs)
+    minY = np.min(ys)
+    maxY = np.max(ys)
+
+    minX = max(-LEN, minX)
+    maxX = min(LEN, maxX)
+    minY = max(-LEN, minY)
+    maxY = min(LEN, maxY)
+    
+    
+    
+    return {'status': 200, 'message': {'xMin':minX, 'xMax': maxX, 'yMin': minY, 'yMax':maxY}}
+    

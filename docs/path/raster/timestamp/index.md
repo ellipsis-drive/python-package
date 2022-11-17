@@ -109,6 +109,23 @@ Request to obtain pixel values within a certain geometry.
 - token (string)
 - returnType (one of 'all' or 'statistics') default 'all'
 
+## getValuesAlongLine
+
+    ellipsis.path.raster.timestamp.getValuesAlongLine()
+
+Request to obtain the raster value for each point along a line.
+
+**Mandatory arguments**
+
+- pathId (uuid)
+- timestampId (uuid)
+- line (shapely geometry in WGS84 of type line)
+
+**Optional arguments**
+- approximate (boolean) default True
+- token (string)
+- returnType (one of 'all' or 'statistics') default 'all'
+
 ## getRaster
 
     ellipsis.path.raster.timestamp.getRaster()

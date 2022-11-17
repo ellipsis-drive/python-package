@@ -2,10 +2,14 @@ from ellipsis import apiManager
 from ellipsis import sanitize
 from ellipsis.util.root import recurse
 import geopandas as gpd
+from shapely import geometry
+import numpy as np
 
 from ellipsis.util import chunks
 from ellipsis.util import loadingBar
 from ellipsis.util.root import stringToDate
+from ellipsis.util.root import getActualExtent
+
 
 import datetime
 
@@ -135,7 +139,7 @@ def getFeaturesByIds(pathId, timestampId, featureIds, token = None, showProgress
     return r
     
 
-def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, token = None, listAll = True, pageStart = None):
+def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, token = None, listAll = True, pageStart = None, epsg = 4326):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, False)
@@ -143,6 +147,26 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
     propertyFilter = sanitize.validObject('propertyFilter', propertyFilter, False)
     listAll = sanitize.validBool('listAll', listAll, True)
     pageStart = sanitize.validUuid('pageStart', pageStart, False) 
+
+    p = geometry.Polygon( [(extent['xMin'], extent['yMin']), (extent['xMin'], extent['yMax']),(extent['xMax'], extent['yMax']),(extent['xMax'], extent['yMin'])] )
+    p = gpd.GeoDataFrame({'geometry':[p]})
+
+
+    res = getActualExtent(extent['xMin'], extent['xMax'], extent['yMin'], extent['yMax'], 'EPSG:' + str(epsg))
+    if res['status'] == '400':
+        raise ValueError('Invalid epsg and extent combination')
+        
+    extent = res['message']
+
+
+    try:
+        p.crs = 'EPSG:' + str(epsg)
+        p = p.to_crs('EPSG:4326')
+    except:
+        raise ValueError('Invalid crs given')
+    extent = p.bounds
+    extent = {'xMin': extent['minx'].values[0], 'xMax': extent['maxx'].values[0], 'yMin': extent['miny'].values[0], 'yMax': extent['maxy'].values[0] }        
+    
     
     body = {'pageStart': pageStart, 'propertyFilter':propertyFilter, 'extent':extent}
 
@@ -152,7 +176,17 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
     r = recurse(f, body, listAll, 'features')
 
     sh = gpd.GeoDataFrame.from_features(r['result']['features'])
+    if sh.shape[0] ==0:
+        r['result'] = sh
+        return r
+    bounds = sh.bounds
+    px = (bounds['minx'] + bounds['maxx']) /2
+    py = (bounds['miny'] + bounds['maxy']) /2
+    sh = sh[ np.logical_and(np.logical_and( px >= extent['xMin'], px <= extent['xMax'] ), np.logical_and( py >= extent['yMin'], py <= extent['yMax'] )  )  ]
+    sh.crs = 'EPSG:4326'
+    sh = sh.to_crs('EPSG:' + str(epsg))
     r['result'] = sh
+    
     return r
 
 

@@ -15,6 +15,8 @@ def add(pathId, timestampId, token, extent = None, epsg=4326, uploadId = None):
     extent = sanitize.validBounds('extent', extent, False)
     uploadId = sanitize.validUuid('uploadId', uploadId, False)
     epsg = sanitize.validInt('epsg', epsg, True)
+    if type(uploadId) != type(None):
+        epsg = None
 
     body = {'uploadId': uploadId, 'extent':extent, 'epsg':epsg}
     r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/order', body, token)    

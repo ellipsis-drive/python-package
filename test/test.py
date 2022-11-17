@@ -11,7 +11,7 @@ import pandas as pd
 
 
 
-token = el.account.logIn(username = 'admin', password='6MigXH019pI0LxSvwpox')
+token = el.account.logIn(username = 'admin', password='')
 
 ##access token
 el.account.accessToken.create(description = 'hoi', accessList = [{'pathId': 'd448bdb5-783a-4919-98bb-caf8092904aa' , 'access':{'accessLevel':100}}], token = token)
@@ -188,7 +188,7 @@ yMax  = 52.30339
 
 extent = {'xMin':xMin,'yMin':yMin,'xMax':xMax,'yMax':yMax } 
 
-result = el.path.raster.timestamp.getRaster(pathId = mapId, timestampId = timestampId, style=styleId, extent = extent, token = token)
+result = el.path.raster.timestamp.getRaster(pathId = mapId, timestampId = timestampId, style=styleId, extent = extent, token = token, epsg = 4326)
 
 raster = result['raster']
 
@@ -202,7 +202,7 @@ el.util.plotRaster(raster[0:3,:,:])
 
 bounds = el.path.raster.timestamp.getBounds(mapId, timestampId, token)
 
-data = el.path.raster.timestamp.analyse(mapId, [timestampId], bounds, token=token)
+data = el.path.raster.timestamp.analyse(mapId, [timestampId], bounds, token=token, epsg = 4326)
 
 ###raster downloads
 mapId = '1eea3d2f-27b3-4874-b716-87852c3407c1'
@@ -267,7 +267,7 @@ xMax = bounds.bounds[2]
 yMax = bounds.bounds[3]
 
 bounds = {'xMin':xMin, 'xMax':xMax, 'yMin':yMin, 'yMax':yMax}
-sh = el.path.vector.timestamp.getFeaturesByExtent(pathId = mapId, timestampId = layerId, extent =  bounds, token = token, listAll = False)
+sh = el.path.vector.timestamp.getFeaturesByExtent(pathId = mapId, timestampId = layerId, extent =  bounds, token = token, listAll = False, epsg = 4326)
 sh['result'].plot()
 
 sh = el.path.vector.timestamp.listFeatures(mapId, layerId, token)
