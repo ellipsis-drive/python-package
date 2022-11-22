@@ -12,10 +12,15 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from skimage.transform import resize
 import os
+import random
 import subprocess
 from concurrent.futures import ProcessPoolExecutor as Pool
 import multiprocessing
 import warnings
+import uuid
+import shapely
+from shapely.ops import cascaded_union
+
 
 from ellipsis import sanitize
 from rasterio.warp import reproject as warp, Resampling, calculate_default_transform
@@ -260,33 +265,59 @@ q_running = multiprocessing.Queue()
 
 def cutIntoTiles(features, zoom, cores = 1, buffer = 0):
     features, bounds = reprojectWithBounds(sh = features, targetCrs = 'EPSG:3857', cores= cores)
+    features['geometryId'] = [str(uuid.uuid4()) for x in np.arange(features.shape[0])]
+    features['tileId'] = str(uuid.uuid4())
     count  = features.shape[0]
+    
+    types = np.unique(np.array([str(type(x)) for x in features['geometry'].values]))
+    chosen = None
+    for t in types:
+        if 'collection' in t:
+            raise ValueError('geometry collections are not allowed')
+        if 'polygon' in t:
+            newChosen = 'polygon'
+            if chosen != None and chosen !=newChosen:
+                raise ValueError('Geopandas cannot contain mixed geometry types, use either lines, points of polygons.')
+            else:
+                chosen = 'polygon'
+        if 'line' in t:
+            newChosen = 'line'
+            if chosen != None and chosen !=newChosen:
+                raise ValueError('Geopandas cannot contain mixed geometry types, use either lines, points of polygons.')
+            else:
+                chosen = 'line'
+        if 'point' in t:
+            newChosen = 'point'
+            if chosen != None and chosen !=newChosen:
+                raise ValueError('Geopandas cannot contain mixed geometry types, use either lines, points of polygons.')
+            else:
+                chosen = 'point'
+
+    
 
     LEN = 2.003751e+07
     tile = {'xMin' : -LEN, 'xMax': LEN, 'yMin':-LEN, 'yMax':LEN} 
-    args = (tile, 0, zoom, features, bounds, cores, buffer, count)
+    args = (tile, 0, zoom, features, bounds, cores, buffer, count, chosen)
     sh_end = manageTile(args)
-
     return sh_end
     
     
 
 def manageTile(args):
-    tile, depth, zoom, sh, bounds, cores, buffer, count = args
+    tile, depth, zoom, sh, bounds, cores, buffer, count, chosen = args
     if zoom == depth:
         return sh
-
     newTiles = splitTile(tile, buffer)
     shs = []
     tile = newTiles[0]
     args = []
     maxCount = 0
     for tile in newTiles:        
-        sh_new, bounds_new = cut(sh, bounds, tile)
+        sh_new, bounds_new = cut(sh, bounds, tile, chosen)
         if sh_new.shape[0] > maxCount:
             maxCount = sh_new.shape[0]
         if sh_new.shape[0] > 0:
-            args = args + [(tile, depth+1, zoom, sh_new, bounds_new, cores, buffer, count)]
+            args = args + [(tile, depth+1, zoom, sh_new, bounds_new, cores, buffer, count, chosen,)]
     
     
     if q_running.qsize() < cores -1 and  count * 0.2 > maxCount :
@@ -305,7 +336,7 @@ def manageTile(args):
     return sh_total
 
 
-def cut(sh, bounds, tile):
+def cut(sh, bounds, tile, chosen):
         #remove things without
         isWithout = np.logical_or( np.logical_or(bounds['minx'].values > tile['xMax'],bounds['maxx'].values < tile['xMin'] ), np.logical_or(bounds['miny'].values > tile['yMax'],bounds['maxy'].values < tile['yMin'] ))
                 
@@ -324,9 +355,26 @@ def cut(sh, bounds, tile):
         sh_intersects = sh_inside[np.logical_not(isWithin)]
         poly = tileToPolygon(tile)
         sh_intersects['geometry'] = sh_intersects.intersection(poly)
+        
+        #dissolve the geometry collections
+        if sh_intersects.shape[0] >0:
+            collections = np.array(['collection' in str(type(x)) for x in sh_intersects['geometry']])
+            geometryCollections = sh_intersects['geometry'][collections].values
+    
+            newGeometries = [ cascaded_union([geometry for geometry in collection if chosen in str(type(geometry))]) for collection in geometryCollections   ]
+    
+            sh_intersects['geometry'][collections] = newGeometries
+            
+            correct_type = [chosen in str(type(x)) for x in sh_intersects['geometry'].values]
+            sh_intersects = sh_intersects[correct_type]
+            sh_intersects = sh_intersects[np.logical_not(sh_intersects.is_empty)]
+            sh_intersects = sh_intersects[sh_intersects.is_valid]
+
+        
         bounds_intersects = sh_intersects.bounds
 
         sh_result = pd.concat([sh_intersects, sh_within])
+        sh_result['tileId'] = str(uuid.uuid4())
         bounds_result = pd.concat([bounds_intersects, bounds_within])
 
 
@@ -392,11 +440,11 @@ def reprojectSub(args):
     sh = args[0]
     targetCrs = args[1]
     sh = sh.to_crs(targetCrs)
-    sh['geometry'] = sh.buffer(0)
-    sh = sh[sh.is_valid]
-    sh = sh[ np.logical_not(sh.is_empty)]
-    bounds = sh.bounds
     
+    is_poly = ['poly' in str(type(x)) for x in sh['geometry'].values]
+    sh['geometry'][is_poly] = sh[is_poly].buffer(0)    
+    
+    bounds = sh.bounds
     return sh, bounds
 
 
@@ -443,4 +491,77 @@ def getActualExtent(minx, maxx, miny, maxy, crs):
     
     
     return {'status': 200, 'message': {'xMin':minX, 'xMax': maxX, 'yMin': minY, 'yMax':maxY}}
+
+def mergeGeometriesByColumn(features, columnName, cores = 1):
+    names = np.unique(features[columnName].values)
+    N = math.floor(len(names)/cores) + 1
+    names_chunks = chunks(names, N)
+    args = [{'features': features, 'columnName':columnName, 'names':names_cunk} for names_cunk in names_chunks]
+    if cores > 1:
+        with Pool(4) as p:
+            shs = p.map(mergeGeometriesByColumnPart, args)
+        shs = list(shs)
+        return pd.concat(shs)
+
+    else:
+        return mergeGeometriesByColumnPart( {'features':features, 'columnName':columnName, 'names':names})
+    
+
+
+def mergeGeometriesByColumnPart(args):
+
+    features = args['features']
+    columnName = args['columnName']
+    names = args['names']
+    
+    sh_new = []
+    for i in np.arange(len(names)):
+        name = names[i]
+        sh_name = features[features[columnName] == name ]
+        sh_name['geometry'] = sh_name.unary_union
+        sh_new = sh_new + [sh_name[0:1]]
+    sh_new = pd.concat(sh_new)
+    return sh_new
+        
+
+
+
+def simplifyGeometries(features, tolerance, preserveTopology=True, removeIslands = True, cores = 1):
+    
+    shs = np.array_split(features, cores)
+    del features
+    
+    
+    args = [ {'sh': shs[i], 'tolerance':tolerance, 'preserveTopology': preserveTopology, 'removeIslands':removeIslands} for i in np.arange(len(shs))]
+    if cores >1:
+        with Pool(cores) as p:
+            shs = p.map(simplifySub, args)    
+            result = pd.concat(list(shs))
+    else:
+        result = simplifySub(args[0])
+    return result
+    
+    
+def simplifySub(args):
+    sh_sub = args['sh']
+    tolerance = args['tolerance']
+    preserveTopology = args['preserveTopology']
+    removeIslands = args['removeIslands']
+
+    fractionArea = tolerance**2
+
+    if removeIslands:
+        multipolygons = sh_sub['geometry'][sh_sub['geometry'].type == 'MultiPolygon' ]
+        newMultiPolygons = [shapely.ops.unary_union([x.buffer(0) for x in multipolygons.values[i] if x.area > fractionArea ]) if len([x for x in multipolygons.values[i] if x.area > fractionArea ]) > 0 else multipolygons.values[i]  for i in np.arange( len(multipolygons))]
+        
+        #newMultiPolygons = [x if len(x) > 1 else x[0] for x in newMultiPolygons]
+        sh_sub['geometry'][sh_sub['geometry'].type == 'MultiPolygon' ] = newMultiPolygons
+
+
+    sh_sub['geometry'] = sh_sub.simplify(tolerance, preserve_topology=preserveTopology)
+    is_poly = ['poly' in str(type(x)) for x in sh_sub['geometry'].values]
+    sh_sub['geometry'][is_poly] = sh_sub[is_poly].buffer(0)
+
+    return sh_sub
+    
     

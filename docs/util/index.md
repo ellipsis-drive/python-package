@@ -109,6 +109,39 @@ Splits up a geopandas dataframe into tile of a requested zoomlevel. This functio
 - buffer (float), a buffer in meters to use when cutting into the tiles.
 - cores (int), number of processes to commit.
 
+## simplifyGeometries
+
+    ellipsis.util.simplifyGeometries()
+
+Simplifies geometries in a geopandas dataframe. Can be used in the creation of vector tiles.
+
+**Mandatory arguments**
+
+- features (geopandas dataframe) a geopandas dataframe with geometries to simplify
+- tolerance (float) the precision to retain
+
+**Optional arguments**
+
+- preserveTopology (boolean), whether the topology needs to be preserved
+- removeIslands (boolean), whether to remove polygons within multipolygons that are smaller than the tolerance.
+- cores (int), number of processes to commit.
+
+## mergeGeometriesByColumn
+
+    ellipsis.util.mergeGeometriesByColumn()
+
+Merges geometries in a geopandas dataframe that have the same value within a certain column. Can be used in vector tile creation.
+
+**Mandatory arguments**
+
+- features (geopandas dataframe) a geopandas dataframe with geometries to merge.
+- columnName (string) the column name to match on
+
+**Optional arguments**
+
+- cores (int), number of processes to commit.
+
+
 ## cover
 
     ellipsis.util.cover()

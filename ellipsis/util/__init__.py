@@ -18,3 +18,5 @@ from ellipsis.util.root import dateToString
 
 from ellipsis.util.root import cutIntoTiles
 
+from ellipsis.util.root import mergeGeometriesByColumn
+from ellipsis.util.root import simplifyGeometries

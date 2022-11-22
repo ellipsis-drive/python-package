@@ -12,7 +12,7 @@ def editBand(pathId, bandNumber, name, token):
     return(r)
 
 # /path/{pathId}/raster
-def editMap(pathId, token, interpolation = None, includesTransparent = None):
+def edit(pathId, token, interpolation = None, includesTransparent = None):
 
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)
