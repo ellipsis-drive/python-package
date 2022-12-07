@@ -24,7 +24,7 @@ folderId = '46e1e919-8b73-42a3-a575-25c6d45fd93b'
 
 
 ##account
-demo_token = el.account.logIn("demo_user", "")
+demo_token = el.account.logIn("demo_user", "demo_user")
 admin_token = el.account.logIn(username = 'admin', password='')
 daan_token = el.account.logIn('daan', "")
 
@@ -232,7 +232,7 @@ el.path.raster.style.delete(mapId, layerId, token)
 
 
 ###vector layers
-mapId = el.path.add('vector', 'test2', token)['id']
+mapId = el.path.add('vector', 'test3', token)['id']
 
 
 layerId = el.path.vector.timestamp.add(mapId,  token = token)['id']
@@ -293,7 +293,7 @@ while blocked:
 features = sh['result'][1:2]
 featureIds = features['id'].values
 
-el.path.vector.timestamp.feature.add(mapId, layerId, features, token)
+el.path.vector.timestamp.feature.add(mapId, layerId, features, token, cores = 10)
 
 levelsOfDetail1 = features.simplify(tolerance = 1, preserve_topology = True)
 el.path.vector.timestamp.feature.add(pathId = mapId, timestampId =  layerId, features=features, levelOfDetail1=levelsOfDetail1, token=token)

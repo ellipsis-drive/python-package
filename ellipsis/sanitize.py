@@ -6,6 +6,9 @@ import geopandas as gpd
 import pandas as pd
 from shapely import geometry
 
+from ellipsis.util.root import reprojectVector
+
+
 def validUuid(name, value, required):
     if not required and type(value) == type(None):
         return
@@ -142,7 +145,7 @@ def validList(name, value, required):
     return value
 
 
-def validGeoSeries(name, value, required):
+def validGeoSeries(name, value, required, cores = 1):
     if not required and type(value) == type(None):
         return
     try:
@@ -153,7 +156,7 @@ def validGeoSeries(name, value, required):
     return value['geometry']
 
 
-def validGeopandas(name, value, required, custom = False):
+def validGeopandas(name, value, required, custom = False, cores = 1):
     if not required and type(value) == type(None):
         return
 
@@ -167,8 +170,8 @@ def validGeopandas(name, value, required, custom = False):
     elif str(type(value.crs)) == str(type(None)):
         raise ValueError('Please provide CRS for ' + name)
     else:
-        value = value.to_crs({'init': 'epsg:4326'})
-
+        value = reprojectVector(features = value, targetEpsg = 4326, cores = cores)
+        
     if 'id' in value.columns:
         del value['id']
     if 'userId' in value.columns:

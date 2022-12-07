@@ -529,9 +529,7 @@ def mergeGeometriesByColumnPart(args):
 def simplifyGeometries(features, tolerance, preserveTopology=True, removeIslands = True, cores = 1):
     
     shs = np.array_split(features, cores)
-    del features
-    
-    
+        
     args = [ {'sh': shs[i], 'tolerance':tolerance, 'preserveTopology': preserveTopology, 'removeIslands':removeIslands} for i in np.arange(len(shs))]
     if cores >1:
         with Pool(cores) as p:

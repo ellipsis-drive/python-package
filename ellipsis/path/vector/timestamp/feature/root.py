@@ -76,13 +76,14 @@ def zipLevels(levelOfDetail1, levelOfDetail2, levelOfDetail3, levelOfDetail4, le
         levels = None
     return levels
     
-def add(pathId, timestampId, features, token, showProgress = True, zoomLevels = None, levelOfDetail1 = None, levelOfDetail2 = None, levelOfDetail3 = None, levelOfDetail4 = None, levelOfDetail5 = None):
+def add(pathId, timestampId, features, token, showProgress = True, zoomLevels = None, levelOfDetail1 = None, levelOfDetail2 = None, levelOfDetail3 = None, levelOfDetail4 = None, levelOfDetail5 = None, cores = 1):
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     token = sanitize.validString('token', token, True)
-    features = sanitize.validGeopandas('features', features, True)
+    features = sanitize.validGeopandas('features', features, True, cores = cores)
     zoomLevels = sanitize.validIntArray('zoomLevels', zoomLevels, False)
     showProgress = sanitize.validBool('showProgress', showProgress, True)
+    cores = sanitize.validInt('cores', cores, True)
     
     levelOfDetail1, levelOfDetail2, levelOfDetail3, levelOfDetail4, levelOfDetail5 = manageLevels(levelOfDetail1, levelOfDetail2, levelOfDetail3, levelOfDetail4, levelOfDetail5, features)
     features_json = features.to_json(na='drop')
@@ -140,14 +141,15 @@ def add(pathId, timestampId, features, token, showProgress = True, zoomLevels = 
 
 
     
-def edit(pathId, timestampId, featureIds, token, features = None, showProgress = True, newZoomLevels = None, levelOfDetail1 = None, levelOfDetail2 = None, levelOfDetail3 = None, levelOfDetail4 = None, levelOfDetail5 = None):
+def edit(pathId, timestampId, featureIds, token, features = None, showProgress = True, newZoomLevels = None, levelOfDetail1 = None, levelOfDetail2 = None, levelOfDetail3 = None, levelOfDetail4 = None, levelOfDetail5 = None, cores = 1):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, True)
-    features = sanitize.validGeopandas('features', features, False)
+    features = sanitize.validGeopandas('features', features, False, cores=cores)
     newZoomLevels = sanitize.validIntArray('newZoomLevels', newZoomLevels, False)
     featureIds = sanitize.validUuidArray('featureIds', featureIds, True)
     showProgress = sanitize.validBool('showProgress', showProgress, True)
+    cores = sanitize.validInt('cores', cores, True)
     
     levelOfDetail1, levelOfDetail2, levelOfDetail3, levelOfDetail4, levelOfDetail5 = manageLevels(levelOfDetail1, levelOfDetail2, levelOfDetail3, levelOfDetail4, levelOfDetail5, features)
 
