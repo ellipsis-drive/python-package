@@ -3,6 +3,8 @@ from ellipsis import sanitize
 from ellipsis.util.root import recurse
 from ellipsis.util.root import stringToDate
 
+from ellipsis.path.folder.root import listFolder
+
 def searchRaster(root=None, name=None, fuzzySearchOnName=False, userId=None, disabled=False, canView=None, pageStart=None, hashtag=None, extent=None, bands=None, resolution=None, dateFrom=None, dateTo=None, hasTimestamp=None, timestampSize=None, listAll= False, token=None):
     token = sanitize.validString('token', token, False)
     root = sanitize.validStringArray('root', root, False)
@@ -132,6 +134,8 @@ def get(pathId, token=None):
     r = convertPath(r)
     return r
 
+
+####depricated
 def listPath(pathId, pathType, pageStart=None, listAll = True, token=None):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
@@ -170,7 +174,7 @@ def editMetadata(pathId, token, description=None, attribution=None, licenseStrin
         'license': licenseString
     }, token)
 
-
+#####depricated
 def add( pathType, name, token, parentId = None, publicAccess =None, metadata=None):
     pathType = sanitize.validString('pathType', pathType, True)
     name = sanitize.validString('name', name, True)
@@ -230,10 +234,10 @@ def delete(pathId, token, recursive = False):
     if recursive:
         info = get(pathId, token)
         if info['type'] == 'folder':
-            folders = listPath(pathId, pathType='folder', token=token)['result']
+            folders = listPath(pathId, includeTrashed=True, pathTypes=['folder'], token=token)['result']
             for f in folders:
                 delete(f['id'], token, True)
-            maps = listPath(pathId, pathType='layer', token=token)['result']
+            maps = listPath(pathId, pathTypes=['raster','vector','file'], includeTrashed=True, token=token)['result']
             for m in maps:
                 delete(m['id'], token, True)
         apiManager.delete(f'/path/{pathId}', None, token)            

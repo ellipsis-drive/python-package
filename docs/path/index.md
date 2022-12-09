@@ -6,6 +6,8 @@ maxdepth: 5
 ---
 raster/index
 vector/index
+folder/index
+file/index
 invite/index
 hashtag/index
 member/index
@@ -117,24 +119,6 @@ Update the public access of a path.
 - processingUnits (integer)
 - hidden (boolean)
 
-## listPath
-
-    ellipsis.path.listPath()
-
-List all paths in a folder.
-
-**Mandatory arguments**
-
-- pathId (uuid)
-- pathType (one of 'layer' or 'folder')
-
-**Optional arguments**
-
-- token (string)
-- pageStart (uuid)
-- listAll (boolean)
-
-
 ## editMetadata
 
     ellipsis.path.editMetadata()
@@ -209,23 +193,6 @@ Place path in trash.
 **Optional arguments**
 
 - token (string)
-
-## add
-
-    ellipsis.path.add()
-
-Create a new folder or map.
-
-**Mandatory arguments**
-
-- pathType (string), should be 'folder', 'raster' or 'vector'
-- name (string)
-- token (string)
-
-**Optional arguments**
-- properties (any json serializable object)
-- parentId (uuid)
-- metadata (dictionary with properties attribution and description as string and properties as any json serializable object)
 
 ## delete
 

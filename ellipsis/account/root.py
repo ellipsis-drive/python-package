@@ -16,20 +16,18 @@ def logIn(username, password, validFor = None):
 
         return(token)
 
-def listRoot(rootName, pathType, token, pageStart = None, listAll = True):
+def listRoot(rootName, token, pathTypes= None, pageStart = None, listAll = True):
     token = sanitize.validString('token', token, True)
     rootName = sanitize.validString('rootName', rootName, True)
     pageStart = sanitize.validUuid('pageStart', pageStart, False)
     listAll = sanitize.validBool('listAll', listAll, True)        
-    if type(pathType) != type('x') or (pathType != 'folder' and pathType !='layer' ) :
-        raise ValueError("pathType must be one of 'layer' or 'folder'")
+    pathTypes = sanitize.validObject('pathTypes', pathTypes, False)
+    if type(pathTypes) == type(None):
+        pathTypes = ['folder', 'raster', 'vector', 'file']
         
-    isFolder = False
-    if pathType == 'folder':
-        isFolder = True        
 
     url = "/account/root/" + rootName
-    body = {"isFolder": isFolder, "pageStart": pageStart}
+    body = {"type": pathTypes, "pageStart": pageStart}
 
 
     def f(body):
