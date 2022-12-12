@@ -22,12 +22,12 @@ def get(viewId, token=None):
 
 
 
-def add(pathId, layers, name, token, persistent=False, dems=[]):
-    token = sanitize.validString('token', token, True)
+def add(pathId, layers, name = None, persistent=False, dems=[], token = None):
+    token = sanitize.validString('token', token, False)
     pathId = sanitize.validString('pathId', pathId, True)
     layers = sanitize.validObject('layers', layers, True)
     dems = sanitize.validObject('dems', dems, True)
-    name = sanitize.validString('pathId', name, True)
+    name = sanitize.validString('pathId', name, False)
     persistent = sanitize.validBool('persistent', persistent, True)
 
     r = apiManager.post('/view', {'name':name, 'layers':layers, 'dems':dems, 'pathId':pathId, 'persistent':persistent}, token)

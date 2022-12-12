@@ -9,17 +9,17 @@ The package eases the use of the Ellipsis Drive API, by wrapping many of the API
 
 **General usage**
 
-Retrieving all maps in "My Drive".
+Retrieving all items in "My Drive".
 
     import ellipsis as el
 
     # log in
     token = el.account.logIn("username", "password")
 
-    # retrieve all maps in "My Drive"
-    layers = el.account.listRoot("myDrive", pathType = 'folder', token=token)
+    # retrieve all items in "My Drive"
+    items = el.account.listRoot("myDrive", pathTypes = ['folder', 'raster','vector','file'], token=token)
 
-Retrieve all maps and folders inside a specific folder, and retreive information about the folder itself.
+Retrieve all layers and folders inside a specific folder, and retreive information about the folder itself.
 
     import ellipsis as el
 
@@ -28,8 +28,7 @@ Retrieve all maps and folders inside a specific folder, and retreive information
     token = el.account.logIn("username", "password")
 
     info = el.path.get(folderId, token)
-    layers = el.path.listPath(folderId, pathType = 'layer', token = token, listAll = True)
-    folders = el.path.listPath(folderId, pathType = 'folder', token = token, listAll = True)
+    items = el.path.listPath(folderId, pathTypes = ['folder', 'raster','vector','file'], token = token, listAll = True)
 
 **Uploading files**
 

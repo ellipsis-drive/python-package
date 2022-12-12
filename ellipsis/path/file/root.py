@@ -6,7 +6,7 @@ import os
 
 def download(pathId, filePath, token=None):
     pathId = sanitize.validUuid('pathId', pathId, True)
-    token = sanitize.validString('token', token, True)
+    token = sanitize.validString('token', token, False)
     filePath = sanitize.validString('filePath', filePath, True)
 
 
@@ -21,5 +21,5 @@ def add( filePath, token, parentId = None, publicAccess =None, metadata=None):
     fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
         
     body = {'name':fileName, 'publicAccess':publicAccess, 'metadata':metadata, 'parentId':parentId}
-    r = apiManager.upload('/path/file' , filePath, body, token)
+    r = apiManager.upload('/path/file' , filePath, body, token, key = 'data')
     return r

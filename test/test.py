@@ -14,7 +14,7 @@ import pandas as pd
 token = el.account.logIn(username = 'admin', password='')
 
 ##access token
-el.account.accessToken.create(description = 'hoi', accessList = [{'pathId': 'd448bdb5-783a-4919-98bb-caf8092904aa' , 'access':{'accessLevel':100}}], token = token)
+el.account.accessToken.create(description = 'hoi', accessList = [{'pathId': '46e1e919-8b73-42a3-a575-25c6d45fd93b' , 'access':{'accessLevel':100}}], token = token)
 tokenId = el.account.accessToken.get(token, listAll = True)['result'][0]['id']
 el.account.accessToken.revoke(accessTokenId = tokenId, token = token)
 
@@ -24,20 +24,27 @@ folderId = '46e1e919-8b73-42a3-a575-25c6d45fd93b'
 
 
 ##account
-demo_token = el.account.logIn("demo_user", "demo_user")
+demo_token = el.account.logIn("demo_user", "")
 admin_token = el.account.logIn(username = 'admin', password='')
 daan_token = el.account.logIn('daan', "")
 
-el.account.listRoot('myDrive', pathType = 'layer', token = demo_token)
+el.account.listRoot('myDrive', pathTypes = ['raster'], token = demo_token)
 
-el.account.listRoot('sharedWithMe','folder', demo_token)
+el.account.listRoot('sharedWithMe',pathTypes = ['folder'], token = demo_token)
 
 r_raster = el.path.searchRaster(token=token);
 
 r_vector = el.path.searchVector()
 
 r_raster = el.path.searchFolder(token=token);
-    
+
+r_file = el.path.searchFile(token=token);
+
+
+###files
+filePath = '/home/daniel/Ellipsis/db/testset/0.tif'
+pathId = el.path.file.add(filePath, token)['id']
+el.path.file.download(pathId = pathId, filePath =  '/home/daniel/Downloads/out.tif')
 
 ##user
 
@@ -52,8 +59,8 @@ rasterInfo = el.path.get('59caf510-bab7-44a8-b5ea-c522cfde4ad7', token)
 info = el.path.get(folderId, token)
 
 folderId = info['id']
-maps = el.path.listPath(folderId, pathType='layer', token = token, listAll = True)
-folders = el.path.listPath(folderId, pathType='folder', token = token, listAll = True)
+maps = el.path.folder.listFolder(folderId, pathTypes=['raster', 'vector'], token = token, listAll = True)
+folders = el.path.folder.listFolder(folderId, pathTypes=['folder'], token = token, listAll = True)
 
 mapId = [ m for m in maps['result'] if not m['trashed'] ][0]['id']
 
@@ -63,12 +70,12 @@ mapId = [ m for m in maps['result'] if not m['trashed'] ][0]['id']
 
 el.path.editMetadata(pathId = mapId, token = token, description = 'test')
 
-addedFolderId = el.path.add( 'folder', 'test', token = token, parentId = folderId)['id']
+addedFolderId = el.path.folder.add(  'test', token = token, parentId = folderId)['id']
 
 el.path.trash(addedFolderId, token)
 el.path.recover(addedFolderId, token)
 
-addedRasterId = el.path.add( 'raster', 'test2', token = token, parentId = folderId)['id']
+addedRasterId = el.path.raster.add(  'test2', token = token, parentId = folderId)['id']
 
 el.path.move([addedRasterId], addedFolderId, token)
 
@@ -120,8 +127,8 @@ el.path.usage.getUsage(pathId = pathId, userId = users['result'][0]['user']['id'
 el.path.usage.getAggregatedUsage(pathId = pathId, loggedIn = False, token = token)
 
 ##raster and uploads
-mapId = el.path.add('raster', 'test', token, parentId = folderId)['id']
-el.path.raster.editMap(mapId, token, interpolation = 'nearest')
+mapId = el.path.raster.add( 'test', token, parentId = folderId)['id']
+el.path.raster.edit(mapId, token, interpolation = 'nearest')
 
 
 timestampId = el.path.raster.timestamp.add(mapId, token)['id']
@@ -232,7 +239,7 @@ el.path.raster.style.delete(mapId, layerId, token)
 
 
 ###vector layers
-mapId = el.path.add('vector', 'test3', token)['id']
+mapId = el.path.vector.add( 'test3', token)['id']
 
 
 layerId = el.path.vector.timestamp.add(mapId,  token = token)['id']
@@ -345,7 +352,6 @@ el.path.vector.timestamp.feature.series.recover(mapId, layerId, featureId, [seri
 el.path.vector.timestamp.feature.series.changelog(mapId, layerId, featureId, token = token)
 
 
-0
 #style module
 
 parameters = {"alpha":0.5,"width":2,"radius":{"method":"constant","parameters":{"value":7}},"property":"gml_id"}
@@ -375,6 +381,7 @@ file_out = '/home/daniel/Downloads/out.zip'
 el.path.vector.timestamp.order.download(orderId, file_out, token)
 os.remove(file_out)    
 el.path.trash(mapId, token)
+el.path.delete(mapId, token)
 
 
 
@@ -395,4 +402,21 @@ el.path.vector.timestamp.getBounds(pathId = vectorId, timestampId = timestampId,
 
 
 
+
+###hashtags
+pathId = '59caf510-bab7-44a8-b5ea-c522cfde4ad7'
+el.path.hashtag.add(pathId = pathId, hashtag = 'xxx', token = token)
+el.path.hashtag.search('x')
+el.path.hashtag.delete(pathId = pathId, hashtag = 'xxx', token = token)
+####views
+
+viewId = el.view.add(pathId = pathId, name = 'temp', persistent = True, layers = [{'type':'ellipsis', 'id':pathId, 'selected':True }, {'type':'base', 'selected':True }], token = token)['id']
+
+el.view.get(viewId = viewId)
+
+el.view.listViews(token = token)
+
+el.view.edit(viewId = viewId, name = 'temp2', token = token)
+
+el.view.delete(viewId = viewId, token = token)
 

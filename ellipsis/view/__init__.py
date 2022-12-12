@@ -1,4 +1,3 @@
 
-from ellipsis.account.root import logIn, listRoot
+from ellipsis.view.root import add, get, edit, listViews, delete
 
-from ellipsis.account import accessToken

@@ -127,6 +127,37 @@ def searchFolder(root=None, name=None, fuzzySearchOnName=False, userId=None, pag
     return r
 
 
+def searchFile(root=None, name=None, fuzzySearchOnName=False, userId=None, pageStart=None, listAll = False, token=None):
+    token = sanitize.validString('token', token, False)
+    listAll = sanitize.validBool('listAll', listAll, True)
+    root = sanitize.validStringArray('root', root, False)
+    name = sanitize.validString('name', name, False)
+    fuzzySearchOnName = sanitize.validBool(
+        'fuzzySearchOnName', fuzzySearchOnName, True)
+    userId = sanitize.validUuid('userId', userId, False)
+    pageStart = sanitize.validUuid('pageStart', pageStart, False)
+
+    if root != None and token == None and (len(root) > 1 or root[0] != 'public'):
+        raise ValueError(
+            "When no token is given the root can only be ['public'']")
+
+    body = {
+        'type': ['file'],
+        'root': root,
+        'name': name,
+        'fuzzySearchOnName': fuzzySearchOnName,
+        'userId': userId,
+        'pagestart': pageStart
+    }
+    
+    def f(body):
+        return (apiManager.get('/path', body, token))
+
+    r = recurse(f, body, listAll)
+    return r
+
+
+
 def get(pathId, token=None):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
@@ -234,10 +265,10 @@ def delete(pathId, token, recursive = False):
     if recursive:
         info = get(pathId, token)
         if info['type'] == 'folder':
-            folders = listPath(pathId, includeTrashed=True, pathTypes=['folder'], token=token)['result']
+            folders = listFolder(pathId = pathId, includeTrashed=True, pathTypes=['folder'], token=token)['result']
             for f in folders:
                 delete(f['id'], token, True)
-            maps = listPath(pathId, pathTypes=['raster','vector','file'], includeTrashed=True, token=token)['result']
+            maps = listFolder(pathId=pathId, pathTypes=['raster','vector','file'], includeTrashed=True, token=token)['result']
             for m in maps:
                 delete(m['id'], token, True)
         apiManager.delete(f'/path/{pathId}', None, token)            

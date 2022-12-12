@@ -1,2 +1,2 @@
-from ellipsis.path.folder.root import download
-from ellipsis.path.folder.root import add
+from ellipsis.path.file.root import download
+from ellipsis.path.file.root import add

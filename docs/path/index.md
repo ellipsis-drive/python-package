@@ -79,6 +79,22 @@ Search for folders matching specified search criteria.
 - userId (uuid)
 - pageStart (uuid)
 
+## searchFile
+
+    ellipsis.path.searchFile()
+
+Search for files matching specified search criteria.
+
+**Optional arguments**
+
+- token (string)
+- listAll (boolean)
+- root (array of strings)
+- name (string)
+- fuzzySearchOnName (boolean)
+- userId (uuid)
+- pageStart (uuid)
+
 ## favorite
 
     ellipsis.path.favorite()

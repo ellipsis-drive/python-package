@@ -4,7 +4,7 @@ import urllib
 import os
 from requests_toolbelt import MultipartEncoder
 
-baseUrl = 'https://api.stg1.ellipsis-drive.com/v3'
+baseUrl = 'https://api.ellipsis-drive.com/v3'
 s = requests.Session()
 
 
@@ -90,7 +90,7 @@ def call(method, url, body = None, token = None, crash = True):
         return r
 
 
-def upload(url, filePath, body, token):
+def upload(url, filePath, body, token, key = 'fileToUpload'):
     body = filterNone(body)
 
     seperator = os.path.sep    
@@ -99,7 +99,7 @@ def upload(url, filePath, body, token):
 
     conn_file = open(filePath, 'rb')
 
-    payload = MultipartEncoder(fields = {**body, 'fileToUpload': (fileName, conn_file, 'application/octet-stream')})
+    payload = MultipartEncoder(fields = {**body, key: (fileName, conn_file, 'application/octet-stream')})
 
     token = 'Bearer ' + token
         
