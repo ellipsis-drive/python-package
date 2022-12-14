@@ -39,7 +39,8 @@ def getSampledRaster(pathId, timestampId, extent, width, height, epsg=3857, styl
         r = tifffile.imread(BytesIO(r.content))
     else:
         r = np.array(Image.open(BytesIO(r.content)))
-        r = np.transpose(r, [2,0,1])
+    #tif also has bands in last channel
+    r = np.transpose(r, [2,0,1])
 
     xMin = bounds['xMin']
     yMin = bounds['yMin']
@@ -83,7 +84,6 @@ def getValuesAlongLine(pathId, timestampId, line, token = None, epsg = 4326):
     size = 1000
     r = getSampledRaster(pathId = pathId, timestampId = timestampId, extent = extent, width = size, height = size, epsg=4326)
     raster = r['raster']
-    raster = np.transpose(raster, [2,0,1])
 
     memfile =  MemoryFile()
     dataset = memfile.open( driver='GTiff', dtype='float32', height=size, width=size, count = raster.shape[0], crs= r['crs'], transform=r['transform'])

@@ -95,7 +95,9 @@ def upload(url, filePath, body, token, key = 'fileToUpload'):
 
     seperator = os.path.sep    
     fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
-
+    
+    for k in body.keys():
+        body[k] = str(body[k])
 
     conn_file = open(filePath, 'rb')
 

@@ -20,7 +20,7 @@ def add(pathId, timestampId, filePath, token, fileFormat, epsg = None, dateColum
         fastUpload='true'
     else:
         fastUpload = 'false'
-        
+
     seperator = os.path.sep    
     fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
     
