@@ -14,7 +14,7 @@
 **Optional arguments**
 
 - epsg (integer)
-- method (string) one of simplify or full. In case of simplify lower level geometries are created to increase rendering performance.
+- method (string) either 'simplify' or 'full'. In case of simplify lower level geometries are created to increase rendering performance.
 - fileFormat (string)
 - dateColumns (array of strings)
 - datePatterns (array of strings)
