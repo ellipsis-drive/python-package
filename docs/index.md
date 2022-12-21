@@ -39,7 +39,7 @@ The below example uploads a raster file.
     pathToYourLocalFile = ""
     
     token = el.account.logIn("username", "password")
-    rasterLayerId = el.path.add("raster", "some name", token)['id']
+    rasterLayerId = el.path.raster.add( "some name", token)['id']
     timestampId = el.path.raster.timestamp.add(rasterLayerId, token)['id']
     el.path.raster.timestamp.upload.add(pathId =rasterLayerId, timestampId=timestampId, filePath= pathToYourLocalFile, fileFormat='tif', token=token)
     #don't forget to activate the timestamp once upload is completed
@@ -53,7 +53,7 @@ Similarly, the below example uploads a vector file.
     pathToYourLocalFile = ""
 
     token = el.account.logIn("username", "password")
-    vectorLayerId = el.path.add("vector", "some name", token)['id']
+    vectorLayerId = el.path.vector.add( "some name", token)['id']
     timestampId = el.path.vector.timestamp.add(vectorLayerId, token)['id']
     el.path.vector.timestamp.upload.add(vectorLayerId, timestampId, pathToYourLocalFile, token)
 
