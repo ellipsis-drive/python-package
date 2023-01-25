@@ -18,8 +18,8 @@ def add(pathId, timestampId, filePath, token, fileFormat, epsg = None, noDataVal
     seperator = os.path.sep    
     fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
     
-    body = {'fileName':fileName, 'epsg':epsg, 'noDataValue':noDataValue, 'format':fileFormat}
-    r = apiManager.upload('/path/' + pathId + '/raster/timestamp/' + timestampId + '/upload' , filePath, body, token)
+    body = {'name':fileName, 'epsg':epsg, 'noDataValue':noDataValue, 'format':fileFormat}
+    r = apiManager.upload('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file' , filePath, body, token)
     return r
 
 def get(pathId, timestampId, token, pageStart= None, listAll = True):
@@ -29,7 +29,7 @@ def get(pathId, timestampId, token, pageStart= None, listAll = True):
     pageStart = sanitize.validUuid('pageStart', pageStart, False) 
 
     def f(body):
-        r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/upload', None, token)    
+        r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file', None, token)    
         for i in np.arange( len(r['result'])):
             if 'info' in r['result'][i].keys() and 'bounds' in r['result'][i]['info'].keys() and type(r['result'][i]['info']['bounds']) != type(None):
                 r['result'][i]['info']['bounds'] = gpd.GeoDataFrame.from_features([{'id': 0, 'properties':{}, 'geometry':r['result'][i]['info']['bounds']}]).unary_union
@@ -40,33 +40,45 @@ def get(pathId, timestampId, token, pageStart= None, listAll = True):
     return r
     
 
-def trash(pathId, timestampId, uploadId, token):
+def trash(pathId, timestampId, fileId, token):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True) 
-    uploadId = sanitize.validUuid('uploadId', uploadId, True) 
+    fileId = sanitize.validUuid('fileId', fileId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
 
-    r = apiManager.put('/path/' + pathId + '/raster/timestamp/' + timestampId + '/upload/' + uploadId + '/trashed', {'trashed':True}, token)    
+    r = apiManager.put('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file/' + fileId + '/trashed', {'trashed':True}, token)    
     return r
 
 
-def recover(pathId, timestampId, uploadId, token):
+def recover(pathId, timestampId, fileId, token):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True) 
-    uploadId = sanitize.validUuid('uploadId', uploadId, True) 
+    fileId = sanitize.validUuid('fileId', fileId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
 
-    r = apiManager.put('/path/' + pathId + '/raster/timestamp/' + timestampId + '/upload/' + uploadId + '/trashed', {'trashed':False}, token)    
+    r = apiManager.put('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file/' + fileId + '/trashed', {'trashed':False}, token)    
     return r
 
 
 
-def delete(pathId, timestampId, uploadId, token):
+def delete(pathId, timestampId, fileId, token):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True) 
-    uploadId = sanitize.validUuid('uploadId', uploadId, True) 
+    fileId = sanitize.validUuid('fileId', fileId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
 
-    r = apiManager.delete('/path/' + pathId + '/raster/timestamp/' + timestampId + '/upload/' + uploadId, None, token)    
+    r = apiManager.delete('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file/' + fileId, None, token)    
     return r
 
+def download(pathId, timestampId, fileId, filePath, token):
+    
+    token = sanitize.validString('token', token, True)
+    pathId = sanitize.validUuid('pathId', pathId, True) 
+    fileId = sanitize.validUuid('fileId', fileId, True) 
+    timestampId = sanitize.validUuid('timestampId', timestampId, True) 
+    filePath = sanitize.validString('filePath', filePath, True)
+
+    if filePath[len(filePath)-4 : len(filePath) ] != '.tif':
+        raise ValueError('filePath must end with .tif')
+
+    apiManager.download('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file/' + fileId + '/data', filePath, token)

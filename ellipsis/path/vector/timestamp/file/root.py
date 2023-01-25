@@ -24,7 +24,7 @@ def add(pathId, timestampId, filePath, token, fileFormat, epsg = None, dateColum
     seperator = os.path.sep    
     fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
     
-    body = {'fileName':fileName, 'epsg':epsg, 'format':fileFormat, 'dateColumns': dateColumns, 'datePatterns':datePatterns, 'fastUpload':fastUpload}
+    body = {'name':fileName, 'epsg':epsg, 'format':fileFormat, 'dateColumns': dateColumns, 'datePatterns':datePatterns, 'fastUpload':fastUpload}
     r = apiManager.upload('/path/' + pathId + '/vector/timestamp/' + timestampId + '/upload' , filePath, body, token)
     return r
 
@@ -47,3 +47,16 @@ def get(pathId, timestampId, token, pageStart = None, listAll = True):
 
     r = recurse(f, body, listAll)
     return r
+
+def download(pathId, timestampId, fileId, filePath, token):
+    
+    token = sanitize.validString('token', token, True)
+    pathId = sanitize.validUuid('pathId', pathId, True) 
+    fileId = sanitize.validUuid('fileId', fileId, True) 
+    timestampId = sanitize.validUuid('timestampId', timestampId, True) 
+    filePath = sanitize.validString('filePath', filePath, True)
+
+    if filePath[len(filePath)-4 : len(filePath) ] != '.zip':
+        raise ValueError('filePath must end with .zip')
+
+    apiManager.download('/path/' + pathId + '/vector/timestamp/' + timestampId + '/file/' + fileId + '/data', filePath, token)

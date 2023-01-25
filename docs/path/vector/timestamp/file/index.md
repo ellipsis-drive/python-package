@@ -2,7 +2,7 @@
 
 ## add
 
-    ellipsis.path.vector.timestamp.upload.add()
+    ellipsis.path.vector.timestamp.file.add()
 
 **Mandatory arguments**
 
@@ -21,15 +21,29 @@
 
 ## get
 
-    ellipsis.path.vector.timestamp.upload.get()
+    ellipsis.path.vector.timestamp.file.get()
 
 **Mandatory arguments**
 
 - pathId (uuid)
 - timestampId (uuid)
-- token (string)
 
 **Optional arguments**
-
+- token (string)
 - pageStart (uuid)
 - listAll (boolean), default True
+
+
+## download
+
+    ellipsis.path.vector.timestamp.file.download()
+
+**Mandatory arguments**
+
+- pathId (uuid)
+- fileId (uuid)
+- timestampId (uuid)
+
+**Optional arguments**
+- token (string)
+

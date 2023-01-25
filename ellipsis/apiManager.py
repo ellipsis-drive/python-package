@@ -5,7 +5,6 @@ import os
 from requests_toolbelt import MultipartEncoder
 
 baseUrl = 'https://api.ellipsis-drive.com/v3'
-s = requests.Session()
 
 
 def filterNone(body):
@@ -34,29 +33,29 @@ def get(url, body = None, token = None, crash = True):
 
     url = url + '?' + body
             
-    r = call( method = s.get, url = url, body = None, token = token, crash = crash )
+    r = call( method = requests.get, url = url, body = None, token = token, crash = crash )
 
 
     return r
 
 
 def post(url, body, token=None):
-    r = call(method=s.post, url=url, body=body, token=token)
+    r = call(method=requests.post, url=url, body=body, token=token)
     return r
 
 
 def put(url, body, token=None):
-    r = call(method=s.put, url=url, body=body, token=token)
+    r = call(method=requests.put, url=url, body=body, token=token)
     return r
 
 
 def patch(url, body, token=None):
-    r = call(method=s.patch, url=url, body=body, token=token)
+    r = call(method=requests.patch, url=url, body=body, token=token)
     return r
 
     
 def delete(url, body, token = None):
-    r = call( method = s.delete, url = url, body = body, token = token )
+    r = call( method = requests.delete, url = url, body = body, token = token )
     return r
 
 
@@ -90,7 +89,7 @@ def call(method, url, body = None, token = None, crash = True):
         return r
 
 
-def upload(url, filePath, body, token, key = 'fileToUpload'):
+def upload(url, filePath, body, token, key = 'data'):
     body = filterNone(body)
 
     seperator = os.path.sep    
@@ -105,7 +104,7 @@ def upload(url, filePath, body, token, key = 'fileToUpload'):
 
     token = 'Bearer ' + token
         
-    r = s.post(baseUrl + url, headers = {"Authorization":token, "Content-Type": payload.content_type}, data=payload)
+    r = requests.post(baseUrl + url, headers = {"Authorization":token, "Content-Type": payload.content_type}, data=payload)
     conn_file.close()
     
     if r.status_code != 200:

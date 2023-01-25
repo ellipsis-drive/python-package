@@ -12,7 +12,7 @@ from ellipsis.path.raster.timestamp.root import recover
 from ellipsis.path.raster.timestamp.root import getSampledRaster
 from ellipsis.path.raster.timestamp.root import getValuesAlongLine
 
-from ellipsis.path.raster.timestamp import upload
+from ellipsis.path.raster.timestamp import file
 from ellipsis.path.raster.timestamp import order
 
 

@@ -6,7 +6,7 @@ maxdepth: 3
 ---
 feature/index
 order/index
-upload/index
+file/index
 ```
 
 ## add

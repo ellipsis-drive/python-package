@@ -29,4 +29,4 @@ def download(orderId, filePath, token):
     if filePath[len(filePath)-4 : len(filePath) ] != '.zip':
         raise ValueError('filePath must end with .zip')
 
-    apiManager.download('/path/vector/timestamp/order/' + orderId + '/download', filePath, token)
+    apiManager.download('/path/vector/timestamp/order/' + orderId + '/data', filePath, token)

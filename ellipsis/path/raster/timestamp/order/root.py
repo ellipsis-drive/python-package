@@ -7,18 +7,15 @@ def get(token):
     r = apiManager.get('/path/raster/timestamp/order', None, token)
     return r
 
-def add(pathId, timestampId, token, extent = None, epsg=4326, uploadId = None):
+def add(pathId, timestampId, token, extent = None, epsg=4326):
     
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
-    extent = sanitize.validBounds('extent', extent, False)
-    uploadId = sanitize.validUuid('uploadId', uploadId, False)
+    extent = sanitize.validBounds('extent', extent, True)
     epsg = sanitize.validInt('epsg', epsg, True)
-    if type(uploadId) != type(None):
-        epsg = None
 
-    body = {'uploadId': uploadId, 'extent':extent, 'epsg':epsg}
+    body = {'extent':extent, 'epsg':epsg}
     r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/order', body, token)    
 
     return r
@@ -32,4 +29,4 @@ def download(orderId, filePath, token):
     if filePath[len(filePath)-4 : len(filePath) ] != '.tif':
         raise ValueError('filePath must end with .tif')
 
-    apiManager.download('/path/raster/timestamp/order/' + orderId + '/download', filePath, token)
+    apiManager.download('/path/raster/timestamp/order/' + orderId + '/data', filePath, token)

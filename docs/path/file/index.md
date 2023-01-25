@@ -20,7 +20,7 @@ Adds a file.
 
 ## download
 
-    ellipsis.path.folder.listFolder()
+    ellipsis.path.file.download()
 
 Downloads a file
 

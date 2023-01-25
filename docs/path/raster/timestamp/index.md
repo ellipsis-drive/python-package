@@ -5,7 +5,7 @@
 maxdepth: 2
 ---
 order/index
-upload/index
+file/index
 ```
 
 ## add
