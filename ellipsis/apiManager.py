@@ -113,7 +113,7 @@ def upload(url, filePath, body, token, key = 'data'):
 
 def download(url, filePath, token):
 
-    
+    token = 'Bearer ' + token
     with requests.get(baseUrl + url, stream=True, headers={"Authorization": token}) as r:
         r.raise_for_status()
         with open(filePath, 'wb') as f:

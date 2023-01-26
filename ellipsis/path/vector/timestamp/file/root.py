@@ -25,7 +25,7 @@ def add(pathId, timestampId, filePath, token, fileFormat, epsg = None, dateColum
     fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
     
     body = {'name':fileName, 'epsg':epsg, 'format':fileFormat, 'dateColumns': dateColumns, 'datePatterns':datePatterns, 'fastUpload':fastUpload}
-    r = apiManager.upload('/path/' + pathId + '/vector/timestamp/' + timestampId + '/upload' , filePath, body, token)
+    r = apiManager.upload('/path/' + pathId + '/vector/timestamp/' + timestampId + '/file' , filePath, body, token)
     return r
 
 def get(pathId, timestampId, token, pageStart = None, listAll = True):

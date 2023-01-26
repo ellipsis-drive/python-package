@@ -139,15 +139,16 @@ dateTo = datetime.datetime.now()
 el.path.raster.timestamp.edit(mapId, timestampId, token, description = 'hoi', date={'from': dateFrom, 'to':dateTo})
 
 filePath = '/home/daniel/Ellipsis/python-package/test/0.tif'
-uploadId = el.path.raster.timestamp.upload.add(pathId = mapId, timestampId = timestampId, filePath = filePath, fileFormat = 'tif', token = token)['id']
+uploadId = el.path.raster.timestamp.file.add(pathId = mapId, timestampId = timestampId, filePath = filePath, fileFormat = 'tif', token = token)['id']
+el.path.raster.timestamp.file.download(pathId = mapId, timestampId = timestampId, fileId = uploadId, filePath = '/home/daniel/Downloads/out.tif', token = token)
+os.remove('/home/daniel/Downloads/out.tif')
+el.path.raster.timestamp.file.trash(pathId = mapId, timestampId = timestampId, fileId= uploadId, token = token)
+el.path.raster.timestamp.file.recover(pathId = mapId, timestampId = timestampId, fileId= uploadId, token = token)
+el.path.raster.timestamp.file.trash(pathId = mapId, timestampId = timestampId, fileId= uploadId, token = token)
+el.path.raster.timestamp.file.delete(mapId, timestampId, uploadId, token)
+uploadId = el.path.raster.timestamp.file.add(pathId = mapId, timestampId = timestampId, filePath=filePath, fileFormat='tif', token = token)['id']
 
-el.path.raster.timestamp.upload.trash(pathId = mapId, timestampId = timestampId, uploadId= uploadId, token = token)
-el.path.raster.timestamp.upload.recover(pathId = mapId, timestampId = timestampId, uploadId= uploadId, token = token)
-el.path.raster.timestamp.upload.trash(pathId = mapId, timestampId = timestampId, uploadId= uploadId, token = token)
-el.path.raster.timestamp.upload.delete(mapId, timestampId, uploadId, token)
-uploadId = el.path.raster.timestamp.upload.add(pathId = mapId, timestampId = timestampId, filePath=filePath, fileFormat='tif', token = token)['id']
-
-uploads = el.path.raster.timestamp.upload.get(mapId, timestampId, token)
+uploads = el.path.raster.timestamp.file.get(mapId, timestampId, token)
 
 
 el.path.raster.timestamp.activate(mapId, timestampId, token)
@@ -214,13 +215,11 @@ data = el.path.raster.timestamp.analyse(mapId, [timestampId], bounds, token=toke
 ###raster downloads
 mapId = '1eea3d2f-27b3-4874-b716-87852c3407c1'
 timestampId = "ba5b418a-a39e-4d84-9411-e23c096085a3"
-uploads = el.path.raster.timestamp.upload.get(mapId, timestampId, token)
+uploads = el.path.raster.timestamp.file.get(mapId, timestampId, token)
 uploadId = uploads['result'][0]['id']
 
-downloadId = el.path.raster.timestamp.order.add(mapId, timestampId, token, uploadId = uploadId)['id']
-
 file_out = '/home/daniel/Downloads/out.tif'
-el.path.raster.timestamp.order.download(downloadId, file_out, token)
+el.path.raster.timestamp.file.download(pathId = mapId, timestampId = timestampId, token = token, fileId = uploadId, filePath = file_out)
 os.remove(file_out)
 
 
@@ -255,14 +254,14 @@ layerId = el.path.vector.timestamp.add(mapId, description = 'test', token = toke
 
 ###vector uploads
 filePath = '/home/daniel/Ellipsis/python-package/test/test.zip'
-el.path.vector.timestamp.upload.add(pathId = mapId, timestampId = layerId, filePath = filePath, token = token, fileFormat = 'zip')
+uploadId = el.path.vector.timestamp.file.add(pathId = mapId, timestampId = layerId, filePath = filePath, token = token, fileFormat = 'zip')['id']
 
+file_out = '/home/daniel/Downloads/out.zip'
+el.path.vector.timestamp.file.download(pathId = mapId, timestampId = layerId, fileId = uploadId, filePath = file_out, token = token)
+os.remove(file_out)
 
-upload = el.path.vector.timestamp.upload.get(pathId = mapId,  timestampId = layerId, token = token)['result'][0]
+upload = el.path.vector.timestamp.file.get(pathId = mapId,  timestampId = layerId, token = token)['result'][0]
 
-while upload['status'] != 'completed':
-    time.sleep(1)
-    upload = el.path.vector.timestamp.upload.get(pathId = mapId, timestampId = layerId, token = token)['result'][0]
 
 
 #layer methods
@@ -389,14 +388,14 @@ el.path.delete(mapId, token)
 ########3some more specific bounds tests
 rasterId = '56e20fa2-f014-44c1-b46a-cde78e7e6b7e'
 timestampId = el.path.get(rasterId,token)['raster']['timestamps'][0]['id']
-el.path.raster.timestamp.upload.get(pathId = rasterId, timestampId = timestampId, token = token)
+el.path.raster.timestamp.file.get(pathId = rasterId, timestampId = timestampId, token = token)
 
 el.path.raster.timestamp.getBounds(pathId = rasterId, timestampId = timestampId, token=token)
 
 vectorId = '67e66823-8bbc-4ace-816a-c4e34282676c'
 timestampId = 'bc73c75a-cc74-4bb5-a609-ef01992bcc9a'
 
-el.path.vector.timestamp.upload.get(pathId = vectorId, timestampId = timestampId, token = token)
+el.path.vector.timestamp.file.get(pathId = vectorId, timestampId = timestampId, token = token)
 
 el.path.vector.timestamp.getBounds(pathId = vectorId, timestampId = timestampId, token=token)
 
