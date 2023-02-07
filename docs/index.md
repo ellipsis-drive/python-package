@@ -41,7 +41,7 @@ The below example uploads a raster file.
     token = el.account.logIn("username", "password")
     rasterLayerId = el.path.raster.add( "some name", token)['id']
     timestampId = el.path.raster.timestamp.add(rasterLayerId, token)['id']
-    el.path.raster.timestamp.upload.add(pathId =rasterLayerId, timestampId=timestampId, filePath= pathToYourLocalFile, fileFormat='tif', token=token)
+    el.path.raster.timestamp.file.add(pathId =rasterLayerId, timestampId=timestampId, filePath= pathToYourLocalFile, fileFormat='tif', token=token)
     #don't forget to activate the timestamp once upload is completed
     el.path.raster.timestamp.activate(rasterLayerId, timestampId, token)
 
@@ -55,7 +55,7 @@ Similarly, the below example uploads a vector file.
     token = el.account.logIn("username", "password")
     vectorLayerId = el.path.vector.add( "some name", token)['id']
     timestampId = el.path.vector.timestamp.add(vectorLayerId, token)['id']
-    el.path.vector.timestamp.upload.add(vectorLayerId, timestampId, pathToYourLocalFile, token)
+    el.path.vector.timestamp.file.add(vectorLayerId, timestampId, pathToYourLocalFile, token)
 
 ```{toctree}
 ---

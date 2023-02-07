@@ -206,6 +206,7 @@ def listFeatures(pathId, timestampId, token = None, listAll = True, pageStart = 
 
     
     sh = gpd.GeoDataFrame.from_features(r['result']['features'])    
+    sh.crs = {'init': 'epsg:4326'}
     r['result'] = sh
 
     return r
