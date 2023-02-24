@@ -26,7 +26,7 @@ def search(pathTypes = ['raster', 'vector', 'file', 'folder'] ,root=None, text=N
     date = sanitize.validDateRange('date', date, False)
 
 
-    resolution = sanitize.validFloatArray('resolution', resolution, False)
+    resolution = sanitize.validResolution('resolution', resolution, False)
 
     body = {
         'type': pathTypes,

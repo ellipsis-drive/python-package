@@ -20,80 +20,22 @@ usage/index
 
 Search for rasters matching specified search criteria.
 
-**Optional arguments**
+**Mandatory arguments**
+- pathTypes (array containing 'raster', 'vector', 'folder', 'file')
 
+**Optional arguments**
 - token (string)
-- root (array of strings)
-- listAll (boolean)
-- name (string)
-- fuzzySearchOnName (boolean)
+- root (array of strings containing 'myDrive', 'sharedWithMe', 'favorite', 'public')
+- text (string)
 - userId (uuid)
-- disabled (boolean)
-- canView (boolean)
-- pageStart (uuid)
+- pageStart (uuid, use None to start at begining)
 - hashtag (string)
+- listAll (boolean)
+- active (boolean)
 - extent (a dictionary with properties xMin, xMax, yMin, yMax of type float)
-- bands (array of strings)
-- dateFrom (date object)
-- dateTo (date object)
-- hasTimestamp (boolean)
-- timestampSize (float)
-- resolution (array of floats)
+- date (dictionary with keys from and to, both should be python dates)
+- resolution (dictionary with min and max, both shoudl be float)
 
-## searchVector
-
-    ellipsis.path.searchVector()
-
-Search for vectors matching specified search criteria.
-
-**Optional arguments**
-
-- token (string)
-- root (array of strings)
-- listAll (boolean)
-- name (string)
-- fuzzySearchOnName (boolean)
-- userId (uuid)
-- disabled (boolean)
-- canView (boolean)
-- pageStart (uuid)
-- hashtag (string)
-- extent (a dictionary with properties xMin, xMax, yMin, yMax of type float)
-- hasVectorLayers (boolean)
-- layerNAme (string)
-- fuzzySearchOnLayerName (boolean)
-
-## searchFolder
-
-    ellipsis.path.searchFolder()
-
-Search for folders matching specified search criteria.
-
-**Optional arguments**
-
-- token (string)
-- listAll (boolean)
-- root (array of strings)
-- name (string)
-- fuzzySearchOnName (boolean)
-- userId (uuid)
-- pageStart (uuid)
-
-## searchFile
-
-    ellipsis.path.searchFile()
-
-Search for files matching specified search criteria.
-
-**Optional arguments**
-
-- token (string)
-- listAll (boolean)
-- root (array of strings)
-- name (string)
-- fuzzySearchOnName (boolean)
-- userId (uuid)
-- pageStart (uuid)
 
 ## favorite
 

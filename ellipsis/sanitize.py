@@ -18,6 +18,25 @@ def validUuid(name, value, required):
         raise ValueError(name + ' must be of type string and be a uuid')
     return(value)
 
+def validResolution(name, value, required):
+    if not required and type(value) == type(None):
+        return
+
+    if type(value) != type({}):
+        raise ValueError(name + ' must be of type dictionary with properties min and max as float')
+
+    if 'min' not in value.keys() or 'max' not in value.keys():
+        raise ValueError(name + ' must be of type dictionary with properties min and max as float')
+
+    try:
+        value = {'min': float(value['min']), 'max':float(value['max']) }        
+    except:
+        raise ValueError(name + ' must be of type dictionary with properties min and max as float')
+
+    return(value)
+
+
+
 def validDateRange(name, value, required):
 
     if not required and type(value) == type(None):
