@@ -1,4 +1,4 @@
-from ellipsis.path.root import searchFolder, searchFile, searchRaster, favorite, unfavorite, editPublicAccess, searchVector, delete, editMetadata, move, rename, trash, recover, get
+from ellipsis.path.root import search, favorite, unfavorite, editPublicAccess, delete, editMetadata, move, rename, trash, recover, get
 from ellipsis.path import hashtag
 from ellipsis.path import invite
 from ellipsis.path import member

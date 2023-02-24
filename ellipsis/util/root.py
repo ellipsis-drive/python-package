@@ -307,10 +307,17 @@ def manageTile(args):
     tile, depth, zoom, sh, bounds, cores, buffer, count, chosen = args
     if zoom == depth:
         return sh
-    newTiles = splitTile(tile, buffer)
+    if depth == zoom -1:
+        t_buffer = buffer
+    else:
+        t_buffer = 0
+
+
+    newTiles = splitTile(tile, t_buffer)
     shs = []
     tile = newTiles[0]
     args = []
+
     maxCount = 0
     for tile in newTiles:        
         sh_new, bounds_new = cut(sh, bounds, tile, chosen)
