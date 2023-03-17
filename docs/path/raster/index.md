@@ -54,3 +54,4 @@ Edit raster map attributes.
 
 - interpolation (string)
 - includesTransparant (boolean)
+- compressionQuality (int between 0 and 100)

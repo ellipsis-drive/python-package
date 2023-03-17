@@ -24,14 +24,15 @@ def editBand(pathId, bandNumber, name, token):
     return(r)
 
 # /path/{pathId}/raster
-def edit(pathId, token, interpolation = None, includesTransparent = None):
+def edit(pathId, token, interpolation = None, includesTransparent = None, compressionQuality = None):
 
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)
     interpolation = sanitize.validString('interpolation', interpolation, False)
     includesTransparent = sanitize.validBool('includesTransparent', includesTransparent, False)
+    compressionQuality = sanitize.validInt('compressionQuality', compressionQuality, False)
 
-    body = {'interpolation':interpolation, 'includesTransparent':includesTransparent}
+    body = {'interpolation':interpolation, 'includesTransparent':includesTransparent, 'compressionQuality':compressionQuality}
     r = apiManager.patch('/path/' + pathId + '/raster' , body, token)
     return(r)
     
