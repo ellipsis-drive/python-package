@@ -23,7 +23,6 @@ Add a feature.
 
 **Optional arguments**
 
-- zoomlevels (array of integers)
 - levelOfDetail1 (Geoseries or array of shapely geometries)
 - levelOfDetail2 (Geoseries or array of shapely geometries)
 - levelOfDetail3 (Geoseries or array of shapely geometries)

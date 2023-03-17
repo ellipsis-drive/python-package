@@ -76,12 +76,11 @@ def zipLevels(levelOfDetail1, levelOfDetail2, levelOfDetail3, levelOfDetail4, le
         levels = None
     return levels
     
-def add(pathId, timestampId, features, token, showProgress = True, zoomLevels = None, levelOfDetail1 = None, levelOfDetail2 = None, levelOfDetail3 = None, levelOfDetail4 = None, levelOfDetail5 = None, cores = 1):
+def add(pathId, timestampId, features, token, showProgress = True, levelOfDetail1 = None, levelOfDetail2 = None, levelOfDetail3 = None, levelOfDetail4 = None, levelOfDetail5 = None, cores = 1):
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     token = sanitize.validString('token', token, True)
     features = sanitize.validGeopandas('features', features, True, cores = cores)
-    zoomLevels = sanitize.validIntArray('zoomLevels', zoomLevels, False)
     showProgress = sanitize.validBool('showProgress', showProgress, True)
     cores = sanitize.validInt('cores', cores, True)
     
@@ -127,9 +126,9 @@ def add(pathId, timestampId, features, token, showProgress = True, zoomLevels = 
         levels = zipLevels(levelOfDetail1, levelOfDetail2, levelOfDetail3, levelOfDetail4, levelOfDetail5, indices_sub)
                       
         if type(levels) != type(None):
-            featuresBody = [{'feature': features_sub[i], 'zoomLevels':zoomLevels, 'levelsOfDetail': levels[i] } for i in np.arange(len(indices_sub))]
+            featuresBody = [{'feature': features_sub[i], 'levelsOfDetail': levels[i] } for i in np.arange(len(indices_sub))]
         else:
-            featuresBody = [{'feature': features_sub[i], 'zoomLevels':zoomLevels } for i in np.arange(len(indices_sub))]
+            featuresBody = [{'feature': features_sub[i] } for i in np.arange(len(indices_sub))]
         body = {"features":featuresBody}
         r = apiManager.post('/path/' + pathId + '/vector/timestamp/' + timestampId + '/feature', body, token)
         addedIds = addedIds + r
@@ -141,12 +140,11 @@ def add(pathId, timestampId, features, token, showProgress = True, zoomLevels = 
 
 
     
-def edit(pathId, timestampId, featureIds, token, features = None, showProgress = True, newZoomLevels = None, levelOfDetail1 = None, levelOfDetail2 = None, levelOfDetail3 = None, levelOfDetail4 = None, levelOfDetail5 = None, cores = 1):
+def edit(pathId, timestampId, featureIds, token, features = None, showProgress = True, levelOfDetail1 = None, levelOfDetail2 = None, levelOfDetail3 = None, levelOfDetail4 = None, levelOfDetail5 = None, cores = 1):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, True)
     features = sanitize.validGeopandas('features', features, False, cores=cores)
-    newZoomLevels = sanitize.validIntArray('newZoomLevels', newZoomLevels, False)
     featureIds = sanitize.validUuidArray('featureIds', featureIds, True)
     showProgress = sanitize.validBool('showProgress', showProgress, True)
     cores = sanitize.validInt('cores', cores, True)
@@ -172,18 +170,8 @@ def edit(pathId, timestampId, featureIds, token, features = None, showProgress =
         levels = zipLevels(levelOfDetail1, levelOfDetail2, levelOfDetail3, levelOfDetail4, levelOfDetail5, indices_sub)
 
         if type(levels) == type(None):
-            if str(type(newZoomLevels)) != str(type(None)) and str(type(features)) != str(type(None)):
-                changes = [{'featureId':x[0] , 'newProperties':x[1]['properties'], 'newGeometry':x[1]['geometry'], 'newZoomLevels':newZoomLevels} for x in zip(featureIds_sub, features_sub['features'])]
-            elif str(type(newZoomLevels)) != str(type(None)) and str(type(features)) == str(type(None)):
-                changes = [{'featureId':geometryId, 'newZoomLevels':newZoomLevels} for geometryId in featureIds]
-            else:
                 changes = [{'featureId':x[0] , 'newProperties':x[1]['properties'], 'newGeometry':x[1]['geometry']} for x in zip(featureIds_sub, features_sub['features'])]
         else:
-            if str(type(newZoomLevels)) != str(type(None)) and str(type(features)) != str(type(None)):
-                changes = [{'featureId':x[0] , 'levelsOfDetail': levels , 'newProperties':x[1]['properties'], 'newGeometry':x[1]['geometry'], 'newZoomLevels':newZoomLevels} for x in zip(featureIds_sub, features_sub['features'])]
-            elif str(type(newZoomLevels)) != str(type(None)) and str(type(features)) == str(type(None)):
-                changes = [{'featureId':geometryId, 'levelsOfDetail': levels, 'newZoomLevels':newZoomLevels} for geometryId in featureIds]
-            else:
                 changes = [{'featureId':x[0], 'levelsOfDetail': levels , 'newProperties':x[1]['properties'], 'newGeometry':x[1]['geometry']} for x in zip(featureIds_sub, features_sub['features'])]
             
         body = {'changes':changes}

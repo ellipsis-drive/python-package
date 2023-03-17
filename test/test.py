@@ -274,6 +274,8 @@ yMax = bounds.bounds[3]
 
 bounds = {'xMin':xMin, 'xMax':xMax, 'yMin':yMin, 'yMax':yMax}
 sh = el.path.vector.timestamp.getFeaturesByExtent(pathId = mapId, timestampId = layerId, extent =  bounds, token = token, listAll = False, epsg = 4326)
+sh = el.path.vector.timestamp.getFeaturesByExtent(pathId = mapId, timestampId = layerId, extent =  bounds, token = token, listAll = False, pageStart = sh['nextPageStart'], epsg = 4326)
+
 sh['result'].plot()
 
 sh = el.path.vector.timestamp.listFeatures(mapId, layerId, token)

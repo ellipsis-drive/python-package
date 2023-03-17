@@ -29,7 +29,7 @@ def get(pathId, timestampId, token, pageStart= None, listAll = True):
     pageStart = sanitize.validUuid('pageStart', pageStart, False) 
 
     def f(body):
-        r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file', None, token)    
+        r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file', body, token)    
         for i in np.arange( len(r['result'])):
             if 'info' in r['result'][i].keys() and 'bounds' in r['result'][i]['info'].keys() and type(r['result'][i]['info']['bounds']) != type(None):
                 r['result'][i]['info']['bounds'] = gpd.GeoDataFrame.from_features([{'id': 0, 'properties':{}, 'geometry':r['result'][i]['info']['bounds']}]).unary_union

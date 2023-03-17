@@ -29,7 +29,7 @@ warnings.simplefilter("ignore")
 
 
 def recurse(f, body, listAll, extraKey = None):
-    
+
     r = f(body)
     if listAll:
         nextPageStart = r['nextPageStart']

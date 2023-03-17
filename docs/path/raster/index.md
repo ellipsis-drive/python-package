@@ -39,9 +39,9 @@ Change the name of a band.
 - bandNumber (integer)
 - name (string)
 
-## editMap
+## edit
 
-    ellipsis.raster.editMap()
+    ellipsis.raster.edit()
 
 Edit raster map attributes.
 

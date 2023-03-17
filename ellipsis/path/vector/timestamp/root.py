@@ -146,7 +146,7 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
     extent = sanitize.validBounds('extent', extent, True)
     propertyFilter = sanitize.validObject('propertyFilter', propertyFilter, False)
     listAll = sanitize.validBool('listAll', listAll, True)
-    pageStart = sanitize.validUuid('pageStart', pageStart, False) 
+    pageStart = sanitize.validObject('pageStart', pageStart, False) 
 
     p = geometry.Polygon( [(extent['xMin'], extent['yMin']), (extent['xMin'], extent['yMax']),(extent['xMax'], extent['yMax']),(extent['xMax'], extent['yMin'])] )
     p = gpd.GeoDataFrame({'geometry':[p]})
@@ -195,7 +195,7 @@ def listFeatures(pathId, timestampId, token = None, listAll = True, pageStart = 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, False)
     listAll = sanitize.validBool('listAll', listAll, True)
-    pageStart = sanitize.validUuid('pageStart', pageStart, False) 
+    pageStart = sanitize.validObject('pageStart', pageStart, False) 
 
     body = {'pageStart': pageStart}
 

@@ -100,7 +100,7 @@ Gets the bounds of a vector timestamp.
 
 **Optional arguments**
 
-- listAll (boolean), whether to list all results (default False)
+- listAll (boolean), whether to list all results (default True)
 - pageStart (object),
 - actions (object),
 - token (uuid), your token
@@ -145,7 +145,7 @@ Gets the bounds of a vector timestamp.
 - token (uuid), your token
 - propertyFilter
 - pageStart
-- listAll (boolean), whether to list all results (default False)
+- listAll (boolean), whether to list all results (default True)
 
 ## listFeatures
 
@@ -160,7 +160,7 @@ Gets the bounds of a vector timestamp.
 
 - token (uuid), your token
 - pageStart
-- listAll (boolean), whether to list all results (default False)
+- listAll (boolean), whether to list all results (default True)
 
 
 ## activate
