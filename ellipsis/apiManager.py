@@ -89,39 +89,52 @@ def call(method, url, body = None, token = None, crash = True):
         return r
 
 
-def upload(url, filePath, body, token, key = 'data'):
+def upload(url, filePath, body, token, key = 'data', memfile= None):
     body = filterNone(body)
-
     seperator = os.path.sep    
     fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
+
+    if str(type(memfile)) == str(type(None)):
+        conn_file = open(filePath, 'rb')
+    else:
+        conn_file = memfile
+    
+    payload = MultipartEncoder(fields = {**body, key: (fileName, conn_file, 'application/octet-stream')})
+    
     
     for k in body.keys():
         body[k] = str(body[k])
 
-    conn_file = open(filePath, 'rb')
-
-    payload = MultipartEncoder(fields = {**body, key: (fileName, conn_file, 'application/octet-stream')})
 
     token = 'Bearer ' + token
         
     r = requests.post(baseUrl + url, headers = {"Authorization":token, "Content-Type": payload.content_type}, data=payload)
-    conn_file.close()
+    
+    if not memfile:
+        conn_file.close()
     
     if r.status_code != 200:
         raise ValueError(r.text)
     return r.json()
 
-def download(url, filePath, token):
+def download(url, filePath, token, memfile = None):
 
     token = 'Bearer ' + token
     with requests.get(baseUrl + url, stream=True, headers={"Authorization": token}) as r:
         r.raise_for_status()
-        with open(filePath, 'wb') as f:
+        if str(type(memfile)) == str(type(None)):
+            with open(filePath, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192): 
+                    # If you have chunk encoded response uncomment if
+                    # and set chunk_size parameter to None.
+                    #if chunk: 
+                    f.write(chunk)
+        else:
             for chunk in r.iter_content(chunk_size=8192): 
                 # If you have chunk encoded response uncomment if
                 # and set chunk_size parameter to None.
                 #if chunk: 
-                f.write(chunk)
+                memfile.write(chunk)
 
 
     

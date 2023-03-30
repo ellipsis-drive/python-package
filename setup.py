@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ellipsis",
-    version="3.1.6",
+    version="3.1.7",
     author="Daniel van der Maas",
     author_email="daniel@ellipsis-drive.com",
     description="Package to interact with the Ellipsis API",
@@ -22,8 +22,8 @@ setuptools.setup(
     install_requires=[
     'pandas',
     'Pillow',
-    'geopandas==0.9.0',
-    'pyproj==3.0.1',
+    'geopandas',
+    'pyproj',
     'numpy',
     'imagecodecs',
     'requests',

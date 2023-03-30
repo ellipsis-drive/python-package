@@ -68,7 +68,13 @@ def validUuidArray(name, value, required):
             raise ValueError(name + ' must be a list of uuids')    
     return(value)
 
+def validPandas(name, value, required):
+    if not required and type(value) == type(None):
+        return
 
+    if type(value) != type(pd.DataFrame()):
+        raise ValueError(name + 'must be of type pandas data frame')
+    return(value)
 
 def validString(name, value, required):
     if not required and type(value) == type(None):

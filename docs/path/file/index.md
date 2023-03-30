@@ -34,4 +34,100 @@ Downloads a file
 - token (string), your token
 
 
+## addPickle
+
+    ellipsis.path.file.addPickle()
+
+Pickles a Python object and adds it as a file.
+
+**Mandatory arguments**
+
+- x (any Python object) python object to be stored
+- token (string), your token
+
+**Optional arguments**
+
+- parentId (uuid) id of folder to place the new folder in
+- publicAccess (dict) dictionary describing the public access of the folder
+- metadata (dict) dictionary describing the metadata of the folder
+
+
+## getPickle
+
+    ellipsis.path.file.getPickle()
+
+Retrieves a file and returns it as a Python object
+
+**Mandatory arguments**
+
+- pathId (uuid) id of the folder
+
+
+**Optional arguments**
+- token (string), your token
+
+
+## addCsv
+
+    ellipsis.path.file.addCsv()
+
+Stores a Pandas data frame as a csv.
+
+**Mandatory arguments**
+
+- df (Pandas DataFrame) data frame to be stored
+- token (string), your token
+
+**Optional arguments**
+
+- parentId (uuid) id of folder to place the new folder in
+- publicAccess (dict) dictionary describing the public access of the folder
+- metadata (dict) dictionary describing the metadata of the folder
+
+
+## getCsv
+
+    ellipsis.path.file.getCsv()
+
+Retrieves a file and returns it as a Pandas DataFrame
+
+**Mandatory arguments**
+
+- pathId (uuid) id of the folder
+
+
+**Optional arguments**
+- token (string), your token
+
+## addJson
+
+    ellipsis.path.file.addJson()
+
+Stores a json serializable Python object as a JSON.
+
+**Mandatory arguments**
+
+- d (JSON serializable object) dictionary to be stored
+- token (string), your token
+
+**Optional arguments**
+
+- parentId (uuid) id of folder to place the new folder in
+- publicAccess (dict) dictionary describing the public access of the folder
+- metadata (dict) dictionary describing the metadata of the folder
+
+
+## getJson
+
+    ellipsis.path.file.getJson()
+
+Retrieves a file and returns it as a dictionary
+
+**Mandatory arguments**
+
+- pathId (uuid) id of the folder
+
+
+**Optional arguments**
+- token (string), your token
 
