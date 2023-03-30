@@ -110,7 +110,7 @@ def upload(url, filePath, body, token, key = 'data', memfile= None):
         
     r = requests.post(baseUrl + url, headers = {"Authorization":token, "Content-Type": payload.content_type}, data=payload)
     
-    if not memfile:
+    if str(type(memfile)) == str(type(None)):
         conn_file.close()
     
     if r.status_code != 200:

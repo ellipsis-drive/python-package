@@ -1,2 +1,2 @@
-from ellipsis.path.file.root import download
-from ellipsis.path.file.root import add
+from ellipsis.path.file.root import download, add, addPickle, getPickle, addCsv, getCsv, addJson, getJson
+

@@ -24,7 +24,7 @@ folderId = '46e1e919-8b73-42a3-a575-25c6d45fd93b'
 
 
 ##account
-demo_token = el.account.logIn("demo_user", "")
+demo_token = el.account.logIn("demo_user", "demo_user")
 admin_token = el.account.logIn(username = 'admin', password='')
 daan_token = el.account.logIn('daan', "")
 
@@ -45,6 +45,9 @@ r_file = el.path.searchFile(token=token);
 filePath = '/home/daniel/Ellipsis/db/testset/0.tif'
 pathId = el.path.file.add(filePath, token)['id']
 el.path.file.download(pathId = pathId, filePath =  '/home/daniel/Downloads/out.tif')
+el.path.trash(pathId, token)
+el.path.delete(pathId, token)
+
 
 ##user
 
