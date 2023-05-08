@@ -32,21 +32,18 @@ el.account.listRoot('myDrive', pathTypes = ['raster'], token = demo_token)
 
 el.account.listRoot('sharedWithMe',pathTypes = ['folder'], token = demo_token)
 
-r_raster = el.path.searchRaster(token=token);
+r_raster = el.path.search(pathTypes = ['raster'], token=token);
 
-r_vector = el.path.searchVector()
+r_vector = el.path.search(pathTypes = ['vector'], token=token);
 
-r_raster = el.path.searchFolder(token=token);
-
-r_file = el.path.searchFile(token=token);
 
 
 ###files
 filePath = '/home/daniel/Ellipsis/db/testset/0.tif'
-pathId = el.path.file.add(filePath, token)['id']
+pathId = el.path.file.add(filePath, demo_token)['id']
 el.path.file.download(pathId = pathId, filePath =  '/home/daniel/Downloads/out.tif')
-el.path.trash(pathId, token)
-el.path.delete(pathId, token)
+el.path.trash(pathId, demo_token)
+el.path.delete(pathId, demo_token)
 
 
 ##user
@@ -83,12 +80,12 @@ addedRasterId = el.path.raster.add(  'test2', token = token, parentId = folderId
 el.path.move([addedRasterId], addedFolderId, token)
 
 
-el.path.trash(addedFolderId, admin_token)
-el.path.delete(pathId = addedFolderId, token = admin_token, recursive = True)
+el.path.trash(addedFolderId, token)
+el.path.delete(pathId = addedFolderId, token = token, recursive = True)
 
 
-el.path.editPublicAccess(pathId = folderId, token = token, accessLevel=0, hidden = False)
-el.path.editPublicAccess(pathId = folderId, token = token, accessLevel=100, hidden = True)
+el.path.editPublicAccess(pathId = folderId, token = token, access={'accessLevel':0}, hidden = False)
+el.path.editPublicAccess(pathId = folderId, token = token, access= {'accessLevel':100}, hidden = True)
 
 el.path.favorite(folderId, token=token)
 el.path.unfavorite(folderId, token=token)
@@ -142,7 +139,7 @@ dateTo = datetime.datetime.now()
 el.path.raster.timestamp.edit(mapId, timestampId, token, description = 'hoi', date={'from': dateFrom, 'to':dateTo})
 
 filePath = '/home/daniel/Ellipsis/python-package/test/0.tif'
-uploadId = el.path.raster.timestamp.file.add(pathId = mapId, timestampId = timestampId, filePath = filePath, fileFormat = 'tif', token = token)['id']
+uploadId = el.path.raster.timestamp.file.add(pathId = mapId, timestampId = timestampId, filePath = filePath, fileFormat = 'tif', token = token,noDataValue = -1)['id']
 el.path.raster.timestamp.file.download(pathId = mapId, timestampId = timestampId, fileId = uploadId, filePath = '/home/daniel/Downloads/out.tif', token = token)
 os.remove('/home/daniel/Downloads/out.tif')
 el.path.raster.timestamp.file.trash(pathId = mapId, timestampId = timestampId, fileId= uploadId, token = token)

@@ -117,25 +117,44 @@ def upload(url, filePath, body, token, key = 'data', memfile= None):
         raise ValueError(r.text)
     return r.json()
 
-def download(url, filePath, token, memfile = None):
-
-    token = 'Bearer ' + token
-    with requests.get(baseUrl + url, stream=True, headers={"Authorization": token}) as r:
-        r.raise_for_status()
-        if str(type(memfile)) == str(type(None)):
-            with open(filePath, 'wb') as f:
+def download(url, filePath, token = None, memfile = None):
+    if type(token) == type(None):
+        with requests.get(baseUrl + url, stream=True) as r:
+            r.raise_for_status()
+            if str(type(memfile)) == str(type(None)):
+                with open(filePath, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=8192): 
+                        # If you have chunk encoded response uncomment if
+                        # and set chunk_size parameter to None.
+                        #if chunk: 
+                        f.write(chunk)
+            else:
                 for chunk in r.iter_content(chunk_size=8192): 
                     # If you have chunk encoded response uncomment if
                     # and set chunk_size parameter to None.
                     #if chunk: 
-                    f.write(chunk)
-        else:
-            for chunk in r.iter_content(chunk_size=8192): 
-                # If you have chunk encoded response uncomment if
-                # and set chunk_size parameter to None.
-                #if chunk: 
-                memfile.write(chunk)
-
+                    memfile.write(chunk)
+    
+        
+        
+    else:
+        token = 'Bearer ' + token
+        with requests.get(baseUrl + url, stream=True, headers={"Authorization": token}) as r:
+            r.raise_for_status()
+            if str(type(memfile)) == str(type(None)):
+                with open(filePath, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=8192): 
+                        # If you have chunk encoded response uncomment if
+                        # and set chunk_size parameter to None.
+                        #if chunk: 
+                        f.write(chunk)
+            else:
+                for chunk in r.iter_content(chunk_size=8192): 
+                    # If you have chunk encoded response uncomment if
+                    # and set chunk_size parameter to None.
+                    #if chunk: 
+                    memfile.write(chunk)
+    
 
     
     

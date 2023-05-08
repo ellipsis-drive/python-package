@@ -9,7 +9,7 @@ Adds a raster style.
 **Mandatory arguments**
 - pathId (uuid),
 - method (string),
-- parameters (object), containing
+- parameters (object), See https://docs.ellipsis-drive.com/developers/api-v3/path-raster/styles/add-style for how to format the paramters
 - token (uuid), your token
 
 **Optional arguments**

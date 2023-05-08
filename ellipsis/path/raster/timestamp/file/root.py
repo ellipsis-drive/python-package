@@ -6,7 +6,7 @@ import os
 import numpy as np
 import geopandas as gpd
 
-def add(pathId, timestampId, filePath, token, fileFormat, epsg = None, noDataValue = None):
+def add(pathId, timestampId, filePath, token, fileFormat, epsg = None, noDataValue = None, mosaicPriority = None):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
@@ -14,11 +14,12 @@ def add(pathId, timestampId, filePath, token, fileFormat, epsg = None, noDataVal
     noDataValue = sanitize.validFloat('noDataValue', noDataValue, False)    
     epsg = sanitize.validInt('epsg', epsg, False)    
     fileFormat = sanitize.validString('fileFormat', fileFormat, True)    
+    mosaicPriority = sanitize.validString('mosaicPriority', mosaicPriority, False)    
         
     seperator = os.path.sep    
     fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
     
-    body = {'name':fileName, 'epsg':epsg, 'noDataValue':noDataValue, 'format':fileFormat}
+    body = {'name':fileName, 'epsg':epsg, 'noDataValue': str(noDataValue), 'format':fileFormat, 'mosaicPriority':mosaicPriority}
     r = apiManager.upload('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file' , filePath, body, token)
     return r
 
@@ -26,7 +27,7 @@ def get(pathId, timestampId, token, pageStart= None, listAll = True):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
-    pageStart = sanitize.validUuid('pageStart', pageStart, False) 
+    pageStart = sanitize.validObject('pageStart', pageStart, False) 
 
     def f(body):
         r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file', body, token)    

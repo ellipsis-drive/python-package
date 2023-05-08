@@ -9,7 +9,7 @@ from ellipsis.util import chunks
 from ellipsis.util import loadingBar
 from ellipsis.util.root import stringToDate
 from ellipsis.util.root import getActualExtent
-
+from ellipsis.path import get as getInfo
 
 import datetime
 
@@ -139,7 +139,7 @@ def getFeaturesByIds(pathId, timestampId, featureIds, token = None, showProgress
     return r
     
 
-def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, token = None, listAll = True, pageStart = None, epsg = 4326):
+def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, token = None, listAll = True, pageStart = None, epsg = 4326, coordinateBuffer = None):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, False)
@@ -147,6 +147,17 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
     propertyFilter = sanitize.validObject('propertyFilter', propertyFilter, False)
     listAll = sanitize.validBool('listAll', listAll, True)
     pageStart = sanitize.validObject('pageStart', pageStart, False) 
+    coordinateBuffer = sanitize.validFloat('coordinateBuffer', coordinateBuffer, False) 
+
+    if str(type(coordinateBuffer)) == str(type(None)):
+        info = getInfo(pathId, token)
+        ts = [x for x in info['vector']['timestamps'] if x['id'] == timestampId]
+        if len(ts) == 0:
+            raise ValueError('Given timestampId does not exist')
+        t = ts[0]
+        zoom = t['zoom']
+        coordinateBuffer = 0.5*360 / 2**zoom
+
 
     p = geometry.Polygon( [(extent['xMin'], extent['yMin']), (extent['xMin'], extent['yMax']),(extent['xMax'], extent['yMax']),(extent['xMax'], extent['yMin'])] )
     p = gpd.GeoDataFrame({'geometry':[p]})
@@ -158,6 +169,11 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
         
     extent = res['message']
 
+
+    extent['xMin'] = min(-180, extent['xMin'] - coordinateBuffer)
+    extent['xMax'] = max(180, extent['xMax'] + coordinateBuffer)
+    extent['yMin'] = min(-85, extent['yMin'] - coordinateBuffer)
+    extent['yMax'] = max(85, extent['yMax'] + coordinateBuffer)
 
     try:
         p.crs = 'EPSG:' + str(epsg)

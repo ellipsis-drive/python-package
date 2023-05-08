@@ -14,11 +14,11 @@ member/index
 usage/index
 ```
 
-## searchRaster
+## search
 
-    ellipsis.path.searchRaster()
+    ellipsis.path.search()
 
-Search for rasters matching specified search criteria.
+Search for paths matching specified search criteria.
 
 **Mandatory arguments**
 - pathTypes (array containing 'raster', 'vector', 'folder', 'file')
@@ -72,9 +72,7 @@ Update the public access of a path.
 
 **Optional arguments**
 
-- geoFence (object)
-- accessLevel (integer)
-- processingUnits (integer)
+- access (dictionary)
 - hidden (boolean)
 
 ## editMetadata

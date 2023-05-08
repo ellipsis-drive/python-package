@@ -18,6 +18,7 @@ Upload a raster file.
 - noDataValue (float)
 - epsg (integer)
 - fileFormat (string)
+- mosaicPriority (int)
 
 ## get
 

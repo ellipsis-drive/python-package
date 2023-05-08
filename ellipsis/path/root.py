@@ -40,7 +40,6 @@ def search(pathTypes = ['raster', 'vector', 'file', 'folder'] ,root=None, text=N
         'resolution': resolution,
         'date':date
     }
-    print(body)
     def f(body):
         return apiManager.get('/path', body, token)
     
@@ -167,14 +166,14 @@ def delete(pathId, token, recursive = False):
     else:
         return apiManager.delete(f'/path/{pathId}', None, token)
 
-def editPublicAccess(pathId, token, accessLevel=None, hidden=None, processingUnits=None, geoFence=None):
+def editPublicAccess(pathId, token, access = None, hidden=None):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
-    geoFence = sanitize.validObject('geoFence', geoFence, False)
-    accessLevel = sanitize.validInt('accessLevel', accessLevel, False)
-    processingUnits = sanitize.validInt('processingUnits', processingUnits, False)
+
+    access = sanitize.validObject('access', access, False)
     hidden = sanitize.validBool('hidden', hidden, False)
-    body = {'accessLevel':accessLevel, 'processingUnits':processingUnits, 'geoFence':geoFence, 'hidden': hidden}    
+    body = access
+    body['hidden'] =  hidden
     
     return apiManager.patch('/path/' + pathId + '/publicAccess', body, token)
     
