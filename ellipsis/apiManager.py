@@ -73,11 +73,11 @@ def call(method, url, body = None, token = None, crash = True):
         raise ValueError('Token must be of type string or noneType')
 
     if token == None:
-        r = method(baseUrl + url, json=body, verify=False)
+        r = method(baseUrl + url, json=body)
     else:
         if not 'Bearer' in token:
             token = 'Bearer ' + token
-        r = method(baseUrl + url , json = body, headers = {"Authorization":token}, verify=False)
+        r = method(baseUrl + url , json = body, headers = {"Authorization":token})
 
     if crash:
         if r.status_code != 200:
@@ -111,7 +111,7 @@ def upload(url, filePath, body, token, key = 'data', memfile= None):
 
     token = 'Bearer ' + token
         
-    r = requests.post(baseUrl + url, headers = {"Authorization":token, "Content-Type": payload.content_type}, data=payload, verify=False)
+    r = requests.post(baseUrl + url, headers = {"Authorization":token, "Content-Type": payload.content_type}, data=payload)
     
     if str(type(memfile)) == str(type(None)):
         conn_file.close()
@@ -122,7 +122,7 @@ def upload(url, filePath, body, token, key = 'data', memfile= None):
 
 def download(url, filePath, token = None, memfile = None):
     if type(token) == type(None):
-        with requests.get(baseUrl + url, stream=True, verify=False) as r:
+        with requests.get(baseUrl + url, stream=True) as r:
             r.raise_for_status()
             if str(type(memfile)) == str(type(None)):
                 with open(filePath, 'wb') as f:
@@ -142,7 +142,7 @@ def download(url, filePath, token = None, memfile = None):
         
     else:
         token = 'Bearer ' + token
-        with requests.get(baseUrl + url, stream=True, headers={"Authorization": token}, verify=False) as r:
+        with requests.get(baseUrl + url, stream=True, headers={"Authorization": token}) as r:
             r.raise_for_status()
             if str(type(memfile)) == str(type(None)):
                 with open(filePath, 'wb') as f:
