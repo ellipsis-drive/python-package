@@ -19,7 +19,7 @@ def add(pathId, timestampId, filePath, token, fileFormat, epsg = None, noDataVal
     seperator = os.path.sep    
     fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
     
-    body = {'name':fileName, 'epsg':epsg, 'noDataValue': str(noDataValue), 'format':fileFormat, 'mosaicPriority':mosaicPriority}
+    body = {'name':fileName, 'epsg':epsg, 'noDataValue': noDataValue, 'format':fileFormat, 'mosaicPriority':mosaicPriority}
     r = apiManager.upload('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file' , filePath, body, token)
     return r
 

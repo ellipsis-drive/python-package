@@ -7,14 +7,17 @@ from requests_toolbelt import MultipartEncoder
 baseUrl = 'https://api.ellipsis-drive.com/v3'
 
 
-def filterNone(body):
+def filterNone(body, toString= False):
     if type(body) == type(None):
         return body
 
     params = {}
     for k in body.keys():
         if type(body[k]) != type(None):
-            params[k] = body[k]
+            if toString:
+                params[k] = str(body[k])
+            else:
+                params[k] = body[k]
     return params
 
 def get(url, body = None, token = None, crash = True):
@@ -70,11 +73,11 @@ def call(method, url, body = None, token = None, crash = True):
         raise ValueError('Token must be of type string or noneType')
 
     if token == None:
-        r = method(baseUrl + url, json=body)
+        r = method(baseUrl + url, json=body, verify=False)
     else:
         if not 'Bearer' in token:
             token = 'Bearer ' + token
-        r = method(baseUrl + url , json = body, headers = {"Authorization":token})    
+        r = method(baseUrl + url , json = body, headers = {"Authorization":token}, verify=False)
 
     if crash:
         if r.status_code != 200:
@@ -90,7 +93,7 @@ def call(method, url, body = None, token = None, crash = True):
 
 
 def upload(url, filePath, body, token, key = 'data', memfile= None):
-    body = filterNone(body)
+    body = filterNone(body, toString=True)
     seperator = os.path.sep    
     fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
 
@@ -108,7 +111,7 @@ def upload(url, filePath, body, token, key = 'data', memfile= None):
 
     token = 'Bearer ' + token
         
-    r = requests.post(baseUrl + url, headers = {"Authorization":token, "Content-Type": payload.content_type}, data=payload)
+    r = requests.post(baseUrl + url, headers = {"Authorization":token, "Content-Type": payload.content_type}, data=payload, verify=False)
     
     if str(type(memfile)) == str(type(None)):
         conn_file.close()
@@ -119,7 +122,7 @@ def upload(url, filePath, body, token, key = 'data', memfile= None):
 
 def download(url, filePath, token = None, memfile = None):
     if type(token) == type(None):
-        with requests.get(baseUrl + url, stream=True) as r:
+        with requests.get(baseUrl + url, stream=True, verify=False) as r:
             r.raise_for_status()
             if str(type(memfile)) == str(type(None)):
                 with open(filePath, 'wb') as f:
@@ -139,7 +142,7 @@ def download(url, filePath, token = None, memfile = None):
         
     else:
         token = 'Bearer ' + token
-        with requests.get(baseUrl + url, stream=True, headers={"Authorization": token}) as r:
+        with requests.get(baseUrl + url, stream=True, headers={"Authorization": token}, verify=False) as r:
             r.raise_for_status()
             if str(type(memfile)) == str(type(None)):
                 with open(filePath, 'wb') as f:

@@ -174,8 +174,10 @@ def getRaster(pathId, timestampId, extent, style = None, threads = 1, token = No
 
                 if r.status_code == 403:
                         raise ValueError('insufficient access')
-                if r.status_code != 200:
+                elif r.status_code == 204:
                         r = np.zeros((num_bands,256,256))
+                elif r.status_code != 200:
+                        raise ValueError(r.text)
                 else:
                     if type(style) == type(None):
                         r = tifffile.imread(BytesIO(r.content))
