@@ -269,7 +269,11 @@ def validBounds(name, value, required):
         value[key] = float(value[key])
 
 
+    if value['xMin'] >= value['xMax']:
+        raise ValueError('xMax must be strictly larger than xMin')
 
+    if value['yMin'] >= value['yMax']:
+        raise ValueError('yMax must be strictly larger than yMin')
 
     return(value)
 

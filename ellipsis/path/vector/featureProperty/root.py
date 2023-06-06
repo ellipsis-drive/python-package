@@ -14,7 +14,6 @@ def add(pathId, name, featurePropertyType, token, private = False, required = Fa
 
 
     body = {'name': name, 'private':private, 'required': required, 'type':featurePropertyType}
-    print('hoi')
     r = apiManager.post('/path/' + pathId + '/vector/property', body, token)
     return r
     

@@ -63,7 +63,6 @@ def delete(url, body, token = None):
 
 
 def call(method, url, body = None, token = None, crash = True):
-
     body = filterNone(body)
     if type(body) != type(None) and type(body) != type({}):
         raise ValueError(
@@ -94,7 +93,7 @@ def call(method, url, body = None, token = None, crash = True):
 
 def upload(url, filePath, body, token, key = 'data', memfile= None):
     body = filterNone(body, toString=True)
-    seperator = os.path.sep    
+    seperator = os.path.sep
     fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
 
     if str(type(memfile)) == str(type(None)):

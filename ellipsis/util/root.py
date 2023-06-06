@@ -78,7 +78,8 @@ def plotRaster(raster):
 
     
 
-    if raster.shape[0] ==3:
+    if raster.shape[0] ==3 or raster.shape[0] ==4:
+        raster = raster[0:3,:,:]
         raster = np.transpose(raster, [1,2,0])
         minimum = np.min(raster)
         maximum = np.max(raster)
@@ -446,7 +447,11 @@ def reprojectWithBounds(sh, targetCrs, cores = 1):
 def reprojectSub(args):
     sh = args[0]
     targetCrs = args[1]
-    sh = sh.to_crs(targetCrs)
+
+    try:
+        sh = sh.to_crs(targetCrs)
+    except:
+        sh = sh.to_crs(targetCrs.replace('EPSG:', ''))
     
     is_poly = ['poly' in str(type(x)) for x in sh['geometry'].values]
     sh['geometry'][is_poly] = sh[is_poly].buffer(0)    

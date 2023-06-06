@@ -79,7 +79,5 @@ def download(pathId, timestampId, fileId, filePath, token):
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     filePath = sanitize.validString('filePath', filePath, True)
 
-    if filePath[len(filePath)-4 : len(filePath) ] != '.tif':
-        raise ValueError('filePath must end with .tif')
 
     apiManager.download('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file/' + fileId + '/data', filePath, token)

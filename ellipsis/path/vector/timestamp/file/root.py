@@ -56,7 +56,5 @@ def download(pathId, timestampId, fileId, filePath, token):
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     filePath = sanitize.validString('filePath', filePath, True)
 
-    if filePath[len(filePath)-4 : len(filePath) ] != '.zip':
-        raise ValueError('filePath must end with .zip')
 
     apiManager.download('/path/' + pathId + '/vector/timestamp/' + timestampId + '/file/' + fileId + '/data', filePath, token)

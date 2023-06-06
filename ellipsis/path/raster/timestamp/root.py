@@ -2,21 +2,23 @@ from ellipsis import sanitize
 from ellipsis.util.root import getActualExtent
 from ellipsis import apiManager
 from ellipsis.util import loadingBar
-from ellipsis.util import chunks
 from ellipsis.util.root import reprojectRaster
-from rasterio.io import MemoryFile
+from ellipsis.path.raster.timestamp.util import constructImage
+from ellipsis.path.raster.timestamp.util import cutOfTilesPerZoom
 
+from rasterio.io import MemoryFile
+from skimage.transform import resize
 import json
 import numpy as np
 from io import BytesIO
 import rasterio
 import math
 import tifffile
-import threading
 from PIL import Image
 import geopandas as gpd
 import datetime
-
+import time
+import requests
 
 def getDownsampledRaster(pathId, timestampId, extent, width, height, epsg=3857, style = None, token = None):
     return getSampledRaster(pathId, timestampId, extent, width, height, epsg, style, token)
@@ -93,19 +95,22 @@ def getValuesAlongLine(pathId, timestampId, line, token = None, epsg = 4326):
 
     return values
 
-    
-    
 
-def getRaster(pathId, timestampId, extent, style = None, threads = 1, token = None, showProgress = True, epsg = 3857):
+    
+def getRaster(pathId, timestampId, extent, token = None, showProgress = True, epsg = 4326, reproject = False, threads = None, style = None):
     bounds = extent
-    threads = sanitize.validInt('threads', threads, True)
+    
     token = sanitize.validString('token', token, False)
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     bounds = sanitize.validBounds('bounds', bounds, True)
-    style = sanitize.validObject('style', style, False)
     showProgress = sanitize.validBool('showProgress', showProgress, True)
-
+    reproject = sanitize.validBool('reproject', reproject, True)
+    
+    if type(threads)!= type(None):
+        Warning('The parameter threads is deprecated')
+    if type(style)!= type(None):
+        Warning('The parameter style is deprecated')
         
     xMin = bounds['xMin']
     yMin = bounds['yMin']
@@ -125,12 +130,9 @@ def getRaster(pathId, timestampId, extent, style = None, threads = 1, token = No
     
     info = apiManager.get('/path/' + pathId, None, token)
     bands =  info['raster']['bands']
-    if type(style) == type(None):
-        num_bands = len(bands)
-        dtype = info['raster']['format']
-    else:
-        num_bands = 4
-        dtype = 'uint8'
+    as_jpg = info['raster']['asJpg']
+    num_bands = len(bands)
+    dtype = info['raster']['format']
 
     timestamps =  info['raster']['timestamps']
     all_timestamps = [item['id'] for item in timestamps]
@@ -139,7 +141,7 @@ def getRaster(pathId, timestampId, extent, style = None, threads = 1, token = No
     
     zoom = next(item for item in timestamps if item["id"] == timestampId)['zoom']
 
-    body = {'style':style}
+    body = {}
 
     LEN = 2.003751e+07
 
@@ -152,65 +154,147 @@ def getRaster(pathId, timestampId, extent, style = None, threads = 1, token = No
     x2_osm = math.floor(x_end)
     y1_osm = math.floor(y_start)
     y2_osm = math.floor(y_end)
+    tarred = False
     
+    #dit is voor testing beide moeten op false staan
+    forceTar = False
+    skipTar = False
+    
+    N=0
+    w = 256
+    if not skipTar and ((x2_osm - x1_osm) * (y2_osm - y1_osm) > 20 or forceTar):
+        tarZoom = next(item for item in timestamps if item["id"] == timestampId)['tarZoom']
+            
+        if type(tarZoom) != type(None):
+            N = zoom - tarZoom
+
+            w = 256*2**N
+            tarred = True
+            zoom = tarZoom
+            x_start = 2**zoom * (xMinWeb + LEN) / (2* LEN)
+            x_end = 2**zoom * (xMaxWeb + LEN) / (2* LEN)
+            y_end = 2**zoom * (LEN - yMinWeb) / (2* LEN)
+            y_start = 2**zoom * (LEN - yMaxWeb) / (2* LEN)
+        
+            x1_osm = math.floor(x_start)
+            x2_osm = math.floor(x_end)
+            y1_osm = math.floor(y_start)
+            y2_osm = math.floor(y_end)
+            
     x_tiles = np.arange(x1_osm, x2_osm+1)
     y_tiles = np.arange(y1_osm, y2_osm +1)
-    
-    r_total = np.zeros((num_bands, 256*(y2_osm - y1_osm + 1) ,256*(x2_osm - x1_osm + 1)), dtype = dtype)
+
+    r_total = np.zeros((num_bands, w*(y2_osm - y1_osm + 1) ,w*(x2_osm - x1_osm + 1)), dtype = dtype)
     
     tiles = []            
     for tileY in y_tiles:
         for tileX in x_tiles:
             tiles = tiles + [(tileX, tileY)]
-    def subTiles(tiles):
-            N = 0
-            for tile in tiles:
-                tileX = tile[0]
-                tileY = tile[1]
-                x_index = tileX - x1_osm
-                y_index = tileY - y1_osm
-                
-                r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/tile/' + str(zoom) + '/' + str(tileX) + '/' + str(tileY), body, token, False)
+            
+            
+    def fetch(tileX, tileY):
+        if tarred:
 
-                if r.status_code == 403:
-                        raise ValueError('insufficient access')
-                elif r.status_code == 204:
-                        r = np.zeros((num_bands,256,256))
-                elif r.status_code != 200:
-                        raise ValueError(r.text)
+            cuts = cutOfTilesPerZoom[zoom]
+            
+            zones = [{'name': 'zone0', 'offset':0, 'start':cuts['start'][0] , 'end':cuts['end'][0]},  ]
+            for i in [1,2,3]:
+                zones = zones + [{'name':'zone' + str(i) + '_north','offset':i, 'start':cuts['start'][i] , 'end':cuts['start'][i-1] -1}, {'name':'zone' + str(i) + '_south','offset':i, 'start':cuts['end'][i-1]+1 , 'end':cuts['end'][i]}]
+
+            for zone in zones:        
+                if zone['start'] <= tileY  and tileY <= zone['end']:
+                    offset = zone['offset']
+
+
+            zoom_c = zoom - offset
+            tileX_exact = tileX / 2**offset
+            tileY_exact = tileY / 2**offset
+            tileX_c = math.floor(tileX_exact)
+            tileY_c = math.floor(tileY_exact)
+            frac_x = int((tileX_exact - tileX_c)*w)
+            frac_y = int(w*(tileY_exact - tileY_c))
+            frac_w = int(w/2**offset)
+            
+            url = apiManager.baseUrl + '/path/' + pathId + '/raster/timestamp/' + timestampId + '/tarTile/' + str(zoom_c) + '/' + str(tileX_c) + '/' + str(tileY_c)
+
+            if type(token) == type(None):
+                r = requests.get(url)
+            else:
+                if not 'Bearer' in token:
+                    r = requests.get(url, headers={"Authorization": 'Bearer ' + token})
                 else:
-                    if type(style) == type(None):
-                        r = tifffile.imread(BytesIO(r.content))
-                    else:
-                        r = np.array(Image.open(BytesIO(r.content)))
-                        r = np.transpose(r, [2,0,1])
+                    r = requests.get(url, headers={"Authorization":  token})
+            
+        else:
+            r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/tile/' + str(zoom) + '/' + str(tileX) + '/' + str(tileY), body, token, False)
+            
+        if r.status_code == 403:
+                raise ValueError('insufficient access')
+        elif r.status_code == 204:
+                r = np.zeros((num_bands,w,w))
+        elif r.status_code != 200:
+                raise ValueError(r.text)
+        else:
+            if tarred:
+                stream = BytesIO(r.content).read()
+                
+                r = constructImage(N, stream, as_jpg, num_bands, dtype)
+                
+                
+                r = r[: ,frac_y:  frac_y + frac_w, frac_x: + frac_x + frac_w]
+                r = np.transpose(r, [1,2,0])
+                r = resize(r, (w,w), order = 0, preserve_range=True, mode = 'edge')
+                r = np.transpose(r, [2,0,1])
+                
+            else:
+                r = tifffile.imread(BytesIO(r.content))
+                
+        r = r.astype(dtype)            
+        return r
 
-                r = r.astype(dtype)
-                r_total[:,y_index*256:(y_index+1)*256,x_index*256:(x_index+1)*256] = r
-                if showProgress:
-                    loadingBar(N, len(tiles))
-                N = N + 1
+            
             
 
-    size = math.floor(len(tiles)/threads) + 1
-    tiles_chunks = chunks(tiles, size)
-    prs = []
-    for tiles in tiles_chunks:
-        pr = threading.Thread(target = subTiles, args =(tiles,), daemon=True)
-        pr.start()
-        prs = prs + [pr]
-    for pr in prs:
-        pr.join()
+    def iterate(fetch, i, tileX, tileY):
+        return fetch(tileX, tileY)
+        attempts = 5
+        if i > 0:
+            time.sleep(0.5)
+        if i < attempts:
+            try:
+                return fetch(tileX, tileY)
+            except:
+                iterate(fetch, i+1, tileX, tileY)
+        else:
+            return fetch(tileX, tileY)
+    I = 0
+
+    tile = tiles[0]    
+    for tile in tiles:
+        tileX = tile[0]
+        tileY = tile[1]
+        x_index = tileX - x1_osm
+        y_index = tileY - y1_osm
         
-    min_x_index = int(math.floor((x_start - x1_osm)*256))
-    max_x_index = max(int(math.floor((x_end- x1_osm)*256 + 1 )), min_x_index + 1 )
-    min_y_index = int(math.floor((y_start - y1_osm)*256))
-    max_y_index = max(int(math.floor((y_end- y1_osm)*256 +1)), min_y_index + 1)
+        r = iterate(fetch, 0, tileX, tileY)
+
+        r_total[:,y_index*w:(y_index+1)*w,x_index*w:(x_index+1)*w] = r
+        I = I + 1
+        if showProgress:
+            loadingBar(I, len(tiles))
+        
+
+
+
+    min_x_index = int(math.floor((x_start - x1_osm)*w))
+    max_x_index = max(int(math.floor((x_end- x1_osm)*w + 1 )), min_x_index + 1 )
+    min_y_index = int(math.floor((y_start - y1_osm)*w))
+    max_y_index = max(int(math.floor((y_end- y1_osm)*w +1)), min_y_index + 1)
 
     r_total = r_total[:,min_y_index:max_y_index,min_x_index:max_x_index]
 
     mercatorExtent =  {'xMin' : xMinWeb, 'yMin': yMinWeb, 'xMax': xMaxWeb, 'yMax': yMaxWeb}
-    if epsg == 3857:
+    if (not reproject) or epsg == 3857:
         trans = rasterio.transform.from_bounds(xMinWeb, yMinWeb, xMaxWeb, yMaxWeb, r_total.shape[2], r_total.shape[1])
     
         return {'raster': r_total, 'transform':trans, 'extent':mercatorExtent, 'epsg':3857}
