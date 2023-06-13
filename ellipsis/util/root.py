@@ -447,14 +447,16 @@ def reprojectWithBounds(sh, targetCrs, cores = 1):
 def reprojectSub(args):
     sh = args[0]
     targetCrs = args[1]
-
     try:
         sh = sh.to_crs(targetCrs)
     except:
         sh = sh.to_crs(targetCrs.replace('EPSG:', ''))
+
+
     
     is_poly = ['poly' in str(type(x)) for x in sh['geometry'].values]
-    sh['geometry'][is_poly] = sh[is_poly].buffer(0)    
+    if np.sum(is_poly) > 0:
+        sh['geometry'][is_poly] = sh[is_poly].buffer(0)    
     
     bounds = sh.bounds
     return sh, bounds

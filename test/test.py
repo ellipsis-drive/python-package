@@ -41,6 +41,7 @@ r_vector = el.path.search(pathTypes = ['vector'], token=token);
 ###files
 filePath = '/home/daniel/Ellipsis/db/testset/0.tif'
 pathId = el.path.file.add(filePath, demo_token)['id']
+time.sleep(10)
 el.path.file.download(pathId = pathId, filePath =  '/home/daniel/Downloads/out.tif')
 el.path.trash(pathId, demo_token)
 el.path.delete(pathId, demo_token)
@@ -140,6 +141,7 @@ el.path.raster.timestamp.edit(mapId, timestampId, token, description = 'hoi', da
 
 filePath = '/home/daniel/Ellipsis/python-package/test/0.tif'
 uploadId = el.path.raster.timestamp.file.add(pathId = mapId, timestampId = timestampId, filePath = filePath, fileFormat = 'tif', token = token,noDataValue = -1)['id']
+time.sleep(10)
 el.path.raster.timestamp.file.download(pathId = mapId, timestampId = timestampId, fileId = uploadId, filePath = '/home/daniel/Downloads/out.tif', token = token)
 os.remove('/home/daniel/Downloads/out.tif')
 el.path.raster.timestamp.file.trash(pathId = mapId, timestampId = timestampId, fileId= uploadId, token = token)
@@ -219,6 +221,7 @@ uploads = el.path.raster.timestamp.file.get(mapId, timestampId, token)
 uploadId = uploads['result'][0]['id']
 
 file_out = '/home/daniel/Downloads/out.tif'
+time.sleep(10)
 el.path.raster.timestamp.file.download(pathId = mapId, timestampId = timestampId, token = token, fileId = uploadId, filePath = file_out)
 os.remove(file_out)
 
@@ -255,13 +258,15 @@ layerId = el.path.vector.timestamp.add(mapId, description = 'test', token = toke
 ###vector uploads
 filePath = '/home/daniel/Ellipsis/python-package/test/test.zip'
 uploadId = el.path.vector.timestamp.file.add(pathId = mapId, timestampId = layerId, filePath = filePath, token = token, fileFormat = 'zip')['id']
-
+time.sleep(10)
 file_out = '/home/daniel/Downloads/out.zip'
 el.path.vector.timestamp.file.download(pathId = mapId, timestampId = layerId, fileId = uploadId, filePath = file_out, token = token)
 os.remove(file_out)
 
 upload = el.path.vector.timestamp.file.get(pathId = mapId,  timestampId = layerId, token = token)['result'][0]
-
+while upload['status'] != 'completed':
+    time.sleep(1)
+    upload = el.path.vector.timestamp.file.get(pathId = mapId,  timestampId = layerId, token = token)['result'][0]
 
 
 #layer methods
@@ -277,7 +282,7 @@ sh = el.path.vector.timestamp.getFeaturesByExtent(pathId = mapId, timestampId = 
 sh = el.path.vector.timestamp.getFeaturesByExtent(pathId = mapId, timestampId = layerId, extent =  bounds, token = token, listAll = False, pageStart = sh['nextPageStart'], epsg = 4326)
 
 sh['result'].plot()
-
+time.sleep(30)
 sh = el.path.vector.timestamp.listFeatures(mapId, layerId, token)
 
 featureIds = sh['result']['id'].values

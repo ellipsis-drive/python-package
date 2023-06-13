@@ -216,7 +216,14 @@ def listFeatures(pathId, timestampId, token = None, listAll = True, pageStart = 
     body = {'pageStart': pageStart}
 
     def f(body):
-        return apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/listFeatures' , body, token)
+        
+        if type(body['pageStart']) == type(None):
+            try:
+                return apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/compressedListFeatures' , body, token)                
+            except:
+                return apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/listFeatures' , body, token)                
+        else:
+            return apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/listFeatures' , body, token)
 
     r = recurse(f, body, listAll, 'features')
 
