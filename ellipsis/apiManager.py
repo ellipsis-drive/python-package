@@ -15,7 +15,11 @@ def filterNone(body, toString= False):
     for k in body.keys():
         if type(body[k]) != type(None):
             if toString:
-                params[k] = str(body[k])
+                if str(type(body[k])) != str(type('x')):
+                    params[k] = json.dumps(body[k])
+                else:
+                    params[k] = body[k]
+                    
             else:
                 params[k] = body[k]
     return params
@@ -35,7 +39,7 @@ def get(url, body = None, token = None, crash = True):
     body = urllib.parse.urlencode(body)
 
     url = url + '?' + body
-            
+
     r = call( method = requests.get, url = url, body = None, token = token, crash = crash )
 
 
@@ -93,6 +97,7 @@ def call(method, url, body = None, token = None, crash = True):
 
 def upload(url, filePath, body, token, key = 'data', memfile= None):
     body = filterNone(body, toString=True)
+
     seperator = os.path.sep
     fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
 
@@ -100,13 +105,10 @@ def upload(url, filePath, body, token, key = 'data', memfile= None):
         conn_file = open(filePath, 'rb')
     else:
         conn_file = memfile
+
+
     
     payload = MultipartEncoder(fields = {**body, key: (fileName, conn_file, 'application/octet-stream')})
-    
-    
-    for k in body.keys():
-        body[k] = str(body[k])
-
 
     token = 'Bearer ' + token
         

@@ -58,3 +58,42 @@ def download(pathId, timestampId, fileId, filePath, token):
 
 
     apiManager.download('/path/' + pathId + '/vector/timestamp/' + timestampId + '/file/' + fileId + '/data', filePath, token)
+
+
+
+def revert(pathId, timestampId, fileId, token):
+    token = sanitize.validString('token', token, True)
+    pathId = sanitize.validUuid('pathId', pathId, True) 
+    timestampId = sanitize.validUuid('timestampId', timestampId, True) 
+
+
+    
+    body = {'revert':True}
+    r = apiManager.post('/path/' + pathId + '/vector/timestamp/' + timestampId + '/file/' + fileId + '/revert' ,  body, token)
+    return r
+
+
+def recover(pathId, timestampId, fileId, token):
+    token = sanitize.validString('token', token, True)
+    pathId = sanitize.validUuid('pathId', pathId, True) 
+    timestampId = sanitize.validUuid('timestampId', timestampId, True) 
+
+
+    
+    body = {'revert':False}
+    r = apiManager.post('/path/' + pathId + '/vector/timestamp/' + timestampId + '/file/' + fileId + '/revert' ,  body, token)
+    return r
+
+
+
+def delete(pathId, timestampId, fileId, token):
+    token = sanitize.validString('token', token, True)
+    pathId = sanitize.validUuid('pathId', pathId, True) 
+    timestampId = sanitize.validUuid('timestampId', timestampId, True) 
+
+
+    
+    r = apiManager.delete('/path/' + pathId + '/vector/timestamp/' + timestampId + '/file/' + fileId  , None, token)
+    return r
+
+

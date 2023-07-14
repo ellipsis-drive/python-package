@@ -162,7 +162,7 @@ def getRaster(pathId, timestampId, extent, token = None, showProgress = True, ep
     
     N=0
     w = 256
-    if not skipTar and ((x2_osm - x1_osm) * (y2_osm - y1_osm) > 20 or forceTar):
+    if not skipTar and ((x2_osm - x1_osm) * (y2_osm - y1_osm) > 50 or forceTar):
         tarZoom = next(item for item in timestamps if item["id"] == timestampId)['tarZoom']
             
         if type(tarZoom) != type(None):

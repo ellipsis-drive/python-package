@@ -29,6 +29,21 @@ Get usage history of a specific user on a path.
 - userId (uuid)
 - token (string)
 
+## getUsage
+
+    ellipsis.path.usage.getUserUsage()
+
+Get usage history of a specific user on a path.
+
+**Mandatory arguments**
+
+- userId (uuid)
+- date (datetime object)
+- token (string)
+
+
+
+
 ## getAggregatedUsage
 
     ellipsis.path.usage.getAggregatedUsage()
@@ -43,4 +58,8 @@ Get aggregated usage history.
 **Optional arguments**
 
 - loggedIn (boolean) default True
+
+
+
+
 

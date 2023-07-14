@@ -1,5 +1,7 @@
 from ellipsis import apiManager, sanitize
 from ellipsis.util.root import recurse
+from ellipsis.util.root import dateToString
+
 
 
 def getActiveUsers(pathId, token, listAll = True, pageStart = None):
@@ -36,3 +38,11 @@ def getAggregatedUsage(pathId, loggedIn, token):
 
 
     return apiManager.get('/path/' + pathId + '/usage/processingUnits', {'loggedIn': loggedIn}, token)
+
+
+def getUserUsage(userId, date, token):
+    token = sanitize.validString('token', token, True)
+    userId = sanitize.validUuid('userId', userId, True)
+    date = sanitize.validDate('date', date, True)
+    
+    return apiManager.get('/path/usage/user/' + userId + '/processingUnits', {'date':date}, token)

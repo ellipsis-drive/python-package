@@ -111,12 +111,13 @@ def getChanges(pathId, timestampId, token = None, pageStart = None, listAll = Fa
 
 
 
-def getFeaturesByIds(pathId, timestampId, featureIds, token = None, showProgress = True):
+def getFeaturesByIds(pathId, timestampId, featureIds, token = None, showProgress = True, levelOfDetail = None):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, False)
     featureIds = sanitize.validUuidArray('featureIds', featureIds, True)
     showProgress = sanitize.validBool('showProgress', showProgress, True)
+    levelOfDetail = sanitize.validInt('levelOfDetail', levelOfDetail, False)
     
     id_chunks = chunks(featureIds, 10)
 
@@ -124,7 +125,7 @@ def getFeaturesByIds(pathId, timestampId, featureIds, token = None, showProgress
     ids = id_chunks[0]
     i=0
     for ids in id_chunks:
-        body = {'geometryIds': ids}
+        body = {'geometryIds': ids, levelOfDetail:levelOfDetail}
         r_new = apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/featuresByIds' , body, token)
         
         r['result'] = r['result'] + r_new['result']['features']
@@ -133,22 +134,29 @@ def getFeaturesByIds(pathId, timestampId, featureIds, token = None, showProgress
             loadingBar(i*10 + len(ids),len(featureIds))
         i=i+1
 
+    try:
+        sh = gpd.GeoDataFrame.from_features(r['result']['features'])
+    except:
+        for i in range(len(r['result']['features'])):
+            if 'crs' in r['result']['features'][i]['properties'].keys():
+                del r['result']['features'][i]['properties']['crs']
+        sh = gpd.GeoDataFrame.from_features(r['result']['features'])
         
-    sh = gpd.GeoDataFrame.from_features(r['result'])    
+
     r['result'] = sh
     return r
     
 
-def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, token = None, listAll = True, pageStart = None, epsg = 4326, coordinateBuffer = None):
+def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, token = None, listAll = True, pageStart = None, epsg = 4326, coordinateBuffer = None, levelOfDetail = None):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, False)
     extent = sanitize.validBounds('extent', extent, True)
+    levelOfDetail = sanitize.validInt('levelOfDetail', levelOfDetail, False)
     propertyFilter = sanitize.validObject('propertyFilter', propertyFilter, False)
     listAll = sanitize.validBool('listAll', listAll, True)
     pageStart = sanitize.validObject('pageStart', pageStart, False) 
     coordinateBuffer = sanitize.validFloat('coordinateBuffer', coordinateBuffer, False) 
-
     if str(type(coordinateBuffer)) == str(type(None)):
         info = getInfo(pathId, token)
         ts = [x for x in info['vector']['timestamps'] if x['id'] == timestampId]
@@ -157,6 +165,13 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
         t = ts[0]
         zoom = t['zoom']
         coordinateBuffer = 0.5*360 / 2**zoom
+
+
+
+    extent['xMin'] = max(-180, extent['xMin'] - coordinateBuffer)
+    extent['xMax'] = min(180, extent['xMax'] + coordinateBuffer)
+    extent['yMin'] = max(-85, extent['yMin'] - coordinateBuffer)
+    extent['yMax'] = min(85, extent['yMax'] + coordinateBuffer)
 
 
     p = geometry.Polygon( [(extent['xMin'], extent['yMin']), (extent['xMin'], extent['yMax']),(extent['xMax'], extent['yMax']),(extent['xMax'], extent['yMin'])] )
@@ -169,12 +184,6 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
         
     extent = res['message']
 
-
-    extent['xMin'] = min(-180, extent['xMin'] - coordinateBuffer)
-    extent['xMax'] = max(180, extent['xMax'] + coordinateBuffer)
-    extent['yMin'] = min(-85, extent['yMin'] - coordinateBuffer)
-    extent['yMax'] = max(85, extent['yMax'] + coordinateBuffer)
-
     try:
         p.crs = 'EPSG:' + str(epsg)
         p = p.to_crs('EPSG:4326')
@@ -184,14 +193,22 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
     extent = {'xMin': extent['minx'].values[0], 'xMax': extent['maxx'].values[0], 'yMin': extent['miny'].values[0], 'yMax': extent['maxy'].values[0] }        
     
     
-    body = {'pageStart': pageStart, 'propertyFilter':propertyFilter, 'extent':extent}
+    body = {'pageStart': pageStart, 'propertyFilter':propertyFilter, 'extent':extent, 'levelOfDetail':levelOfDetail}
 
     def f(body):
         return apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/featuresByExtent' , body, token)
         
     r = recurse(f, body, listAll, 'features')
+    
+    try:
+        sh = gpd.GeoDataFrame.from_features(r['result']['features'])
+    except:
+        for i in range(len(r['result']['features'])):
+            if 'crs' in r['result']['features'][i]['properties'].keys():
+                del r['result']['features'][i]['properties']['crs']
+        sh = gpd.GeoDataFrame.from_features(r['result']['features'])
 
-    sh = gpd.GeoDataFrame.from_features(r['result']['features'])
+        
     if sh.shape[0] ==0:
         r['result'] = sh
         return r
@@ -206,14 +223,15 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
     return r
 
 
-def listFeatures(pathId, timestampId, token = None, listAll = True, pageStart = None):
+def listFeatures(pathId, timestampId, token = None, listAll = True, pageStart = None, levelOfDetail = None):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, False)
     listAll = sanitize.validBool('listAll', listAll, True)
     pageStart = sanitize.validObject('pageStart', pageStart, False) 
+    levelOfDetail = sanitize.validInt('levelOfDetail', levelOfDetail, False)
 
-    body = {'pageStart': pageStart}
+    body = {'pageStart': pageStart, 'levelOfDetail':levelOfDetail}
 
     def f(body):
         
@@ -227,8 +245,17 @@ def listFeatures(pathId, timestampId, token = None, listAll = True, pageStart = 
 
     r = recurse(f, body, listAll, 'features')
 
+
+
+    try:
+        sh = gpd.GeoDataFrame.from_features(r['result']['features'])
+    except:
+        for i in range(len(r['result']['features'])):
+            if 'crs' in r['result']['features'][i]['properties'].keys():
+                del r['result']['features'][i]['properties']['crs']
+        sh = gpd.GeoDataFrame.from_features(r['result']['features'])
     
-    sh = gpd.GeoDataFrame.from_features(r['result']['features'])    
+
     sh.crs = {'init': 'epsg:4326'}
     r['result'] = sh
 
