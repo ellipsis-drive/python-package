@@ -122,9 +122,28 @@ Request to obtain the raster value for each point along a line.
 - line (shapely geometry in WGS84 of type line)
 
 **Optional arguments**
-- approximate (boolean) default True
 - token (string)
-- returnType (one of 'all' or 'statistics') default 'all'
+- epsg (int) the espg code of the coordinate system of the coordinates of the line
+
+## contour
+
+    ellipsis.path.raster.timestamp.contour()
+
+Request to obtain the contour lines for a raster in a certain extent
+
+**Mandatory arguments**
+
+- pathId (uuid)
+- timestampId (uuid)
+- extent (a dictionary with properties xMin, xMax, yMin, yMax of type float)
+
+**Optional arguments**
+- bandNumber (int) band number of the raster to get the contour lines for. Count starts at 1
+- interval (float) contour interval to use, required if intervals not given
+- intervals (list of floats) exact intervals of the desired contour lines
+- token (string)
+- epsg (int) the espg code of the coordinate system of the coordinates of the extent
+
 
 ## getRaster
 
@@ -141,8 +160,8 @@ Get a raster.
 **Optional arguments**
 
 - token (string)
-- style (either uuid or dictionary describing a style). If no style given raw data is returned. Also see https://docs.ellipsis-drive.com/developers/api-v3/path-raster/styles/add-style
-- threads (integer) default 1
+- epsg (int) the espg code of the coordinate system of the coordinates of the extent. Default 4326 web mercator
+- reproject (boolean) whether to reproject the output raster to the coordiante system of the given extent
 - showProgress (bool) default True
 
 ## getSampledRaster
@@ -161,8 +180,7 @@ Get a downsampled raster.
 
 **Optional arguments**
 
-- style (either uuid or dictionary describing a style). If no style given raw data is returned. Also see https://docs.ellipsis-drive.com/developers/api-v3/path-raster/styles/add-style
-- epsg (int), default 3857 (webmercator)
+- epsg (int), epsg code of the coordinate system of the extent. default 4326 (webmercator)
 - token (string)
 
 ## trash

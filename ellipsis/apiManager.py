@@ -24,7 +24,7 @@ def filterNone(body, toString= False):
                 params[k] = body[k]
     return params
 
-def get(url, body = None, token = None, crash = True):
+def get(url, body = None, token = None, crash = True, parseJson = True):
     if body == None:
         body = {'token': token}
     else:
@@ -40,7 +40,7 @@ def get(url, body = None, token = None, crash = True):
 
     url = url + '?' + body
 
-    r = call( method = requests.get, url = url, body = None, token = token, crash = crash )
+    r = call( method = requests.get, url = url, body = None, token = token, crash = crash, parseJson = parseJson )
 
 
     return r
@@ -66,7 +66,7 @@ def delete(url, body, token = None):
     return r
 
 
-def call(method, url, body = None, token = None, crash = True):
+def call(method, url, body = None, token = None, crash = True, parseJson = True):
     body = filterNone(body)
     if type(body) != type(None) and type(body) != type({}):
         raise ValueError(
@@ -85,10 +85,12 @@ def call(method, url, body = None, token = None, crash = True):
     if crash:
         if r.status_code != 200:
             raise ValueError(r.text)
-        try:
-            r = r.json()
-        except:
-            r = r.text
+            
+        if parseJson:
+            try:
+                r = r.json()
+            except:
+                r = r.text
     
         return r
     else:

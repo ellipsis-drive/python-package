@@ -17,13 +17,16 @@ import tifffile
 from PIL import Image
 import geopandas as gpd
 import datetime
+import pandas as pd
 import time
 import requests
+from skimage.measure import find_contours
+from shapely.geometry import Point, LineString
 
 def getDownsampledRaster(pathId, timestampId, extent, width, height, epsg=3857, style = None, token = None):
     return getSampledRaster(pathId, timestampId, extent, width, height, epsg, style, token)
 
-def getSampledRaster(pathId, timestampId, extent, width, height, epsg=3857, style = None, token = None):
+def getSampledRaster(pathId, timestampId, extent, width, height, epsg=4326, style = None, token = None):
     bounds = extent
     token = sanitize.validString('token', token, False)
     pathId = sanitize.validUuid('pathId', pathId, True)
@@ -32,9 +35,7 @@ def getSampledRaster(pathId, timestampId, extent, width, height, epsg=3857, styl
     style = sanitize.validObject('style', style, False)
     epsg = sanitize.validInt('epsg', epsg, True)
     body = {'pathId':pathId, 'timestampId':timestampId, 'extent':bounds, 'width':width, 'height':height, 'style':style, 'epsg':epsg}
-    r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/rasterByExtent', body, token, crash = False)
-    if r.status_code != 200:
-        raise ValueError(r.message)
+    r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/rasterByExtent', body, token, crash = True, parseJson = False)
 
 
     if type(style) == type(None):
@@ -56,18 +57,88 @@ def getSampledRaster(pathId, timestampId, extent, width, height, epsg=3857, styl
     return {'raster': r, 'transform':trans, 'extent': {'xMin' : xMin, 'yMin': yMin, 'xMax': xMax, 'yMax': yMax}, 'crs':"EPSG:" + str(epsg) }
 
 
+def contour(pathId, timestampId, extent, interval = None, intervals = None, epsg = 4326, bandNumber = 1, token = None):
+    pathId = sanitize.validUuid('pathId', pathId, True)
+    timestampId = sanitize.validUuid('timestampId', timestampId, True)
+    token = sanitize.validString('token', token, False)
+    epsg = sanitize.validInt('epsg', epsg, True)
+    extent = sanitize.validBounds('extent', extent, True)
+
+
+    res = getActualExtent(extent['xMin'], extent['xMax'], extent['yMin'], extent['yMax'], 'EPSG:' + str(epsg))    
+    if res['status'] == '400':
+        raise ValueError('Invalid epsg and extent combination')
+        
+    bounds = res['message']
+
+    xMinWeb = bounds['xMin']
+    yMinWeb = bounds['yMin']
+    xMaxWeb = bounds['xMax']
+    yMaxWeb = bounds['yMax']
+
+    extentWeb = {'xMin': xMinWeb, 'xMax':xMaxWeb, 'yMin':yMinWeb, 'yMax':yMaxWeb}
+    size = 1000
+    r = getSampledRaster(pathId = pathId, timestampId = timestampId, extent = extentWeb, width = size, height = size, epsg=3857, token = token)
+    raster = r['raster']
+    
+    if bandNumber >= raster.shape[0]:
+        raise ValueError('BandNumber too high. Raster only has ' + str(raster.shape[0]) + 'bands.')
+
+
+    
+    if type(intervals) == type(None):
+        minVal = np.min(raster[bandNumber-1, raster[-1,:,:] == 1])
+        maxVal = np.max(raster[bandNumber-1, raster[-1,:,:] == 1])
+        
+        
+        cont = minVal + interval
+
+        conts = []
+        while cont < maxVal:
+            conts = conts + [cont]
+            cont = cont + interval
+    else:
+        conts = intervals
+
+    
+    Lx = (xMaxWeb - xMinWeb)/size
+    Ly = (yMaxWeb - yMinWeb)/size
+
+    sh_total = []
+    for cont in conts:
+        
+        lines = find_contours(raster[bandNumber-1,:,:],  mask=raster[-1,:,:] == 1, level = cont)
+         
+        newLines = []
+        line = lines[0]
+        for line in lines:
+            newLine = LineString([ Point( xMinWeb + x[0] * Lx  , yMinWeb +  x[1] * Ly )  for x in line])
+            newLines = newLines + [newLine]
+        
+        sh = gpd.GeoDataFrame({'geometry': newLines, 'label': (np.repeat(cont, len(newLines)))} )        
+        
+        sh_total = sh_total + [sh]
+    
+    sh = pd.concat(sh_total)
+    sh.crs = 'EPSG:3857'
+    sh = sh.to_crs('EPSG:' + str(epsg))
+
+    return sh
+
+
 def getValuesAlongLine(pathId, timestampId, line, token = None, epsg = 4326):
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     token = sanitize.validString('token', token, False)
     line = sanitize.validShapely('line', line, True)
+    epsg = sanitize.validInt('epsg', epsg, True)
 
     if line.type != 'LineString':
         raise ValueError('line must be a shapely lineString')
 
     temp = gpd.GeoDataFrame({'geometry':[line]})
     temp.crs = 'EPSG:' + str(epsg)
-    temp = temp.to_crs('EPSG:4326')
+    temp = temp.to_crs('EPSG:3857')
     line = temp['geometry'].values[0]
     line = list(line.coords)
         
@@ -79,20 +150,32 @@ def getValuesAlongLine(pathId, timestampId, line, token = None, epsg = 4326):
     xMax = max(x_of_line)
     yMin = min(y_of_line)
     yMax = max(y_of_line)
-
+    
+    d = (xMax - xMin) * 0.1
+    xMax = xMax + d
+    xMin = xMin -d
+    d = (yMax - yMin) * 0.1
+    yMax = yMax + d
+    yMin = yMin -d
+    
+    
+    
     #now we retrieve the needed raster we use epsg = 4326 but we can use other coordinates as well
     extent = {'xMin': xMin, 'xMax':xMax, 'yMin':yMin, 'yMax':yMax}
 
     size = 1000
-    r = getSampledRaster(pathId = pathId, timestampId = timestampId, extent = extent, width = size, height = size, epsg=4326)
+    r = getSampledRaster(pathId = pathId, timestampId = timestampId, extent = extent, width = size, height = size, epsg=3857, token = token)
     raster = r['raster']
 
     memfile =  MemoryFile()
     dataset = memfile.open( driver='GTiff', dtype='float32', height=size, width=size, count = raster.shape[0], crs= r['crs'], transform=r['transform'])
     dataset.write(raster)
 
+
+
     values = list(dataset.sample(line))
 
+    memfile.close()
     return values
 
 
