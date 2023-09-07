@@ -132,7 +132,7 @@ Gets the bounds of a vector timestamp.
 
 ## getFeaturesByExtent
 
-    ellipsis.path.vector.timestamp.getFeaturesByIds()
+    ellipsis.path.vector.timestamp.getFeaturesByExtent()
 
 **Mandatory arguments**
 

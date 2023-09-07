@@ -6,6 +6,7 @@ maxdepth: 5
 ---
 raster/index
 vector/index
+pointCloud/index
 folder/index
 file/index
 invite/index
