@@ -3,9 +3,11 @@ from ellipsis.util.root import reprojectVector
 
 from ellipsis.util.root import saveRaster
 
+from ellipsis.util.root import parseGlb
 
 from ellipsis.util.root import plotRaster
 from ellipsis.util.root import plotVector
+from ellipsis.util.root import plotPointCloud
 
 from ellipsis.util.root import chunks
 from ellipsis.util.root import cover

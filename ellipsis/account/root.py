@@ -1,6 +1,7 @@
 from ellipsis import apiManager
 from ellipsis import sanitize
 from ellipsis.util.root import recurse
+import requests
 
 def logIn(username, password, validFor = None):
 
@@ -10,8 +11,15 @@ def logIn(username, password, validFor = None):
 
         json = {'username': username, 'password': password, 'validFor': validFor}
 
+        r = apiManager.call(requests.post,'/account/login', body=json, token=None, crash=False)
+        if r.status_code == 400:
+            r = r.json()
+            if r['message'] == "No password configured.":
+                raise ValueError("You cannot login with your Google credentials in the Python module. You need to configure an Ellipsis Drive specific password. You can do this on https://app.ellipsis-drive.com/account-settings/security")
+        if r.status_code == 400:
+            raise ValueError(r.text)
 
-        r = apiManager.post('/account/login', json)
+        r = r.json()
         token = r['token']
 
         return(token)

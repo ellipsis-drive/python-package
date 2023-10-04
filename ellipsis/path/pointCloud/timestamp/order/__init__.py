@@ -1,2 +1,2 @@
-from ellipsis.path.raster.timestamp.order.root import add, get, download
+from ellipsis.path.pointCloud.timestamp.order.root import add, get, download
 

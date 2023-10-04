@@ -104,7 +104,6 @@ def getChanges(pathId, timestampId, token = None, pageStart = None, listAll = Fa
     def f(body):
         r = apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/changelog' , body, token)
         return r
-    
     r = recurse(f, body, listAll)
     r['result'] = [ {**x, 'date':stringToDate(x['date'])} for x in r['result'] ]
     return r
@@ -155,6 +154,7 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
     levelOfDetail = sanitize.validInt('levelOfDetail', levelOfDetail, False)
     propertyFilter = sanitize.validObject('propertyFilter', propertyFilter, False)
     listAll = sanitize.validBool('listAll', listAll, True)
+    epsg = sanitize.validInt('epsg', epsg, True)
     pageStart = sanitize.validObject('pageStart', pageStart, False) 
     coordinateBuffer = sanitize.validFloat('coordinateBuffer', coordinateBuffer, False) 
     if str(type(coordinateBuffer)) == str(type(None)):
@@ -167,33 +167,22 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
         coordinateBuffer = 0.5*360 / 2**zoom
 
 
-
-    extent['xMin'] = max(-180, extent['xMin'] - coordinateBuffer)
-    extent['xMax'] = min(180, extent['xMax'] + coordinateBuffer)
-    extent['yMin'] = max(-85, extent['yMin'] - coordinateBuffer)
-    extent['yMax'] = min(85, extent['yMax'] + coordinateBuffer)
-
-
-    p = geometry.Polygon( [(extent['xMin'], extent['yMin']), (extent['xMin'], extent['yMax']),(extent['xMax'], extent['yMax']),(extent['xMax'], extent['yMin'])] )
-    p = gpd.GeoDataFrame({'geometry':[p]})
+    extent_new = {}
+    extent_new['xMin'] = max(-180, extent['xMin'] - coordinateBuffer)
+    extent_new['xMax'] = min(180, extent['xMax'] + coordinateBuffer)
+    extent_new['yMin'] = max(-85, extent['yMin'] - coordinateBuffer)
+    extent_new['yMax'] = min(85, extent['yMax'] + coordinateBuffer)
 
 
-    res = getActualExtent(extent['xMin'], extent['xMax'], extent['yMin'], extent['yMax'], 'EPSG:' + str(epsg))
+
+    res = getActualExtent(extent_new['xMin'], extent_new['xMax'], extent_new['yMin'], extent_new['yMax'], 'EPSG:' + str(epsg), 4326)
     if res['status'] == '400':
         raise ValueError('Invalid epsg and extent combination')
-        
-    extent = res['message']
 
-    try:
-        p.crs = 'EPSG:' + str(epsg)
-        p = p.to_crs('EPSG:4326')
-    except:
-        raise ValueError('Invalid crs given')
-    extent = p.bounds
-    extent = {'xMin': extent['minx'].values[0], 'xMax': extent['maxx'].values[0], 'yMin': extent['miny'].values[0], 'yMax': extent['maxy'].values[0] }        
-    
-    
-    body = {'pageStart': pageStart, 'propertyFilter':propertyFilter, 'extent':extent, 'levelOfDetail':levelOfDetail}
+    extent_new = res['message']
+
+
+    body = {'pageStart': pageStart, 'propertyFilter':propertyFilter, 'extent':extent_new, 'levelOfDetail':levelOfDetail}
 
     def f(body):
         return apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/featuresByExtent' , body, token)
@@ -231,10 +220,10 @@ def listFeatures(pathId, timestampId, token = None, listAll = True, pageStart = 
     pageStart = sanitize.validObject('pageStart', pageStart, False) 
     levelOfDetail = sanitize.validInt('levelOfDetail', levelOfDetail, False)
 
-    body = {'pageStart': pageStart, 'levelOfDetail':levelOfDetail}
+    body = {'pageStart': pageStart, 'levelOfDetail':levelOfDetail, 'pageSize':10000}
+
 
     def f(body):
-        
         if type(body['pageStart']) == type(None):
             try:
                 return apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/compressedListFeatures' , body, token)                

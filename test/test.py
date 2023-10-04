@@ -8,9 +8,6 @@ import pandas as pd
 #python3 setup.py sdist bdist_wheel
 #twine upload --repository pypi dist/*
 
-
-
-
 token = el.account.logIn(username = 'admin', password='')
 
 ##access token
@@ -22,9 +19,8 @@ folderId = '46e1e919-8b73-42a3-a575-25c6d45fd93b'
 
 
 
-
 ##account
-demo_token = el.account.logIn("demo_user", "demo_user")
+demo_token = el.account.logIn("demo_user", "")
 admin_token = el.account.logIn(username = 'admin', password='')
 daan_token = el.account.logIn('daan', "")
 
@@ -60,7 +56,7 @@ rasterInfo = el.path.get('59caf510-bab7-44a8-b5ea-c522cfde4ad7', token)
 info = el.path.get(folderId, token)
 
 folderId = info['id']
-maps = el.path.folder.listFolder(folderId, pathTypes=['raster', 'vector'], token = token, listAll = True)
+maps = el.path.folder.listFolder(folderId, pathTypes=['raster', 'vector', 'pointCloud'], token = token, listAll = True)
 folders = el.path.folder.listFolder(folderId, pathTypes=['folder'], token = token, listAll = True)
 
 mapId = [ m for m in maps['result'] if not m['trashed'] ][0]['id']
@@ -87,6 +83,13 @@ el.path.delete(pathId = addedFolderId, token = token, recursive = True)
 
 el.path.editPublicAccess(pathId = folderId, token = token, access={'accessLevel':0}, hidden = False)
 el.path.editPublicAccess(pathId = folderId, token = token, access= {'accessLevel':100}, hidden = True)
+
+folderId = '58f62140-5aad-44b0-b6dc-996a9a84a601'
+el.path.editPublicAccess(pathId = folderId, token = token, access= {'accessLevel':100}, hidden = True, recursive=True)
+
+while True:
+    r = el.path.folder.listFolder(pathId= '4a46947c-eb49-435d-af79-71d238df0bc5', listAll=True, token = token)['result']
+    print(r)
 
 el.path.favorite(folderId, token=token)
 el.path.unfavorite(folderId, token=token)
@@ -126,6 +129,73 @@ pathId = '8a11c27b-74c3-4570-bcd0-64829f7cd311'
 users = el.path.usage.getActiveUsers(pathId = pathId, token = token, listAll=True)
 el.path.usage.getUsage(pathId = pathId, userId = users['result'][0]['user']['id'], token =token)
 el.path.usage.getAggregatedUsage(pathId = pathId, loggedIn = False, token = token)
+
+###pointclouds
+import ellipsis as el
+mapId = el.path.pointCloud.add( 'test', token, parentId = folderId)['id']
+timestampId = el.path.pointCloud.timestamp.add(mapId, token)['id']
+dateFrom = datetime.datetime.now()
+dateTo = datetime.datetime.now()
+el.path.pointCloud.timestamp.edit(mapId, timestampId, token, description = 'hoi', date={'from': dateFrom, 'to':dateTo})
+
+filePath = '/home/daniel/Ellipsis/db/testset/jpn_tokyo/Ellipsoid/vricon_point_cloud/data/1394041e_354047n_20200624T091403Z_ptcld.laz'
+uploadId = el.path.pointCloud.timestamp.file.add(pathId = mapId, timestampId = timestampId, filePath = filePath, fileFormat = 'laz', epsg= 3095, token = token)['id']
+time.sleep(10)
+el.path.pointCloud.timestamp.file.download(pathId = mapId, timestampId = timestampId, fileId = uploadId, filePath = '/home/daniel/Downloads/out.laz', token = token)
+os.remove('/home/daniel/Downloads/out.laz')
+el.path.pointCloud.timestamp.file.trash(pathId = mapId, timestampId = timestampId, fileId= uploadId, token = token)
+el.path.pointCloud.timestamp.file.recover(pathId = mapId, timestampId = timestampId, fileId= uploadId, token = token)
+el.path.pointCloud.timestamp.file.trash(pathId = mapId, timestampId = timestampId, fileId= uploadId, token = token)
+el.path.pointCloud.timestamp.file.delete(mapId, timestampId, uploadId, token)
+uploadId = el.path.pointCloud.timestamp.file.add(pathId = mapId, timestampId = timestampId, filePath = filePath, fileFormat = 'laz', epsg= 3095, token = token)['id']
+
+uploads = el.path.pointCloud.timestamp.file.get(mapId, timestampId, token)
+
+
+el.path.pointCloud.timestamp.activate(mapId, timestampId, token)
+
+while el.path.get(mapId, token)['pointCloud']['timestamps'][0]['status'] != 'active':
+    time.sleep(2)
+
+el.path.pointCloud.timestamp.deactivate(mapId, timestampId, token)
+while el.path.get(mapId, token)['pointCloud']['timestamps'][0]['status'] != 'passive':
+    time.sleep(2)
+el.path.pointCloud.timestamp.activate(mapId, timestampId, token)
+
+info = el.path.get(mapId, token)
+timestamp = info['pointCloud']['timestamps'][0]
+while timestamp['status'] != 'active':
+    time.sleep(1)
+    info = el.path.get(mapId, token)
+    timestamp = info['pointCloud']['timestamps'][0]
+
+
+
+el.path.pointCloud.timestamp.trash(mapId, timestampId, token)
+el.path.pointCloud.timestamp.recover(mapId, timestampId, token)
+el.path.pointCloud.timestamp.trash(mapId, timestampId, token)
+el.path.pointCloud.timestamp.delete(mapId, timestampId, token)
+
+el.path.trash(mapId, token)
+el.path.recover(mapId, token)
+el.path.trash(mapId, token)
+el.path.delete(mapId, token)
+
+####data fetching
+import ellipsis as el
+pathId = 'fe5cb352-ccda-470b-bb66-12631c028def'
+timestampId = '7dd94eac-f145-4a8a-b92d-0a22a289fe21'
+extent = {    'xMin':5.7908,'xMax':5.79116,'yMin':51.93303,'yMax':51.93321}
+epsg = 4326
+token = None
+zoom = None
+
+
+df = el.path.pointCloud.timestamp.fetchPoints(pathId, timestampId, extent, token= None, epsg = epsg, zoom = zoom)
+
+el.util.plotPointCloud(df, method = 'cloud')
+el.util.plotPointCloud(df, method = 'voxel')
+el.util.plotPointCloud(df, method = 'mesh', scale = 0.06)
 
 ##raster and uploads
 mapId = el.path.raster.add( 'test', token, parentId = folderId)['id']

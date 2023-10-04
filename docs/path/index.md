@@ -70,10 +70,11 @@ Update the public access of a path.
 
 - pathId (uuid)
 - token (string)
+- recursive (boolean) If true access will be set to all children recursively (only applicable in case of a folder).
 
 **Optional arguments**
 
-- access (dictionary)
+- access (dictionary, with key accessLevel of type int)
 - hidden (boolean)
 
 ## editMetadata

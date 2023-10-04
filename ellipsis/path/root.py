@@ -2,7 +2,6 @@ from ellipsis import apiManager
 from ellipsis import sanitize
 from ellipsis.util.root import recurse
 from ellipsis.util.root import stringToDate
-
 from ellipsis.path.folder.root import listFolder
 
 def search(pathTypes = ['raster', 'vector', 'file', 'folder'] ,root=None, text=None, active=None, userId=None, pageStart=None, hashtag=None, extent=None, resolution=None, date=None, listAll= False, token=None):
@@ -158,7 +157,7 @@ def delete(pathId, token, recursive = False):
             folders = listFolder(pathId = pathId, includeTrashed=True, pathTypes=['folder'], token=token)['result']
             for f in folders:
                 delete(f['id'], token, True)
-            maps = listFolder(pathId=pathId, pathTypes=['raster','vector','file'], includeTrashed=True, token=token)['result']
+            maps = listFolder(pathId=pathId, pathTypes=['raster','vector','file', 'pointCloud'], includeTrashed=True, token=token)['result']
             for m in maps:
                 delete(m['id'], token, True)
         apiManager.delete(f'/path/{pathId}', None, token)            
@@ -166,16 +165,36 @@ def delete(pathId, token, recursive = False):
     else:
         return apiManager.delete(f'/path/{pathId}', None, token)
 
-def editPublicAccess(pathId, token, access = None, hidden=None):
+def editPublicAccess(pathId, token, access = None, hidden=None, recursive = False):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
 
     access = sanitize.validObject('access', access, False)
     hidden = sanitize.validBool('hidden', hidden, False)
+    recursive = sanitize.validBool('recursive', recursive, True)
+
+    if type(hidden) == type(None) and type(access) == type(None):
+        raise ValueError('hidden and access cannot both be None')
+
     body = access
     body['hidden'] =  hidden
-    
-    return apiManager.patch('/path/' + pathId + '/publicAccess', body, token)
+
+
+
+    if recursive:
+        info = get(pathId, token)
+        if info['type'] == 'folder':
+            folders = listFolder(pathId=pathId, includeTrashed=False, pathTypes=['folder'], token=token)['result']
+            for f in folders:
+                editPublicAccess(pathId = f['id'], token = token, recursive = True, hidden = hidden, access = access)
+            maps =  listFolder(pathId=pathId, pathTypes=['raster', 'vector', 'file', 'pointCloud'], includeTrashed=False, token=token)['result']
+            for m in maps:
+                editPublicAccess(pathId = m['id'], token = token, access=access, hidden = hidden, recursive = True)
+        return apiManager.patch('/path/' + pathId + '/publicAccess', body, token)
+
+
+    else:
+        return apiManager.patch('/path/' + pathId + '/publicAccess', body, token)
     
 def favorite(pathId, token):
     pathId = sanitize.validUuid('pathId', pathId, True)

@@ -8,6 +8,27 @@ order/index
 file/index
 ```
 
+
+## add
+
+fetchPoints(pathId, timestampId, extent, token= None, epsg = 3857, zoom = None, showProgress = True)
+
+Fetch points within a certain extent
+
+**Mandatory arguments**
+
+- pathId (pathId)
+- timestampId (pathId)
+- extent (dictionary with xMin, xMax, yMin, yMax as float)
+
+
+**Optional arguments**
+- token (string)
+- epsg (espg code of extent as int)
+- zoom (at which zoom to fetch the points, defaults to highest zoomlevel)
+- showProgress (boolean indicating whether to show a loading bar)
+
+
 ## add
 
     ellipsis.path.pointCloud.timestamp.add()

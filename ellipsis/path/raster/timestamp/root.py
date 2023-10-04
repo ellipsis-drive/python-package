@@ -222,7 +222,12 @@ def getRaster(pathId, timestampId, extent, token = None, showProgress = True, ep
     if not timestampId in all_timestamps:
         raise ValueError('given timestamp does not exist')
     
-    zoom = next(item for item in timestamps if item["id"] == timestampId)['zoom']
+    t = next(item for item in timestamps if item["id"] == timestampId)
+
+    if t['status'] != 'active':
+        raise ValueError('timestamp is not active, please active timestamp before making queries to it')
+
+    zoom = t['zoom']
 
     body = {}
 

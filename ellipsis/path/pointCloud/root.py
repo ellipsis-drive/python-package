@@ -11,6 +11,6 @@ def add( name, token, parentId = None, publicAccess =None, metadata=None):
 
     body = {'name': name, 'parentId':parentId, 'publicAccess':publicAccess, 'metadata':metadata }
 
-    return apiManager.post('/path/raster', body, token)
+    return apiManager.post('/path/pointCloud', body, token)
 
 

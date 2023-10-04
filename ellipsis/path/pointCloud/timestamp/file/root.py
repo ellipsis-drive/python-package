@@ -11,7 +11,7 @@ def add(pathId, timestampId, filePath, token, fileFormat, epsg = None):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     filePath = sanitize.validString('filePath', filePath, True)
-    epsg = sanitize.validInt('epsg', epsg, False)
+    epsg = sanitize.validInt('epsg', epsg, True)
     fileFormat = sanitize.validString('fileFormat', fileFormat, True)    
 
     seperator = os.path.sep    

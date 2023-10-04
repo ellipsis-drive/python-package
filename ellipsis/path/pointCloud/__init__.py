@@ -1,5 +1,5 @@
-from ellipsis.path.raster.root import add
-from ellipsis.path.raster import timestamp
+from ellipsis.path.pointCloud.root import add
+from ellipsis.path.pointCloud import timestamp
 
 
 

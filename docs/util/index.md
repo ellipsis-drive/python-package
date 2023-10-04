@@ -93,6 +93,22 @@ Plots a geopandas data frame
 - features (geopandas dataframe) a geopandas dataframe with features to plot
 
 
+## plotPointCloud
+
+    ellipsis.util.plotPointCloud()
+
+Plots a pandas containing the points of a point cloud. Pandas should be of the form as returned by ellipsis.path.pointCloud.timestamp.fetchPoints()
+
+**Mandatory arguments**
+
+- df (pandas data frame holding the points)
+
+**Optional arguments**
+- method (which method to use for plotting. Must be one of cloud, mesh or voxel, defautl cloud)
+- width (width of the plot as int, default 800)
+- height (height of the plot as int, default 600)
+- scale (precision of the plot as float, default 0.003)
+
 ## cutIntoTiles
 
     ellipsis.util.cutIntoTiles()

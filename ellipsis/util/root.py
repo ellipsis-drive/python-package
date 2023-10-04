@@ -5,11 +5,14 @@ import numpy as np
 import pandas as pd
 import math
 import sys
+import open3d as o3d
+
 from datetime import datetime
 from shapely import geometry
 import rasterio
 import matplotlib.pyplot as plt
 from PIL import Image
+import pygltflib
 from skimage.transform import resize
 import os
 import random
@@ -26,6 +29,105 @@ from ellipsis import sanitize
 from rasterio.warp import reproject as warp, Resampling, calculate_default_transform
 
 warnings.simplefilter("ignore")
+
+def plotPointCloud(df, method = 'cloud', width = 800, height = 600, scale = 0.003):
+    if type(method) != type('x'):
+        raise ValueError('method must be one of cloud, voxel or mesh')
+    if not method in ['cloud', 'mesh', 'voxel']:
+        raise ValueError('method must be one of cloud, voxel or mesh')
+    if type(df) != type(pd.DataFrame()):
+        raise ValueError('df must be a dataframe with columns x,y,z, red, green,blue all of type float')
+
+
+    maxx = np.max(df['x'].values)
+    maxy = np.max(df['y'].values)
+    maxz = np.max(df['z'].values)
+    minx = np.min(df['x'].values)
+    miny = np.min(df['y'].values)
+    minz = np.min(df['z'].values)
+
+
+    M = max(maxx - minx,maxy-miny, maxz-minz)
+
+
+    points = [ [( p[0] - minx  )/M, (p[1]-miny)/M, (p[2] - minz)/M] for p in zip( df['x'].values, df['y'].values, df['z'].values)]
+    colors = [  [p[0], p[1], p[2]]  for p in   zip( df['red'].values/ 255, df['green'].values/ 255, df['blue'].values/255)]
+
+    # Initialize a point cloud object
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points)
+    pcd.colors = o3d.utility.Vector3dVector(colors)
+
+    vis = o3d.visualization.Visualizer()
+
+    vis.create_window(window_name='Point cloud', width=width, height=height)
+
+    if method == 'cloud':
+        # Add the pointcloud to the visualizer
+        vis.add_geometry(pcd)
+    elif method == 'voxel':
+        # Create a voxel grid from the point cloud with a voxel_size of 0.01
+        voxel_grid=o3d.geometry.VoxelGrid.create_from_point_cloud(pcd,voxel_size=scale)
+
+        # Add the voxel grid to the visualizer
+        vis.add_geometry(voxel_grid)
+    elif method == 'mesh':
+        mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(pcd, scale)
+        mesh.compute_vertex_normals()
+        vis.add_geometry(mesh)
+
+
+    # We run the visualizater
+    vis.run()
+    vis.destroy_window()
+
+
+
+
+
+
+
+
+def parseGlb(stream):
+    gltf = pygltflib.GLTF2.load_from_bytes(stream)
+    binary_blob = gltf.binary_blob()
+    translation = gltf.nodes[0].translation
+
+    points_accessor = gltf.accessors[gltf.meshes[0].primitives[0].attributes.POSITION]
+    points_buffer_view = gltf.bufferViews[points_accessor.bufferView]
+    points = np.frombuffer(
+        binary_blob[
+        points_buffer_view.byteOffset
+        + points_accessor.byteOffset: points_buffer_view.byteOffset
+                                      + points_buffer_view.byteLength
+        ],
+        dtype="float32",
+        count=points_accessor.count * 3,
+    )
+
+    color_accessor = gltf.accessors[gltf.meshes[0].primitives[0].attributes.COLOR_0]
+    color_buffer_view = gltf.bufferViews[color_accessor.bufferView]
+    colors = np.frombuffer(
+        binary_blob[
+        color_buffer_view.byteOffset
+        + color_accessor.byteOffset: color_buffer_view.byteOffset
+                                     + color_buffer_view.byteLength
+        ],
+        dtype="float32",
+        count=color_accessor.count * 3,
+    )
+
+    points = points.reshape((-1, 3))
+    points = points.astype('float64')
+    colors = colors.reshape((-1, 3))
+
+    red = np.round(np.power(np.array(colors[:, 0]), 1 / 2.2) * 255).astype('uint8')
+    green = np.round(np.power(np.array(colors[:, 1]), 1 / 2.2) * 255).astype('uint8')
+    blue = np.round(np.power(np.array(colors[:, 2]), 1 / 2.2) * 255).astype('uint8')
+
+    return {'x': np.array(points[:, 0]) + translation[0], 'y': np.array(points[:, 1]) + translation[1],
+            'z': np.array(points[:, 2]) + translation[2], 'red': red, 'green': green, 'blue': blue}
+
 
 
 def recurse(f, body, listAll, extraKey = None):
@@ -463,7 +565,7 @@ def reprojectSub(args):
 
 
 
-def getActualExtent(minx, maxx, miny, maxy, crs):
+def getActualExtent(minx, maxx, miny, maxy, crs, out_crs = 3857):
     
     LEN = 2.003751e+07
     STEPS = 10
@@ -479,7 +581,7 @@ def getActualExtent(minx, maxx, miny, maxy, crs):
         return {'status': 400, 'message': 'Invalid epsg code'}
         
     try:
-        df_wgs = df.to_crs('EPSG:3857')
+        df_wgs = df.to_crs('EPSG:' + str(out_crs))
     except:
         return {'status': 400, 'message': 'Invalid extent and epsg combination'}
 

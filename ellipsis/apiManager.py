@@ -109,7 +109,6 @@ def upload(url, filePath, body, token, key = 'data', memfile= None):
         conn_file = memfile
 
 
-    
     payload = MultipartEncoder(fields = {**body, key: (fileName, conn_file, 'application/octet-stream')})
 
     token = 'Bearer ' + token

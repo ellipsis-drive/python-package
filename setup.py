@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ellipsis",
-    version="3.1.23",
+    version="3.1.26",
     author="Daniel van der Maas",
     author_email="daniel@ellipsis-drive.com",
     description="Package to interact with the Ellipsis API",
@@ -35,6 +35,8 @@ setuptools.setup(
     'geopy',
     'scikit-image',
     'Fiona',
+    'open3d',
+    'pygltflib',
     'tifffile'
     ],
     python_requires='>=3.6',
