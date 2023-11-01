@@ -48,34 +48,41 @@ def info(pathId, timestampId, featureId, token = None):
     return r
 
 
-def add(pathId, timestampId, featureId, seriesData, token, showProgress = True):
+def add(pathId, timestampId, seriesData, token, featureId=None, showProgress = True):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
-    featureId = sanitize.validUuid('featureId', featureId, True) 
+    featureId = sanitize.validUuid('featureId', featureId, False)
     token = sanitize.validString('token', token, True)
     seriesData = sanitize.validDataframe('seriesData', seriesData, True)
     showProgress = sanitize.validBool('showProgress', showProgress, True)
 
+    if str(type(featureId)) != str(type(None)):
+        seriesData['featureId'] = featureId
+
     if 'date' in seriesData.columns:
-        if str(seriesData['date'].dtypes) == 'datetime64[ns]':
+        if 'datetime64' in str(seriesData['date'].dtypes):
             seriesData['date'] = seriesData['date'].dt.strftime('%Y-%m-%d %H:%M:%S')
             dates = list(seriesData['date'])
             del seriesData['date']
         else:
-           raise  ValueError('datetime column must be of type datetime')
+           raise  ValueError('date column must be of type datetime')
     else:
            raise  ValueError('seriesData must have a column datetime of type datetime')
 
+    if not 'featureId' in seriesData.columns:
+        raise ValueError(
+            "You either need to supply a featureId in the function parameters or supply a featureId column in seriesData")
+
+    featureIds = seriesData['featureId']
+    del seriesData['featureId']
 
     for c in seriesData.columns:
             seriesData[c] = seriesData[c].astype(float)
         
+
     values = []
-    for i in np.arange(seriesData.shape[0]):
-        for c in seriesData.columns:
-                value = seriesData[c].values[i]
-                if not np.isnan(value):
-                    values = values + [{'property':c, 'value':seriesData[c].values[i], 'date':dates[i]}]
+    for c in seriesData.columns:
+        values = values +  [{'property': c, 'featureId': x[0], 'value': x[1], 'date': x[2]} for x in zip(featureIds, seriesData[c].values, dates) if not np.isnan(x[1]) ]
 
 
     chunks_values = chunks(values)
@@ -83,7 +90,7 @@ def add(pathId, timestampId, featureId, seriesData, token, showProgress = True):
     r_total = []
     for values_sub in chunks_values:
         body = { "values":values_sub}
-        r = apiManager.post("/path/" + pathId + "/vector/timestamp/" + timestampId  + '/feature/' + featureId + '/series/element', body, token)
+        r = apiManager.post("/path/" + pathId + "/vector/timestamp/" + timestampId  + '/feature/series/element', body, token)
         
         r_total = r_total + r
         if len(chunks_values) >1 and showProgress:

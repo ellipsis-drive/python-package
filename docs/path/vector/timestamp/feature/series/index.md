@@ -42,9 +42,10 @@
 
 - pathId (uuid)
 - timestampId (uuid)
-- featureId (uuid)
-- seriesData (pandas dataframe)
+- seriesData (pandas dataframe, with columns date as date and featureId as uuid string. All other columns should be of type float and will be added as time series)
 - token (uuid)
+
+
 
 ## trash
 

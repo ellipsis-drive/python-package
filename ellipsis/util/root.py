@@ -550,7 +550,7 @@ def reprojectSub(args):
     sh = args[0]
     targetCrs = args[1]
     try:
-        sh = sh.to_crs(targetCrs)
+        sh = sh.to_crs(str(targetCrs))
     except:
         sh = sh.to_crs(targetCrs.replace('EPSG:', ''))
 

@@ -226,7 +226,7 @@ def listFeatures(pathId, timestampId, token = None, listAll = True, pageStart = 
     def f(body):
         if type(body['pageStart']) == type(None):
             try:
-                return apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/compressedListFeatures' , body, token)                
+                return  apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/compressedListFeatures' , body, token)
             except:
                 return apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/listFeatures' , body, token)                
         else:
