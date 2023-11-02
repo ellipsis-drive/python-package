@@ -180,3 +180,19 @@ Recover a path.
 **Optional arguments**
 
 - token (string)
+
+
+## setDomains
+
+    ellipsis.path.setDomains()
+
+Set a white list of domains. Only apps of the given domains are allowed to use your layer
+
+**Mandatory arguments**
+
+- pathId (uuid)
+- domains (Array of strings, that is the white list of domains)
+
+
+
+

@@ -54,6 +54,14 @@ def get(pathId, token=None):
     r = convertPath(r)
     return r
 
+def setDomains(pathId, token, domains):
+    pathId = sanitize.validUuid('pathId', pathId, True)
+    token = sanitize.validString('token', token, True)
+    domains = sanitize.validStringArray('domains', domains, True)
+
+    r = apiManager.get(f"/path/{pathId}/domain", None, token)
+    return r
+
 
 ####depricated
 def listPath(pathId, pathType, pageStart=None, listAll = True, token=None):

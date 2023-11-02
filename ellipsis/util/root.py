@@ -521,10 +521,13 @@ def reprojectVector(features, targetEpsg, cores = 1):
     targetCrs = 'EPSG:' + str(targetEpsg)
     shs = np.array_split(sh, cores)
     args = list(zip(shs, np.repeat(targetCrs, cores) ))
-    with Pool(cores) as p:
-        shs = p.map(reprojectSub, args )
+    if cores ==1:
+        sh = reprojectSub(args[0])[0]
+    else:
+        with Pool(cores) as p:
+            shs = p.map(reprojectSub, args )
     
-    sh = pd.concat([x[0] for x in shs])
+        sh = pd.concat([x[0] for x in shs])
     return sh
 
 def reprojectWithBounds(sh, targetCrs, cores = 1):
@@ -536,9 +539,13 @@ def reprojectWithBounds(sh, targetCrs, cores = 1):
     for sh in shs_1:
         shs = np.array_split(sh, cores)
         args = list(zip(shs, np.repeat(targetCrs, cores) ))
-        with Pool(cores) as p:
-            shs = p.map(reprojectSub, args )
-        shs = list(shs)
+        if cores ==1:
+            sh_new = reprojectSub(args[0])
+            shs = shs + [sh_new]
+        else:
+            with Pool(cores) as p:
+                shs = p.map(reprojectSub, args )
+            shs = list(shs)
         shs_total = shs_total + shs
         
     sh = pd.concat([x[0] for x in shs_total])

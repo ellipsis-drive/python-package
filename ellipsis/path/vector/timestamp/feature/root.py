@@ -80,10 +80,10 @@ def add(pathId, timestampId, features, token, showProgress = True, levelOfDetail
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     token = sanitize.validString('token', token, True)
-    features = sanitize.validGeopandas('features', features, True, cores = cores)
     showProgress = sanitize.validBool('showProgress', showProgress, True)
     cores = sanitize.validInt('cores', cores, True)
-    
+    features = sanitize.validGeopandas('features', features, True, cores = cores)
+
     levelOfDetail1, levelOfDetail2, levelOfDetail3, levelOfDetail4, levelOfDetail5 = manageLevels(levelOfDetail1, levelOfDetail2, levelOfDetail3, levelOfDetail4, levelOfDetail5, features)
     features_json = features.to_json(na='drop')
     features_json = json.loads(features_json)
@@ -144,11 +144,11 @@ def edit(pathId, timestampId, featureIds, token, features = None, showProgress =
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, True)
-    features = sanitize.validGeopandas('features', features, False, cores=cores)
     featureIds = sanitize.validUuidArray('featureIds', featureIds, True)
     showProgress = sanitize.validBool('showProgress', showProgress, True)
     cores = sanitize.validInt('cores', cores, True)
-    
+    features = sanitize.validGeopandas('features', features, False, cores=cores)
+
     levelOfDetail1, levelOfDetail2, levelOfDetail3, levelOfDetail4, levelOfDetail5 = manageLevels(levelOfDetail1, levelOfDetail2, levelOfDetail3, levelOfDetail4, levelOfDetail5, features)
 
 
