@@ -57,9 +57,9 @@ def get(pathId, token=None):
 def setDomains(pathId, token, domains):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, True)
-    domains = sanitize.validStringArray('domains', domains, True)
-
-    r = apiManager.get(f"/path/{pathId}/domain", None, token)
+    domains = sanitize.validStringArray('domains', domains, False)
+    body = {'domains': domains}
+    r = apiManager.put(f"/path/{pathId}/domain", body, token)
     return r
 
 

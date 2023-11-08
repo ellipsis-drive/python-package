@@ -33,6 +33,18 @@ r_raster = el.path.search(pathTypes = ['raster'], token=token);
 r_vector = el.path.search(pathTypes = ['vector'], token=token);
 
 
+#domains
+
+pathId = '1eea3d2f-27b3-4874-b716-87852c3407c1'
+setDomains(pathId = pathId, token = daan_token, domains = ['hoi'])
+setDomains(pathId = pathId, token = daan_token, domains = None)
+
+
+
+import ellipsis as el
+
+
+el.path.raster.timestamp.add(date={'from':,'to':})
 
 ###files
 filePath = '/home/daniel/Ellipsis/db/testset/0.tif'

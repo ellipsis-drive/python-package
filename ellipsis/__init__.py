@@ -7,4 +7,7 @@ from ellipsis import path
 from ellipsis import view
 from ellipsis import util
 
-__version__ = '3.1.29'
+__version__ = '3.1.33'
+
+
+

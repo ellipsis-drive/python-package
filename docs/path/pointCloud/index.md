@@ -1,4 +1,4 @@
-# Raster
+# Point cloud
 
 ```{toctree}
 ---

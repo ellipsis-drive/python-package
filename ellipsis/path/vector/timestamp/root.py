@@ -186,9 +186,9 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
 
     def f(body):
         return apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/featuresByExtent' , body, token)
-        
+
     r = recurse(f, body, listAll, 'features')
-    
+
     try:
         sh = gpd.GeoDataFrame.from_features(r['result']['features'])
     except:
@@ -202,9 +202,8 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
         r['result'] = sh
         return r
     bounds = sh.bounds
-    px = (bounds['minx'] + bounds['maxx']) /2
-    py = (bounds['miny'] + bounds['maxy']) /2
-    sh = sh[ np.logical_and(np.logical_and( px >= extent['xMin'], px <= extent['xMax'] ), np.logical_and( py >= extent['yMin'], py <= extent['yMax'] )  )  ]
+
+    sh = sh[ np.logical_and(np.logical_and( bounds['maxx'] >= extent['xMin'], bounds['minx'] <= extent['xMax'] ), np.logical_and( bounds['maxy'] >= extent['yMin'], bounds['miny'] <= extent['yMax'] )  )  ]
     sh.crs = 'EPSG:4326'
     sh = sh.to_crs('EPSG:' + str(epsg))
     r['result'] = sh

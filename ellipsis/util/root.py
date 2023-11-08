@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import math
 import sys
-import open3d as o3d
 
 from datetime import datetime
 from shapely import geometry
@@ -31,6 +30,8 @@ from rasterio.warp import reproject as warp, Resampling, calculate_default_trans
 warnings.simplefilter("ignore")
 
 def plotPointCloud(df, method = 'cloud', width = 800, height = 600, scale = 0.003):
+    import open3d as o3d
+
     if type(method) != type('x'):
         raise ValueError('method must be one of cloud, voxel or mesh')
     if not method in ['cloud', 'mesh', 'voxel']:
