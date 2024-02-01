@@ -145,6 +145,7 @@ Gets the bounds of a vector timestamp.
 - token (uuid), your token
 - propertyFilter
 - pageStart
+- onlyIfCenterPointInExtent (boolean, default False. Indicating whether to retrieve only geometries if their centroid is included in the extent)
 - listAll (boolean), whether to list all results (default True)
 
 ## listFeatures

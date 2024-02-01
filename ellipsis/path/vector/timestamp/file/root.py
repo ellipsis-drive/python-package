@@ -5,7 +5,7 @@ from ellipsis.util.root import recurse
 import numpy as np
 import geopandas as gpd
 
-def add(pathId, timestampId, filePath, token, fileFormat, epsg = None, dateColumns = None, datePatterns = None, method= 'simplify', fastUpload = False):
+def add(pathId, timestampId, filePath, token, fileFormat, epsg = None, dateColumns = None, datePatterns = None, method= 'simplify', fastUpload = True):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 

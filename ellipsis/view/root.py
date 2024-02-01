@@ -1,4 +1,4 @@
-from ellipsis import apiManager
+pifrom ellipsis import apiManager
 from ellipsis import sanitize
 from ellipsis.util.root import recurse
 

@@ -35,6 +35,10 @@ def getSampledRaster(pathId, timestampId, extent, width, height, epsg=4326, styl
     style = sanitize.validObject('style', style, False)
     epsg = sanitize.validInt('epsg', epsg, True)
     body = {'pathId':pathId, 'timestampId':timestampId, 'extent':bounds, 'width':width, 'height':height, 'style':style, 'epsg':epsg}
+
+    if str(type(style)) == str(type(None)):
+        body['applyStyle'] = False
+
     r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/rasterByExtent', body, token, crash = True, parseJson = False)
 
 
@@ -229,7 +233,7 @@ def getRaster(pathId, timestampId, extent, token = None, showProgress = True, ep
 
     zoom = t['zoom']
 
-    body = {}
+    body = {"applyStyle":False}
 
     LEN = 2.003751e+07
 
@@ -304,8 +308,9 @@ def getRaster(pathId, timestampId, extent, token = None, showProgress = True, ep
             frac_w = int(w/2**offset)
             
             url = apiManager.baseUrl + '/path/' + pathId + '/raster/timestamp/' + timestampId + '/tarTile/' + str(zoom_c) + '/' + str(tileX_c) + '/' + str(tileY_c)
-
-            if type(token) == type(None):
+            if str(type(style)) == str(type(None)):
+                url = url + '?applyStyle=false'
+            if str(type(token)) == str(type(None)):
                 r = requests.get(url)
             else:
                 if not 'Bearer' in token:

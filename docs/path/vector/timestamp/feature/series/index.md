@@ -45,7 +45,9 @@
 - seriesData (pandas dataframe, with columns date as date and featureId as uuid string. All other columns should be of type float and will be added as time series)
 - token (uuid)
 
+**Optional arguments**
 
+- uploadAsFile (booelan, whether to add the series via the API or upload them as a CSV. Default false. For large quantities of data True is reccomended)
 
 ## trash
 

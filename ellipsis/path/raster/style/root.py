@@ -23,14 +23,15 @@ def delete(pathId, styleId, token):
     return r
 
 
-def edit(pathId, styleId, method, parameters, token, default = None):
+def edit(pathId, styleId, method, parameters, token, name=None, default = None):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)    
     method = sanitize.validString('method', method, True)    
     parameters = sanitize.validObject('parameters', parameters, True)
     default = sanitize.validBool('default', default, False)    
+    default = sanitize.validString('name', name, False)
 
-    body = {'method': method, 'parameters':parameters, 'default':default}
+    body = {'method': method, 'parameters':parameters, 'default':default, 'name':name}
     r = apiManager.patch('/path/' + pathId + '/raster/style/' + styleId, body, token)
     return r
 

@@ -112,9 +112,9 @@ def upload(url, filePath, body, token, key = 'data', memfile= None):
     payload = MultipartEncoder(fields = {**body, key: (fileName, conn_file, 'application/octet-stream')})
 
     token = 'Bearer ' + token
-        
-    r = requests.post(baseUrl + url, headers = {"Authorization":token, "Content-Type": payload.content_type}, data=payload)
-    
+
+    r = requests.post(baseUrl + url, headers = {"Authorization":token, "Content-Type": payload.content_type}, data=payload, verify=False)
+
     if str(type(memfile)) == str(type(None)):
         conn_file.close()
     

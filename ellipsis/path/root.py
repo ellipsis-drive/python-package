@@ -33,13 +33,14 @@ def search(pathTypes = ['raster', 'vector', 'file', 'folder'] ,root=None, text=N
         'text': text,
         'userId': userId,
         'active': active,
-        'pagestart': pageStart,
+        'pageStart': pageStart,
         'hashtag': hashtag,
         'extent': extent,
         'resolution': resolution,
         'date':date
     }
     def f(body):
+        print('body', body)
         return apiManager.get('/path', body, token)
     
     r = recurse(f, body, listAll)

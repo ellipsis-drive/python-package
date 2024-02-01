@@ -27,9 +27,6 @@ def add(pathId,  token, properties = None, description = None, date ={'from': da
 
 def edit(pathId, timestampId, token, description=None, date=None):
 
-
-    
-    
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, True)
@@ -146,7 +143,7 @@ def getFeaturesByIds(pathId, timestampId, featureIds, token = None, showProgress
     return r
     
 
-def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, token = None, listAll = True, pageStart = None, epsg = 4326, coordinateBuffer = None, levelOfDetail = None):
+def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, token = None, listAll = True, pageStart = None, epsg = 4326, coordinateBuffer = None, levelOfDetail = None, onlyIfCenterPointInExtent = False):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, False)
@@ -158,28 +155,32 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
     pageStart = sanitize.validObject('pageStart', pageStart, False) 
     coordinateBuffer = sanitize.validFloat('coordinateBuffer', coordinateBuffer, False) 
     if str(type(coordinateBuffer)) == str(type(None)):
-        info = getInfo(pathId, token)
-        ts = [x for x in info['vector']['timestamps'] if x['id'] == timestampId]
-        if len(ts) == 0:
-            raise ValueError('Given timestampId does not exist')
-        t = ts[0]
-        zoom = t['zoom']
-        coordinateBuffer = 0.5*360 / 2**zoom
-
-
-    extent_new = {}
-    extent_new['xMin'] = max(-180, extent['xMin'] - coordinateBuffer)
-    extent_new['xMax'] = min(180, extent['xMax'] + coordinateBuffer)
-    extent_new['yMin'] = max(-85, extent['yMin'] - coordinateBuffer)
-    extent_new['yMax'] = min(85, extent['yMax'] + coordinateBuffer)
+        if onlyIfCenterPointInExtent:
+            coordinateBuffer = 0
+        else:
+            info = getInfo(pathId, token)
+            ts = [x for x in info['vector']['timestamps'] if x['id'] == timestampId]
+            if len(ts) == 0:
+                raise ValueError('Given timestampId does not exist')
+            t = ts[0]
+            zoom = t['zoom']
+            coordinateBuffer = 0.5*360 / 2**zoom
 
 
 
-    res = getActualExtent(extent_new['xMin'], extent_new['xMax'], extent_new['yMin'], extent_new['yMax'], 'EPSG:' + str(epsg), 4326)
+
+
+
+    res = getActualExtent(extent['xMin'], extent['xMax'], extent['yMin'], extent['yMax'], 'EPSG:' + str(epsg), 4326)
     if res['status'] == '400':
         raise ValueError('Invalid epsg and extent combination')
 
     extent_new = res['message']
+
+    extent_new['xMin'] = max(-180, extent['xMin'] - coordinateBuffer)
+    extent_new['xMax'] = min(180, extent['xMax'] + coordinateBuffer)
+    extent_new['yMin'] = max(-85, extent['yMin'] - coordinateBuffer)
+    extent_new['yMax'] = min(85, extent['yMax'] + coordinateBuffer)
 
 
     body = {'pageStart': pageStart, 'propertyFilter':propertyFilter, 'extent':extent_new, 'levelOfDetail':levelOfDetail}
@@ -201,9 +202,18 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
     if sh.shape[0] ==0:
         r['result'] = sh
         return r
-    bounds = sh.bounds
 
-    sh = sh[ np.logical_and(np.logical_and( bounds['maxx'] >= extent['xMin'], bounds['minx'] <= extent['xMax'] ), np.logical_and( bounds['maxy'] >= extent['yMin'], bounds['miny'] <= extent['yMax'] )  )  ]
+    if onlyIfCenterPointInExtent:
+        bounds = sh.bounds
+        centerX = (bounds['maxx'].values + bounds['minx'].values )/2
+        centerY = (bounds['maxy'].values + bounds['miny'].values )/2
+        print('hoi')
+        sh = sh[ np.logical_and(np.logical_and( centerX >= extent['xMin'], centerX <= extent['xMax'] ), np.logical_and( centerY >= extent['yMin'], centerY <= extent['yMax'] )  )  ]
+
+    else:
+        bounds = sh.bounds
+
+        sh = sh[ np.logical_and(np.logical_and( bounds['maxx'] >= extent['xMin'], bounds['minx'] <= extent['xMax'] ), np.logical_and( bounds['maxy'] >= extent['yMin'], bounds['miny'] <= extent['yMax'] )  )  ]
     sh.crs = 'EPSG:4326'
     sh = sh.to_crs('EPSG:' + str(epsg))
     r['result'] = sh

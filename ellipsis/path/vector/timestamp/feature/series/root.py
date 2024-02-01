@@ -1,3 +1,5 @@
+from io import BytesIO
+
 from ellipsis import apiManager
 from ellipsis import sanitize
 from ellipsis.util.root import recurse
@@ -48,13 +50,14 @@ def info(pathId, timestampId, featureId, token = None):
     return r
 
 
-def add(pathId, timestampId, seriesData, token, featureId=None, showProgress = True):
+def add(pathId, timestampId, seriesData, token, featureId=None, showProgress = True, uploadAsFile = False):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     featureId = sanitize.validUuid('featureId', featureId, False)
     token = sanitize.validString('token', token, True)
     seriesData = sanitize.validDataframe('seriesData', seriesData, True)
     showProgress = sanitize.validBool('showProgress', showProgress, True)
+    uploadAsFile = sanitize.validBool('uploadAsFile', uploadAsFile, True)
 
     if str(type(featureId)) != str(type(None)):
         seriesData['featureId'] = featureId
@@ -62,8 +65,6 @@ def add(pathId, timestampId, seriesData, token, featureId=None, showProgress = T
     if 'date' in seriesData.columns:
         if 'datetime64' in str(seriesData['date'].dtypes):
             seriesData['date'] = seriesData['date'].dt.strftime('%Y-%m-%d %H:%M:%S')
-            dates = list(seriesData['date'])
-            del seriesData['date']
         else:
            raise  ValueError('date column must be of type datetime')
     else:
@@ -73,30 +74,38 @@ def add(pathId, timestampId, seriesData, token, featureId=None, showProgress = T
         raise ValueError(
             "You either need to supply a featureId in the function parameters or supply a featureId column in seriesData")
 
-    featureIds = seriesData['featureId']
-    del seriesData['featureId']
-
+    dfs_long = []
     for c in seriesData.columns:
-            seriesData[c] = seriesData[c].astype(float)
-        
+        if not c in ['featureId', 'date']:
+            df_sub = seriesData[['featureId', 'date']]
+            df_sub['property'] = c
+            df_sub['value'] = seriesData[c].astype(float)
+            dfs_long = dfs_long + [df_sub]
+    seriesData_long = pd.concat(dfs_long)
 
-    values = []
-    for c in seriesData.columns:
-        values = values +  [{'property': c, 'featureId': x[0], 'value': x[1], 'date': x[2]} for x in zip(featureIds, seriesData[c].values, dates) if not np.isnan(x[1]) ]
+    if uploadAsFile:
+
+        memfile = BytesIO()
+        seriesData_long.to_csv(memfile)
+
+        res = apiManager.upload(url = '/path/' + pathId + '/vector/timestamp/' + timestampId + '/feature/series', filePath =  'upload', body= {'name':'upload'}, token = token, key = 'data', memfile= memfile)
+        return res
+    else:
+        values = seriesData_long.to_dict('records')
 
 
-    chunks_values = chunks(values)
-    N = 0
-    r_total = []
-    for values_sub in chunks_values:
-        body = { "values":values_sub}
-        r = apiManager.post("/path/" + pathId + "/vector/timestamp/" + timestampId  + '/feature/series/element', body, token)
-        
-        r_total = r_total + r
-        if len(chunks_values) >1 and showProgress:
-            loadingBar(N*3000 + len(values_sub), len(values))
-        N = N+1
-    return r_total
+        chunks_values = chunks(values)
+        N = 0
+        r_total = []
+        for values_sub in chunks_values:
+            body = { "values":values_sub}
+            r = apiManager.post("/path/" + pathId + "/vector/timestamp/" + timestampId  + '/feature/series/element', body, token)
+
+            r_total = r_total + r
+            if len(chunks_values) >1 and showProgress:
+                loadingBar(N*3000 + len(values_sub), len(values))
+            N = N+1
+        return r_total
 
 
 

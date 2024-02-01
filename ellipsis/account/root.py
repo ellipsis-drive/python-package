@@ -13,10 +13,10 @@ def logIn(username, password, validFor = None):
 
         r = apiManager.call(requests.post,'/account/login', body=json, token=None, crash=False)
         if r.status_code == 400:
-            r = r.json()
-            if r['message'] == "No password configured.":
+            x = r.json()
+            if x['message'] == "No password configured.":
                 raise ValueError("You cannot login with your Google credentials in the Python module. You need to configure an Ellipsis Drive specific password. You can do this on https://app.ellipsis-drive.com/account-settings/security")
-        if r.status_code == 400:
+        if r.status_code != 200:
             raise ValueError(r.text)
 
         r = r.json()
