@@ -25,7 +25,7 @@ def add(pathId,  token, properties = None, description = None, date ={'from': da
     r = apiManager.post('/path/' + pathId + '/vector/timestamp', body, token)
     return r
 
-def getLocationInfo(pathId, timestampId, locations, epsg = 4326, token= None)
+def getLocationInfo(pathId, timestampId, locations, epsg = 4326, token= None):
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     token = sanitize.validString('token', token, False)

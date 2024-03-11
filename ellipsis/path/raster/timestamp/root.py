@@ -182,7 +182,7 @@ def getValuesAlongLine(pathId, timestampId, line, token = None, epsg = 4326):
     memfile.close()
     return values
 
-def getLocationInfo(pathId, timestampId, locations, epsg = 4326, token= None)
+def getLocationInfo(pathId, timestampId, locations, epsg = 4326, token= None):
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     token = sanitize.validString('token', token, False)
