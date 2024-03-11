@@ -25,6 +25,15 @@ def add(pathId,  token, properties = None, description = None, date ={'from': da
     r = apiManager.post('/path/' + pathId + '/vector/timestamp', body, token)
     return r
 
+def getLocationInfo(pathId, timestampId, locations, epsg = 4326, token= None)
+    pathId = sanitize.validUuid('pathId', pathId, True)
+    timestampId = sanitize.validUuid('timestampId', timestampId, True)
+    token = sanitize.validString('token', token, False)
+    epsg = sanitize.validInt('epsg', epsg, True)
+    body = {'locations':locations,'epsg':epsg}
+    r = apiManager.post('/path/' + pathId + '/vector/timestamp/' + timestampId + '/location', body, token)
+    return r
+
 def edit(pathId, timestampId, token, description=None, date=None):
 
     pathId = sanitize.validUuid('pathId', pathId, True) 
@@ -207,7 +216,6 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
         bounds = sh.bounds
         centerX = (bounds['maxx'].values + bounds['minx'].values )/2
         centerY = (bounds['maxy'].values + bounds['miny'].values )/2
-        print('hoi')
         sh = sh[ np.logical_and(np.logical_and( centerX >= extent['xMin'], centerX <= extent['xMax'] ), np.logical_and( centerY >= extent['yMin'], centerY <= extent['yMax'] )  )  ]
 
     else:

@@ -68,7 +68,7 @@ def add(pathId, timestampId, seriesData, token, featureId=None, showProgress = T
         else:
            raise  ValueError('date column must be of type datetime')
     else:
-           raise  ValueError('seriesData must have a column datetime of type datetime')
+           raise  ValueError('seriesData must have a column date of type datetime')
 
     if not 'featureId' in seriesData.columns:
         raise ValueError(

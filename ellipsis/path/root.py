@@ -39,8 +39,8 @@ def search(pathTypes = ['raster', 'vector', 'file', 'folder'] ,root=None, text=N
         'resolution': resolution,
         'date':date
     }
+
     def f(body):
-        print('body', body)
         return apiManager.get('/path', body, token)
     
     r = recurse(f, body, listAll)

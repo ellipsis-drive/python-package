@@ -6,15 +6,16 @@ def get(token):
     r = apiManager.get('/path/vector/timestamp/order', None, token)
     return r
 
-def add(pathId, timestampId, token, extent = None, uploadId = None):
+def add(pathId, timestampId, token, extent = None, fileFormat = 'geojson'):
     
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     extent = sanitize.validBounds('extent', extent, False)
-    uploadId = sanitize.validUuid('uploadId', uploadId, False)
+    token = sanitize.validString('fileFormat', fileFormat, True)
 
-    body = {'uploadId': uploadId, 'extent':extent, 'format' :'geojson'}
+
+    body = { 'extent':extent, 'format' :fileFormat}
     
     r = apiManager.post('/path/' + pathId + '/vector/timestamp/' + timestampId + '/order', body, token)    
 

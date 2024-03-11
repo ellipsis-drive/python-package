@@ -153,14 +153,13 @@ Get a raster.
 
 **Mandatory arguments**
 
-- extent (a dictionary with properties xMin, xMax, yMin, yMax of type float)
+- extent in WGS84 (a dictionary with properties xMin, xMax, yMin, yMax of type float)
 - pathId (uuid)
 - timestampId (uuid)
 
 **Optional arguments**
 
 - token (string)
-- epsg (int) the espg code of the coordinate system of the coordinates of the extent. Default 4326 web mercator
 - reproject (boolean) whether to reproject the output raster to the coordiante system of the given extent
 - showProgress (bool) default True
 
@@ -180,7 +179,24 @@ Get a downsampled raster.
 
 **Optional arguments**
 
-- epsg (int), epsg code of the coordinate system of the extent. default 4326 (webmercator)
+- epsg (int), epsg code of the coordinate system of the extent. default 3857 (webmercator)
+- token (string)
+
+## getLocationInfo
+
+    ellipsis.path.raster.timestamp.getLocationInfo()
+
+Get raster values for a list of locations.
+
+**Mandatory arguments**
+
+- pathId (uuid)
+- timestampId (uuid)
+- locations. List containing points of interest. Each element in the list should be a list with two floats (list)
+
+**Optional arguments**
+
+- epsg (int), epsg code of the coordinate system of the input locations default 4326 (WGS84)
 - token (string)
 
 ## trash

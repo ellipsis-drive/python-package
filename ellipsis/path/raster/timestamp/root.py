@@ -182,6 +182,14 @@ def getValuesAlongLine(pathId, timestampId, line, token = None, epsg = 4326):
     memfile.close()
     return values
 
+def getLocationInfo(pathId, timestampId, locations, epsg = 4326, token= None)
+    pathId = sanitize.validUuid('pathId', pathId, True)
+    timestampId = sanitize.validUuid('timestampId', timestampId, True)
+    token = sanitize.validString('token', token, False)
+    epsg = sanitize.validInt('epsg', epsg, True)
+    body = {'locations':locations,'epsg':epsg}
+    r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/location', body, token)
+    return r
 
     
 def getRaster(pathId, timestampId, extent, token = None, showProgress = True, epsg = 4326, reproject = False, threads = None, style = None):

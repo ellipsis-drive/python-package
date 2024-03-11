@@ -187,3 +187,21 @@ Pause a timestamp.
 - token (string)
 - pathId (uuid)
 - timestampId (uuid)
+
+
+## getLocationInfo
+
+    ellipsis.path.vector.timestamp.getLocationInfo()
+
+Get raster values for a list of locations.
+
+**Mandatory arguments**
+
+- pathId (uuid)
+- timestampId (uuid)
+- locations. List containing points of interest. Each element in the list should be a list with two floats (list)
+
+**Optional arguments**
+
+- epsg (int), epsg code of the coordinate system of the input locations default 4326 (WGS84)
+- token (string)

@@ -33,7 +33,7 @@ def get(url, body = None, token = None, crash = True, parseJson = True):
     
     for k in body.keys():
         if type(body[k]) != type('x') :
-            body[k] = json.dumps(body[k])
+            body[k] = json.dumps(body[k]).replace(' ','')
 
 
     body = urllib.parse.urlencode(body)
