@@ -12,7 +12,7 @@ def add(pathId, timestampId, token, extent = None, fileFormat = 'geojson'):
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     extent = sanitize.validBounds('extent', extent, False)
-    token = sanitize.validString('fileFormat', fileFormat, True)
+    fileFormat = sanitize.validString('fileFormat', fileFormat, True)
 
 
     body = { 'extent':extent, 'format' :fileFormat}
