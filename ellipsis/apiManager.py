@@ -2,6 +2,7 @@ import requests
 import json
 import urllib
 import os
+import time
 from requests_toolbelt import MultipartEncoder
 
 baseUrl = 'https://api.ellipsis-drive.com/v3'
@@ -30,10 +31,10 @@ def get(url, body = None, token = None, crash = True, parseJson = True):
     else:
         body['token'] = token
     body = filterNone(body)
-    
+
     for k in body.keys():
         if type(body[k]) != type('x') :
-            body[k] = json.dumps(body[k]).replace(' ','')
+            body[k] = json.dumps(body[k])
 
 
     body = urllib.parse.urlencode(body)
@@ -65,8 +66,36 @@ def delete(url, body, token = None):
     r = call( method = requests.delete, url = url, body = body, token = token )
     return r
 
-
+RETRIES = 10
+WAIT = 2
 def call(method, url, body = None, token = None, crash = True, parseJson = True):
+    tried = 0
+    while tried <RETRIES:
+        try:
+            r = actualCall(method, url, body, token)
+            break
+        except:
+            print('time out detected, retrying request')
+            time.sleep(WAIT)
+            tried = tried +1
+    if tried >= RETRIES:
+        raise ValueError('Could not reach server')
+    if crash:
+        if r.status_code != 200:
+            raise ValueError(r.text)
+
+        if parseJson:
+            try:
+                r = r.json()
+            except:
+                r = r.text
+
+        return r
+    else:
+        return r
+
+TIMEOUTTIME = 20
+def actualCall(method, url, body, token):
     body = filterNone(body)
     if type(body) != type(None) and type(body) != type({}):
         raise ValueError(
@@ -76,26 +105,13 @@ def call(method, url, body = None, token = None, crash = True, parseJson = True)
         raise ValueError('Token must be of type string or noneType')
 
     if token == None:
-        r = method(baseUrl + url, json=body)
+        r = method(baseUrl + url, json=body, timeout=TIMEOUTTIME)
     else:
         if not 'Bearer' in token:
             token = 'Bearer ' + token
-        r = method(baseUrl + url , json = body, headers = {"Authorization":token})
+        r = method(baseUrl + url, json=body, headers={"Authorization": token}, timeout=TIMEOUTTIME)
 
-    if crash:
-        if r.status_code != 200:
-            raise ValueError(r.text)
-            
-        if parseJson:
-            try:
-                r = r.json()
-            except:
-                r = r.text
-    
-        return r
-    else:
-        return r
-
+    return r
 
 def upload(url, filePath, body, token, key = 'data', memfile= None):
     body = filterNone(body, toString=True)
@@ -108,9 +124,7 @@ def upload(url, filePath, body, token, key = 'data', memfile= None):
     else:
         conn_file = memfile
 
-
     payload = MultipartEncoder(fields = {**body, key: (fileName, conn_file, 'application/octet-stream')})
-
     token = 'Bearer ' + token
 
     r = requests.post(baseUrl + url, headers = {"Authorization":token, "Content-Type": payload.content_type}, data=payload, verify=False)

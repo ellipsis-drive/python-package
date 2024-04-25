@@ -36,3 +36,17 @@ def add( name, token, parentId = None, publicAccess =None, metadata=None):
 
     return apiManager.post('/path/folder', body, token)
 
+def traverse(pathId, location, pathType, token):
+    pathId = sanitize.validUuid('pathId', pathId, True)
+    location = sanitize.validStringArray('location', location, True)
+    pathType = sanitize.validString('pathType', pathType, True)
+    token = sanitize.validString('token', token, False)
+
+    body = {'location': location, 'type':pathType }
+
+    return apiManager.get('/path/' + pathId + '/folder/traverse', body, token)
+
+
+
+
+

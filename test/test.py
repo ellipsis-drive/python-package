@@ -7,19 +7,13 @@ import pandas as pd
 
 
 
-import ellipsis as el
 import os
 
 token = el.account.logIn('admin', 'aEUZXm4jzXW6GnQHUyrl')
 
 
-extent =   {'xMin': -74.62400000000001, 'yMin': 38.95, 'xMax': -71.936, 'yMax': 41.050000000000004}
 
-el.path.vector.timestamp.getFeaturesByExtent(pathId='69b3ede5-94e7-4f53-987e-e67711c354f4', timestampId='f83c08ac-8cfd-48da-9c84-6f978b36c508', extent=extent, token = token)
-
-
-
-
+####################################
 
 #python3 setup.py sdist bdist_wheel
 #twine upload --repository pypi dist/*
@@ -36,7 +30,7 @@ folderId = '46e1e919-8b73-42a3-a575-25c6d45fd93b'
 
 
 ##account
-demo_token = el.account.logIn("demo_user", "")
+demo_token = el.account.logIn("demo_user", "demo_user")
 admin_token = el.account.logIn(username = 'admin', password='')
 daan_token = el.account.logIn('daan', "")
 

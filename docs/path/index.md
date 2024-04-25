@@ -92,6 +92,7 @@ Update the metadata of a path.
 
 - attribution (string)
 - description (string)
+- licenseString (string)
 - properties (object)
 
 ## get

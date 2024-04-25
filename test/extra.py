@@ -1,19 +1,15 @@
+
 import ellipsis as el
-import geopandas as gpd
-extent = gpd.read_file("/home/daniel/Downloads/extent.geojson").to_crs(4326)
-el_extent = dict(zip(['xMin', 'yMin', 'xMax', 'yMax'], extent.total_bounds))
+
+el_extent = {'xMin': -3.22, 'xMax':-2.9, 'yMin': 57.46  , 'yMax': 57.62 }
 
 
-
-result = getFeaturesByExtent(
-    pathId="12550222-266e-4d6e-875d-f48b0c02ea94",
-    timestampId="4be865e8-8203-4bd9-bec9-b4653296db4c",
+result = el.path.vector.timestamp.getFeaturesByExtent(
+    pathId="6096c5f9-4a70-4f79-b6cc-f1e501cfd47b",
+    timestampId="ab904298-9d17-4fb6-a6d8-bec07e8c7c17",
+    propertyFilter=[{"key": "roadFunction", "operator": "=", "value": "Local Road"}],
     extent=el_extent,
-    epsg=4326,
-    token=token,
-    levelOfDetail=1
-)
+    token=token)['result']
 
-
-result
+result.plot()
 

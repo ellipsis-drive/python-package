@@ -36,4 +36,18 @@ List the content of a folder
 - token (string), your token
 
 
+## traverse
+
+    ellipsis.path.folder.traverse()
+
+Traverse a folder to find a specific path
+
+**Mandatory arguments**
+
+- pathId (uuid) id of the folder you wish to traverse
+- pathType (string) one of 'file', 'folder', 'raster', 'pointCloud' or 'vector'
+- location (array of strings), the path via which you would like to traverse the folder
+
+**Optional arguments**
+- token (string), your token
 

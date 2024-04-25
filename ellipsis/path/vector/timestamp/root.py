@@ -175,11 +175,6 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
             zoom = t['zoom']
             coordinateBuffer = 0.5*360 / 2**zoom
 
-
-
-
-
-
     res = getActualExtent(extent['xMin'], extent['xMax'], extent['yMin'], extent['yMax'], 'EPSG:' + str(epsg), 4326)
     if res['status'] == '400':
         raise ValueError('Invalid epsg and extent combination')
