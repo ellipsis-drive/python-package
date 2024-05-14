@@ -21,13 +21,7 @@ Add a feature.
 - features (geopandas dataframe)
 - token (string)
 
-**Optional arguments**
 
-- levelOfDetail1 (Geoseries or array of shapely geometries)
-- levelOfDetail2 (Geoseries or array of shapely geometries)
-- levelOfDetail3 (Geoseries or array of shapely geometries)
-- levelOfDetail4 (Geoseries or array of shapely geometries)
-- levelOfDetail5 (Geoseries or array of shapely geometries)
 
 ## edit
 
@@ -41,16 +35,8 @@ Edit a feature.
 - timestampId (uuid)
 - featureIds (array of uuids)
 - token (string)
-
-**Optional arguments**
-
 - features (geopandas dataframe)
-- zoomlevels (array of integers)
-- levelOfDetail1 (Geoseries or array of shapely geometries)
-- levelOfDetail2 (Geoseries or array of shapely geometries)
-- levelOfDetail3 (Geoseries or array of shapely geometries)
-- levelOfDetail4 (Geoseries or array of shapely geometries)
-- levelOfDetail5 (Geoseries or array of shapely geometries)
+
 
 ## trash
 
