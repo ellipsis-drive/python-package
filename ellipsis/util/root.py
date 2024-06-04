@@ -85,10 +85,6 @@ def plotPointCloud(df, method = 'cloud', width = 800, height = 600, scale = 0.00
 
 
 
-
-
-
-
 def parseGlb(stream):
     gltf = pygltflib.GLTF2.load_from_bytes(stream)
     binary_blob = gltf.binary_blob()
@@ -304,7 +300,7 @@ def reprojectRaster(r, sourceExtent, targetExtent, targetWidth, targetHeight, so
             resampling=interpolation)
     
 
-    return {'raster':destination, 'transform':dst_transform, 'extent':targetExtent, 'epsg':targetEpsg}
+    return {'raster':destination, 'transform':dst_transform, 'extent':targetExtent, 'crs': 'EPSG:' + str(targetEpsg)}
 
 
 def swapXY(extent):

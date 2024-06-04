@@ -116,21 +116,20 @@ def getChanges(pathId, timestampId, token = None, pageStart = None, listAll = Fa
 
 
 
-def getFeaturesByIds(pathId, timestampId, featureIds, token = None, showProgress = True, levelOfDetail = None):
+def getFeaturesByIds(pathId, timestampId, featureIds, token = None, showProgress = True, epsg = 4326):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, False)
     featureIds = sanitize.validUuidArray('featureIds', featureIds, True)
     showProgress = sanitize.validBool('showProgress', showProgress, True)
-    levelOfDetail = sanitize.validInt('levelOfDetail', levelOfDetail, False)
-    
+
     id_chunks = chunks(featureIds, 10)
 
     r = {'size': 0 , 'result': [], 'nextPageStart' : None}
     ids = id_chunks[0]
     i=0
     for ids in id_chunks:
-        body = {'geometryIds': ids, levelOfDetail:levelOfDetail}
+        body = {'geometryIds': ids}
         r_new = apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/featuresByIds' , body, token)
         
         r['result'] = r['result'] + r_new['result']['features']
@@ -147,17 +146,17 @@ def getFeaturesByIds(pathId, timestampId, featureIds, token = None, showProgress
                 del r['result']['features'][i]['properties']['crs']
         sh = gpd.GeoDataFrame.from_features(r['result']['features'])
         
-
+    sh.crs = 'EPSG:4326'
+    sh = sh.to_crs('EPSG:' + str(epsg))
     r['result'] = sh
     return r
     
 
-def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, token = None, listAll = True, pageStart = None, epsg = 4326, coordinateBuffer = None, levelOfDetail = None, onlyIfCenterPointInExtent = False):
+def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, token = None, listAll = True, pageStart = None, epsg = 4326, coordinateBuffer = None, onlyIfCenterPointInExtent = False):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, False)
     extent = sanitize.validBounds('extent', extent, True)
-    levelOfDetail = sanitize.validInt('levelOfDetail', levelOfDetail, False)
     propertyFilter = sanitize.validObject('propertyFilter', propertyFilter, False)
     listAll = sanitize.validBool('listAll', listAll, True)
     epsg = sanitize.validInt('epsg', epsg, True)
@@ -187,7 +186,7 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
     extent_new['yMax'] = min(85, extent['yMax'] + coordinateBuffer)
 
 
-    body = {'pageStart': pageStart, 'propertyFilter':propertyFilter, 'extent':extent_new, 'levelOfDetail':levelOfDetail}
+    body = {'pageStart': pageStart, 'propertyFilter':propertyFilter, 'extent':extent_new}
 
     def f(body):
         return apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/featuresByExtent' , body, token)
@@ -224,15 +223,14 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
     return r
 
 
-def listFeatures(pathId, timestampId, token = None, listAll = True, pageStart = None, levelOfDetail = None):
+def listFeatures(pathId, timestampId, token = None, listAll = True, pageStart = None, epsg = 4326):
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, False)
     listAll = sanitize.validBool('listAll', listAll, True)
     pageStart = sanitize.validObject('pageStart', pageStart, False) 
-    levelOfDetail = sanitize.validInt('levelOfDetail', levelOfDetail, False)
 
-    body = {'pageStart': pageStart, 'levelOfDetail':levelOfDetail, 'pageSize':10000}
+    body = {'pageStart': pageStart, 'pageSize':10000}
 
 
     def f(body):
@@ -258,6 +256,7 @@ def listFeatures(pathId, timestampId, token = None, listAll = True, pageStart = 
     
 
     sh.crs = {'init': 'epsg:4326'}
+    sh = sh.to_crs('EPSG:' + str(epsg))
     r['result'] = sh
 
     return r

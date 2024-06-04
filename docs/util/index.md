@@ -57,17 +57,12 @@ Saves numpy array as tif
 
     ellipsis.util.saveVector()
 
-Saves numpy array as tif
+Saves geopandas as shape
 
 **Mandatory arguments**
 
 - targetFile (string) path to write ot
 - features (geopandas data frame) a geopandas dataframe to save
-
-**Optional arguments**
-
-- extent (dictionary), dictionary with xMin, xMax, yMin, yMax giving the extent of the raster
-- transform (rasterio transform), the transform of the raster
 
 
 
@@ -109,21 +104,6 @@ Plots a pandas containing the points of a point cloud. Pandas should be of the f
 - height (height of the plot as int, default 600)
 - scale (precision of the plot as float, default 0.003)
 
-## cutIntoTiles
-
-    ellipsis.util.cutIntoTiles()
-
-Splits up a geopandas dataframe into tile of a requested zoomlevel. This function is meant as a vector tiles creator
-
-**Mandatory arguments**
-
-- features (geopandas dataframe) a geopandas dataframe with features to cut
-- zoom (int) the zoomlevel to cut the features into
-
-**Optional arguments**
-
-- buffer (float), a buffer in meters to use when cutting into the tiles.
-- cores (int), number of processes to commit.
 
 ## simplifyGeometries
 
@@ -142,20 +122,6 @@ Simplifies geometries in a geopandas dataframe. Can be used in the creation of v
 - removeIslands (boolean), whether to remove polygons within multipolygons that are smaller than the tolerance.
 - cores (int), number of processes to commit.
 
-## mergeGeometriesByColumn
-
-    ellipsis.util.mergeGeometriesByColumn()
-
-Merges geometries in a geopandas dataframe that have the same value within a certain column. Can be used in vector tile creation.
-
-**Mandatory arguments**
-
-- features (geopandas dataframe) a geopandas dataframe with geometries to merge.
-- columnName (string) the column name to match on
-
-**Optional arguments**
-
-- cores (int), number of processes to commit.
 
 
 ## cover

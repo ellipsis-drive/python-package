@@ -30,6 +30,27 @@ Retrieve all layers and folders inside a specific folder, and retreive informati
     info = el.path.get(folderId, token)
     items = el.path.listPath(folderId, pathTypes = ['folder', 'raster','vector','file'], token = token, listAll = True)
 
+Retrieve metadata for a specific layer with id.
+
+    import ellipsis as el
+
+    layerId = '46e1e919-8b73-42a3-a575-25c6d45fd93b'
+
+    token = el.account.logIn("username", "password")
+
+    info = el.path.get(folderId, token)
+
+Find layers matching certain search criteria.
+
+    import ellipsis as el
+
+    token = el.account.logIn("username", "password")
+
+    result = el.path.search(pathTypes = ['raster', 'vector'], extent= {'xMin': -20, 'xmax':10, 'yMin':23, 'yMax':40}, text='test', token = token )
+
+
+ALL RELEVANT METADATA OF A LAYER/FOLDER CAN BE FOUND IN THE METADATA DICTIONARY THAT IS RETURNED IN THESE FUNCTIONS.
+
 **Uploading files**
 
 The below example uploads a raster file.

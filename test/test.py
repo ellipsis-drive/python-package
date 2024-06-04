@@ -274,34 +274,44 @@ el.path.trash(mapId, token)
 el.path.delete(mapId, admin_token)
 
 ##raster information retrieval
-mapId = '59caf510-bab7-44a8-b5ea-c522cfde4ad7'
-timestampId = 'f25e120e-ca8f-451f-a5f4-33791db0f2c5'
+
+import ellipsis as el
+token = el.account.logIn('admin', 'aEUZXm4jzXW6GnQHUyrl')
 
 
-styleId = el.path.get(mapId, token)['raster']['styles'][0]['id']
+mapId = '0ce1a67a-3d10-4970-967b-c8880e3c7d67'
+timestampId = 'dfb56c4e-5d3f-436e-9676-701843c09456'
 
-xMin  = 5.60286
-yMin=  52.3031    
-xMax  = 5.60315
-yMax  = 52.30339
+
+
+
+xMin  = 4.35431
+yMin=  51.81081
+xMax  = 6.47156
+yMax  = 53.00261
 
 extent = {'xMin':xMin,'yMin':yMin,'xMax':xMax,'yMax':yMax } 
 
-result = el.path.raster.timestamp.getRaster(pathId = mapId, timestampId = timestampId, style=styleId, extent = extent, token = token, epsg = 4326)
 
+result = el.path.raster.timestamp.getRaster(pathId = mapId, timestampId = timestampId,  extent = extent, token = token, epsg = 4326)
 raster = result['raster']
+el.util.plotRaster(raster[0,:,:])
 
-
-el.util.plotRaster(raster[0:3,:,:])
-
-r = el.path.raster.timestamp.getSampledRaster(pathId = mapId, timestampId=timestampId, style=styleId, extent = extent, width = 1024, height = 1024, epsg=4326, token = token)
+r = el.path.raster.timestamp.getSampledRaster(pathId = mapId, timestampId=timestampId, extent = extent, width = 1024, height = 1024, epsg=4326, token = token)
 raster = r['raster']
-el.util.plotRaster(raster[0:3,:,:])
+el.util.plotRaster(raster[0,:,:])
 
+res = el.path.raster.timestamp.contour(pathId = mapId, timestampId = timestampId, extent = extent, epsg = 4326, bandNumber = 1, token = token)
+res.plot()
 
 bounds = el.path.raster.timestamp.getBounds(mapId, timestampId, token)
 
 data = el.path.raster.timestamp.analyse(mapId, [timestampId], bounds, token=token, epsg = 4326)
+
+locations = [[5.32394, 52.11856],[5.32394, 52.11856],[5.32394, 52.11856]]
+
+results = el.path.raster.timestamp.getLocationInfo(pathId = mapId, timestampId = timestampId, locations = locations, epsg = 4326, token= token)
+
 
 ###raster downloads
 mapId = '1eea3d2f-27b3-4874-b716-87852c3407c1'
@@ -516,3 +526,25 @@ el.view.edit(viewId = viewId, name = 'temp2', token = token)
 
 el.view.delete(viewId = viewId, token = token)
 
+
+
+
+columns = features.columns
+columns = [c for c in columns if c != 'geometry']
+for c in columns:
+    if 'int' in str(features.dtypes[c]) or 'Int' in str(features.dtypes[c]):
+        propertyType = 'integer'
+    elif 'float' in str(features.dtypes[c]) or 'Float' in str(features.dtypes[c]):
+        propertyType = 'float'
+    elif 'bool' in str(features.dtypes[c]):
+        propertyType = 'boolean'
+    elif 'datetime' in str(features.dtypes[c]):
+        propertyType = 'datetime'
+    else:
+        propertyType = 'string'
+
+    #overRide in case of QAQC_CODE
+    if c == 'QAQC_CODE':
+        propertyType = 'string'
+
+    el.path.vector.featureProperty.add(pathId, name, featurePropertyType= propertyType)

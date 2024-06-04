@@ -23,42 +23,41 @@ import requests
 from skimage.measure import find_contours
 from shapely.geometry import Point, LineString
 
-def getDownsampledRaster(pathId, timestampId, extent, width, height, epsg=3857, style = None, token = None):
-    return getSampledRaster(pathId, timestampId, extent, width, height, epsg, style, token)
-
-def getSampledRaster(pathId, timestampId, extent, width, height, epsg=4326, style = None, token = None):
-    bounds = extent
+def getSampledRaster(pathId, timestampId, extent, width, height, epsg=3857, token = None):
     token = sanitize.validString('token', token, False)
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
-    bounds = sanitize.validBounds('bounds', bounds, True)
-    style = sanitize.validObject('style', style, False)
+    extent = sanitize.validBounds('extent', extent, True)
     epsg = sanitize.validInt('epsg', epsg, True)
-    body = {'pathId':pathId, 'timestampId':timestampId, 'extent':bounds, 'width':width, 'height':height, 'style':style, 'epsg':epsg}
 
-    if str(type(style)) == str(type(None)):
-        body['applyStyle'] = False
+    res = getActualExtent(extent['xMin'], extent['xMax'], extent['yMin'], extent['yMax'], 'EPSG:' + str(epsg))
+
+    if res['status'] == '400':
+        raise ValueError('Invalid epsg and extent combination')
+
+    extentWeb = res['message']
+
+
+
+    body = {'pathId':pathId, 'timestampId':timestampId, 'extent':extentWeb, 'width':width, 'height':height, 'applyStyle':False}
+
 
     r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/rasterByExtent', body, token, crash = True, parseJson = False)
 
 
-    if type(style) == type(None):
-        r = tifffile.imread(BytesIO(r.content))
-    else:
-        r = np.array(Image.open(BytesIO(r.content)))
-    #tif also has bands in last channel
+    r = tifffile.imread(BytesIO(r.content))
+
     r = np.transpose(r, [2,0,1])
 
-    xMin = bounds['xMin']
-    yMin = bounds['yMin']
-    xMax = bounds['xMax']
-    yMax = bounds['yMax']
 
 
 
-    trans = rasterio.transform.from_bounds(xMin, yMin, xMax, yMax, r.shape[2], r.shape[1])
-
-    return {'raster': r, 'transform':trans, 'extent': {'xMin' : xMin, 'yMin': yMin, 'xMax': xMax, 'yMax': yMax}, 'crs':"EPSG:" + str(epsg) }
+    if epsg != 3857:
+        return reprojectRaster(r=r, sourceExtent=extentWeb, targetExtent=extent, targetWidth=r.shape[2],
+                               targetHeight=r.shape[1], sourceEpsg=3857, targetEpsg=epsg, interpolation='nearest')
+    else:
+        trans = rasterio.transform.from_bounds( extent['xMin'], extent['yMin'], extent['xMax'], extent['yMax'], r.shape[2], r.shape[1])
+        return {'raster': r, 'transform':trans, 'extent': extent, 'crs':"EPSG:" + str(epsg) }
 
 
 def contour(pathId, timestampId, extent, interval = None, intervals = None, epsg = 4326, bandNumber = 1, token = None):
@@ -93,9 +92,11 @@ def contour(pathId, timestampId, extent, interval = None, intervals = None, epsg
     if type(intervals) == type(None):
         minVal = np.min(raster[bandNumber-1, raster[-1,:,:] == 1])
         maxVal = np.max(raster[bandNumber-1, raster[-1,:,:] == 1])
+
+        if type(interval) == type(None):
+            interval = (maxVal - minVal) /10
         
-        
-        cont = minVal + interval
+        cont = minVal
 
         conts = []
         while cont < maxVal:
@@ -114,7 +115,6 @@ def contour(pathId, timestampId, extent, interval = None, intervals = None, epsg
         lines = find_contours(raster[bandNumber-1,:,:],  mask=raster[-1,:,:] == 1, level = cont)
          
         newLines = []
-        line = lines[0]
         for line in lines:
             newLine = LineString([ Point( xMinWeb + x[0] * Lx  , yMinWeb +  x[1] * Ly )  for x in line])
             newLines = newLines + [newLine]
@@ -130,69 +130,25 @@ def contour(pathId, timestampId, extent, interval = None, intervals = None, epsg
     return sh
 
 
-def getValuesAlongLine(pathId, timestampId, line, token = None, epsg = 4326):
-    pathId = sanitize.validUuid('pathId', pathId, True)
-    timestampId = sanitize.validUuid('timestampId', timestampId, True)
-    token = sanitize.validString('token', token, False)
-    line = sanitize.validShapely('line', line, True)
-    epsg = sanitize.validInt('epsg', epsg, True)
-
-    if line.type != 'LineString':
-        raise ValueError('line must be a shapely lineString')
-
-    temp = gpd.GeoDataFrame({'geometry':[line]})
-    temp.crs = 'EPSG:' + str(epsg)
-    temp = temp.to_crs('EPSG:3857')
-    line = temp['geometry'].values[0]
-    line = list(line.coords)
-        
-    x_of_line = [p[0] for p in line]
-    y_of_line = [p[1] for p in line]
-
-    #the first action is to cacluate a bounding box for the raster we need to retrieve
-    xMin = min(x_of_line)
-    xMax = max(x_of_line)
-    yMin = min(y_of_line)
-    yMax = max(y_of_line)
-    
-    d = (xMax - xMin) * 0.1
-    xMax = xMax + d
-    xMin = xMin -d
-    d = (yMax - yMin) * 0.1
-    yMax = yMax + d
-    yMin = yMin -d
-    
-    
-    
-    #now we retrieve the needed raster we use epsg = 4326 but we can use other coordinates as well
-    extent = {'xMin': xMin, 'xMax':xMax, 'yMin':yMin, 'yMax':yMax}
-
-    size = 1000
-    r = getSampledRaster(pathId = pathId, timestampId = timestampId, extent = extent, width = size, height = size, epsg=3857, token = token)
-    raster = r['raster']
-
-    memfile =  MemoryFile()
-    dataset = memfile.open( driver='GTiff', dtype='float32', height=size, width=size, count = raster.shape[0], crs= r['crs'], transform=r['transform'])
-    dataset.write(raster)
-
-
-
-    values = list(dataset.sample(line))
-
-    memfile.close()
-    return values
-
 def getLocationInfo(pathId, timestampId, locations, epsg = 4326, token= None):
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     token = sanitize.validString('token', token, False)
     epsg = sanitize.validInt('epsg', epsg, True)
-    body = {'locations':locations,'epsg':epsg}
-    r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/location', body, token)
+
+    if epsg != 4326:
+        points = [Point(l) for l in locations]
+        sh = gpd.GeoDataFrame({'geometry':points})
+        sh.crs = 'EPSG:' + str(epsg)
+        sh.to_crs('EPSG:4326')
+        locations = [ l for l in zip(sh.bounds['minx'], sh.bounds['miny'] )]
+    body = {'locations':locations}
+
+    r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/location', body, token)
     return r
 
     
-def getRaster(pathId, timestampId, extent, token = None, showProgress = True, epsg = 4326, reproject = False, threads = None, style = None):
+def getRaster(pathId, timestampId, extent, token = None, showProgress = True, epsg = 3857):
     bounds = extent
     
     token = sanitize.validString('token', token, False)
@@ -200,12 +156,7 @@ def getRaster(pathId, timestampId, extent, token = None, showProgress = True, ep
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     bounds = sanitize.validBounds('bounds', bounds, True)
     showProgress = sanitize.validBool('showProgress', showProgress, True)
-    reproject = sanitize.validBool('reproject', reproject, True)
-    
-    if type(threads)!= type(None):
-        Warning('The parameter threads is deprecated')
-    if type(style)!= type(None):
-        Warning('The parameter style is deprecated')
+
         
     xMin = bounds['xMin']
     yMin = bounds['yMin']
@@ -241,7 +192,6 @@ def getRaster(pathId, timestampId, extent, token = None, showProgress = True, ep
 
     zoom = t['zoom']
 
-    body = {"applyStyle":False}
 
     LEN = 2.003751e+07
 
@@ -294,7 +244,6 @@ def getRaster(pathId, timestampId, extent, token = None, showProgress = True, ep
             
     def fetch(tileX, tileY):
         if tarred:
-
             cuts = cutOfTilesPerZoom[zoom]
             
             zones = [{'name': 'zone0', 'offset':0, 'start':cuts['start'][0] , 'end':cuts['end'][0]},  ]
@@ -316,8 +265,8 @@ def getRaster(pathId, timestampId, extent, token = None, showProgress = True, ep
             frac_w = int(w/2**offset)
             
             url = apiManager.baseUrl + '/path/' + pathId + '/raster/timestamp/' + timestampId + '/tarTile/' + str(zoom_c) + '/' + str(tileX_c) + '/' + str(tileY_c)
-            if str(type(style)) == str(type(None)):
-                url = url + '?applyStyle=false'
+            url = url + '?applyStyle=false'
+
             if str(type(token)) == str(type(None)):
                 r = requests.get(url)
             else:
@@ -327,6 +276,7 @@ def getRaster(pathId, timestampId, extent, token = None, showProgress = True, ep
                     r = requests.get(url, headers={"Authorization":  token})
             
         else:
+            body = {'applyStyle':False}
             r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/tile/' + str(zoom) + '/' + str(tileX) + '/' + str(tileY), body, token, False)
             
         if r.status_code == 403:
@@ -395,10 +345,10 @@ def getRaster(pathId, timestampId, extent, token = None, showProgress = True, ep
     r_total = r_total[:,min_y_index:max_y_index,min_x_index:max_x_index]
 
     mercatorExtent =  {'xMin' : xMinWeb, 'yMin': yMinWeb, 'xMax': xMaxWeb, 'yMax': yMaxWeb}
-    if (not reproject) or epsg == 3857:
+    if epsg == 3857:
         trans = rasterio.transform.from_bounds(xMinWeb, yMinWeb, xMaxWeb, yMaxWeb, r_total.shape[2], r_total.shape[1])
     
-        return {'raster': r_total, 'transform':trans, 'extent':mercatorExtent, 'epsg':3857}
+        return {'raster': r_total, 'transform':trans, 'extent':mercatorExtent, 'crs': 'EPSG:' + str(3857)}
     else:
         return reprojectRaster(r = r_total, sourceExtent = mercatorExtent, targetExtent = extent, targetWidth=r_total.shape[2], targetHeight=r_total.shape[1], sourceEpsg = 3857, targetEpsg= epsg, interpolation = 'nearest')
 
