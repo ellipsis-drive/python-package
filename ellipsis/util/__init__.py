@@ -2,6 +2,7 @@ from ellipsis.util.root import reprojectRaster
 from ellipsis.util.root import reprojectVector
 
 from ellipsis.util.root import saveRaster
+from ellipsis.util.root import saveVector
 
 from ellipsis.util.root import parseGlb
 

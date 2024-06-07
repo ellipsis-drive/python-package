@@ -78,6 +78,38 @@ Similarly, the below example uploads a vector file.
     timestampId = el.path.vector.timestamp.add(vectorLayerId, token)['id']
     el.path.vector.timestamp.file.add(vectorLayerId, timestampId, pathToYourLocalFile, token)
 
+
+**Fetching data**
+
+The below example fetches a raster as a numpy array.
+
+    import ellipsis as el
+    
+    token = el.account.logIn("username", "password")
+    rasterLayerId = "173bf9f0-b28b-418f-bfa8-5d3436ec0dd7"
+    timestampId = "a8ec20d6-9571-4f44-a411-caf0f916af69"
+    
+    extent = {"yMax":-2.29048,  "xMax": 55.04837, "yMin": -2.26255 "xMin": 55.04037}
+
+    r = el.path.raster.timestamp.getRaster(pathId =rasterLayerId, timestampId=timestampId, extent = extent, epsg = 4326, token=token)
+
+    el.util.plotRaster(r)
+
+
+Similarly, you can fetch vector data from a layer as a geopandas dataframe.
+
+    import ellipsis as el
+    
+    token = el.account.logIn("username", "password")
+    vectorLayerId = "312907b1-9bab-4776-b271-413e7596cf1a"
+    timestampId = "6e9b7020-ba52-4cbc-94ea-5c2c14927233"
+    
+    extent = {"yMax":-2.29048,  "xMax": 55.04837, "yMin": -2.26255 "xMin": 55.04037}
+
+    r = el.path.vector.timestamp.getFeaturesByExtent(pathId =vectorLayerId, timestampId=timestampId, extent = extent, epsg = 4326, token=token)
+
+    el.util.plotVector(r)
+
 ```{toctree}
 ---
 maxdepth: 10

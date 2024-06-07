@@ -5,27 +5,43 @@ from ellipsis.util.root import recurse
 import numpy as np
 import geopandas as gpd
 
-def add(pathId, timestampId, filePath, token, fileFormat, epsg = None, dateColumns = None, datePatterns = None, method= 'simplify', fastUpload = True):
+def add(pathId, timestampId, token, fileFormat, filePath=None, memFile = None, name = None, epsg = None, dateColumns = None, datePatterns = None, method= 'simplify', fastUpload = True):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
-    filePath = sanitize.validString('filePath', filePath, True)
+    filePath = sanitize.validString('filePath', filePath, False)
     epsg = sanitize.validInt('epsg', epsg, False)
-    method = sanitize.validString('method', method, True)
-    fileFormat = sanitize.validString('fileFormat', fileFormat, True)    
+    fileFormat = sanitize.validString('fileFormat', fileFormat, True)
     dateColumns = sanitize.validStringArray('dateColumns', dateColumns, False)    
     datePatterns = sanitize.validStringArray('datePatterns', datePatterns, False)    
+    name = sanitize.validString('name', name, False)
     fastUpload = sanitize.validBool('fastUpload', fastUpload, True)
     if fastUpload:
         fastUpload='true'
     else:
         fastUpload = 'false'
 
-    seperator = os.path.sep    
-    fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
-    
+
+    if type(memFile) == type(None) and type(filePath) == type(None):
+        raise ValueError('You need to specify either a filePath or a memFile')
+
+    if type(memFile) != type(None) and type(name) == type(None):
+        raise ValueError('Parameter name is required when using a memory file')
+
+    if type(name ) == type(None):
+        seperator = os.path.sep
+        fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
+    else:
+        fileName = name
+
+
     body = {'name':fileName, 'epsg':epsg, 'format':fileFormat, 'dateColumns': dateColumns, 'datePatterns':datePatterns, 'fastUpload':fastUpload}
-    r = apiManager.upload('/path/' + pathId + '/vector/timestamp/' + timestampId + '/file' , filePath, body, token)
+    if type(memFile) == type(None):
+        r = apiManager.upload('/path/' + pathId + '/vector/timestamp/' + timestampId + '/file' , filePath, body, token)
+    else:
+        r = apiManager.upload('/path/' + pathId + '/vector/timestamp/' + timestampId + '/file', name, body, token,
+                              memfile=memFile)
+
     return r
 
 def get(pathId, timestampId, token, pageStart = None, listAll = True):

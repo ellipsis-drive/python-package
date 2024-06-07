@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import math
 import sys
-
+from rasterio.io import MemoryFile
 from datetime import datetime
 from shapely import geometry
 import rasterio
@@ -330,8 +330,8 @@ def transformPoint( point, sourceEpsg, targetEpsg):
     return(x,y)
 
 #funciton to store image given bounds, and raster and crs
-def saveRaster(targetFile, r, epsg, extent = None, transform = None):
-    
+def saveRaster(r, epsg, targetFile, extent = None, transform = None):
+
     if type(extent) == type(None) and type(transform) == type(None):
         raise ValueError('You must provide either an extent or a transform')
         
@@ -348,17 +348,36 @@ def saveRaster(targetFile, r, epsg, extent = None, transform = None):
     h = r.shape[1]
     if transform == None:
         transform = rasterio.transform.from_bounds(extent['xMin'], extent['yMin'], extent['xMax'], extent['yMax'], w, h)
+
     con = rasterio.open(targetFile , 'w', driver='Gtiff',compress="lzw",
                     height = h, width = w,
                     count= r.shape[0], dtype=r.dtype,
                     crs=  crs ,
                     transform=transform)
-    
+
     con.write(r)
     con.close()
+    if type(targetFile) != type('x'):
+        return targetFile
 
 def saveVector(targetFile, features):
-    features.to_file(targetFile)
+    features.to_file(targetFile, driver="GPKG")
+    if type(targetFile) != type('x'):
+        return targetFile
+
+
+def savePointCloud(targetFile, df):
+    import laspy
+    las = laspy.create(point_format=2, file_version='1.2')
+    las.x = df.x
+    las.y = df.y
+    las.z = df.z
+    las.red = df['red'].values
+    las.green = df['green'].values
+    las.blue = df['blue'].values
+    las.write(targetFile)
+    if type(targetFile) != type('x'):
+        return targetFile
 
 
 q_running = multiprocessing.Queue()

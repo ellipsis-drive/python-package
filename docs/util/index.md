@@ -44,7 +44,7 @@ Saves numpy array as tif
 
 **Mandatory arguments**
 
-- targetFile (string) path to write ot
+- targetFile (string or bytes) path to write to
 - r (3D numpy array) numpy array of the data of the raster to write
 - epsg (int) epsg code of the raster
 
@@ -57,12 +57,23 @@ Saves numpy array as tif
 
     ellipsis.util.saveVector()
 
-Saves geopandas as shape
+Saves geopandas dataFrame as a geopackage file
 
 **Mandatory arguments**
 
-- targetFile (string) path to write ot
+- targetFile (string or bytes) path to write to
 - features (geopandas data frame) a geopandas dataframe to save
+
+## savePointCloud
+
+    ellipsis.util.savePointCloud()
+
+Saves a geopandas dataFrame with columns x,y,z,red,green and blue as las file
+
+**Mandatory arguments**
+
+- targetFile (string or bytes) path to write to
+- features (geopandas dataFrame) a geopandas dataframe to save
 
 
 

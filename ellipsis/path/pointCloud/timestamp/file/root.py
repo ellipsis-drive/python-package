@@ -6,19 +6,34 @@ import os
 import numpy as np
 import geopandas as gpd
 
-def add(pathId, timestampId, filePath, token, fileFormat, epsg = None):
+def add(pathId, timestampId, token, fileFormat, filePath = None, memFile =None, name=None, epsg = None):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
-    filePath = sanitize.validString('filePath', filePath, True)
+    filePath = sanitize.validString('filePath', filePath, False)
     epsg = sanitize.validInt('epsg', epsg, True)
     fileFormat = sanitize.validString('fileFormat', fileFormat, True)    
+    name = sanitize.validString('name', name, False)
 
-    seperator = os.path.sep    
-    fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
+    if type(memFile) == type(None) and type(filePath) == type(None):
+        raise ValueError('You need to specify either a filePath or a memFile')
+
+    if type(memFile) != type(None) and type(name) == type(None):
+        raise ValueError('Parameter name is required when using a memory file')
+
+    if type(name ) == type(None):
+        seperator = os.path.sep
+        fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
+    else:
+        fileName = name
+
     
     body = {'name':fileName, 'epsg':epsg, 'format':fileFormat}
-    r = apiManager.upload('/path/' + pathId + '/pointCloud/timestamp/' + timestampId + '/file' , filePath, body, token)
+    if type(memFile) == type(None):
+        r = apiManager.upload('/path/' + pathId + '/pointCloud/timestamp/' + timestampId + '/file' , filePath, body, token)
+    else:
+        r = apiManager.upload('/path/' + pathId + '/pointCloud/timestamp/' + timestampId + '/file' , name, body, token, memfile=memFile)
+
     return r
 
 def get(pathId, timestampId, token, pageStart= None, listAll = True):

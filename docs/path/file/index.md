@@ -8,11 +8,13 @@ Adds a file.
 
 **Mandatory arguments**
 
-- filePath (string) path to the file to upload
 - token (string), your token
 
 **Optional arguments**
 
+- filePath (string) path to file on local disk, required if no memFile is given
+- memFile (bytes) a bytesIO memory file, required if no filePath is given
+- name (string), the name for the file, only required in the case of a memFile
 - parentId (uuid) id of folder to place the new folder in
 - publicAccess (dict) dictionary describing the public access of the folder
 - metadata (dict) dictionary describing the metadata of the folder

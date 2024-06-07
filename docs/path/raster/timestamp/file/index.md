@@ -11,10 +11,13 @@ Upload a raster file.
 - token (string)
 - pathId (uuid)
 - timestampId (uuid)
-- filePath (string)
+
 
 **Optional arguments**
 
+- filePath (string) path to file on local disk, required if no memFile is given
+- memFile (bytes) a bytesIO memory file, required if no filePath is given
+- name (string), the name for the file, only required in the case of a memFile
 - noDataValue (float)
 - epsg (integer)
 - fileFormat (string)

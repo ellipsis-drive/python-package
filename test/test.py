@@ -529,22 +529,24 @@ el.view.delete(viewId = viewId, token = token)
 
 
 
-columns = features.columns
-columns = [c for c in columns if c != 'geometry']
-for c in columns:
-    if 'int' in str(features.dtypes[c]) or 'Int' in str(features.dtypes[c]):
-        propertyType = 'integer'
-    elif 'float' in str(features.dtypes[c]) or 'Float' in str(features.dtypes[c]):
-        propertyType = 'float'
-    elif 'bool' in str(features.dtypes[c]):
-        propertyType = 'boolean'
-    elif 'datetime' in str(features.dtypes[c]):
-        propertyType = 'datetime'
-    else:
-        propertyType = 'string'
+import ellipsis as el
+import numpy as np
+from io import BytesIO
+import geopandas as gpd
 
-    #overRide in case of QAQC_CODE
-    if c == 'QAQC_CODE':
-        propertyType = 'string'
+token = el.account.logIn('demo_user', 'demo_user')
 
-    el.path.vector.featureProperty.add(pathId, name, featurePropertyType= propertyType)
+r = np.zeros((4,100,1000))
+
+extent = {'xMin':0, 'xMax':10, 'yMin':0, 'yMax':10}
+out = el.util.saveRaster(r, targetFile= BytesIO(), epsg =  3857, extent=extent)
+
+el.path.raster.timestamp.file.add(pathId = 'f3f55c63-4f22-4dac-8d96-cd9a38069ee2', timestampId='edadda02-e4c1-4577-b349-aa3a8679c843', memFile=out, token = token, fileFormat='tif', name = 'test.tif')
+
+
+sh = gpd.read_file('/home/daniel/Ellipsis/db/testset/buildings_mini')
+b = BytesIO()
+out = el.util.saveVector(features = sh, targetFile = b)
+
+el.path.vector.timestamp.file.add(pathId = 'c6a341e1-59bf-44f8-a0d7-0962415a8fa2', timestampId= 'ad490f78-0cf0-426e-9238-e0ef803c7371', token = token, fileFormat='gpkg', memFile=out, name = 'test.gpkg')
+
