@@ -17,8 +17,8 @@ dems should be a list of dictionaries containing the properties id and selected.
 **Optional arguments**
 
 - parentId (uuid) the id of the folder to create the bookmark in
-- publicAccess (dict) dictionary describing the public access of the folder
-- metadata (dict) dictionary describing the metadata of the folder
+- publicAccess (dict) dictionary describing the public access of the bookmark
+- metadata (dict) dictionary describing the metadata of the bookmark
 
 ## get
 
