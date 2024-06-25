@@ -37,5 +37,5 @@ Edits permissions of a user on a given path.
 
 - pathId (uuid), the id of the block or folder
 - userId (uuid), the id of the user whose access to be edited
-- access (object), Object with optional properties accessLevel, processingUnits, canShare, geoFence, with the changes in access. geoFence should be an object with tiles and maxZoom. Tiles should be an array of objects with tileX, tileY and zoom.
+- access (object), Object with optional properties accessTier, processingUnits, canShare, geoFence, with the changes in access. geoFence should be an object with tiles and maxZoom. Tiles should be an array of objects with tileX, tileY and zoom.
 - token (uuid), your token

@@ -9,7 +9,7 @@ Invite someone to a path. They will need to accept before they are actually adde
 **Mandatory arguments**
 
 - pathId (uuid), the id of the block or folder to share
-- access (object), should be an object with properties canShare, geoFence, monthlyFee, accessLevel and processingUnits defining the access given to the user. geoFence should be an object with tiles and maxZoom. Tiles should be an array of objects with tileX, tileY and zoom.
+- access (object), should be an access object, with accessTier, processingUnits and optional geofence.
 - token (string), your token
 
 **Semi mandatory arguments (at least one required)**

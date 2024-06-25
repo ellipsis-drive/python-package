@@ -9,7 +9,7 @@ Create an access token.
 **Mandatory arguments**
 
 - description (string), a description for the token to be created
-- accessList (list), a list of dictionaries. Each dictionary must contain a pathId and an accessLevel.
+- accessList (list), a list of dictionaries. Each dictionary must contain a pathId and an accessTier.
 - token (string)
 
 **Optional arguments**

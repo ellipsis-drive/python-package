@@ -118,7 +118,6 @@ caption: Contents
 account/index
 user/index
 path/index
-view/index
 util/index
 ```
 

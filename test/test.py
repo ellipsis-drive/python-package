@@ -9,7 +9,7 @@ import pandas as pd
 
 import os
 
-token = el.account.logIn('admin', 'aEUZXm4jzXW6GnQHUyrl')
+token = el.account.logIn('admin', '')
 
 
 
@@ -20,8 +20,9 @@ token = el.account.logIn('admin', 'aEUZXm4jzXW6GnQHUyrl')
 
 token = el.account.logIn(username = 'admin', password='')
 
+el.apiManager.baseUrl = 'https://acc.api.ellipsis-drive.com/v3'
 ##access token
-el.account.accessToken.create(description = 'hoi', accessList = [{'pathId': '46e1e919-8b73-42a3-a575-25c6d45fd93b' , 'access':{'accessLevel':100}}], token = token)
+el.account.accessToken.create(description = 'hoi', accessList = [{'pathId': '46e1e919-8b73-42a3-a575-25c6d45fd93b' , 'access':{'accessTier':'view'}}], token = token)
 tokenId = el.account.accessToken.get(token, listAll = True)['result'][0]['id']
 el.account.accessToken.revoke(accessTokenId = tokenId, token = token)
 
@@ -100,11 +101,11 @@ el.path.trash(addedFolderId, token)
 el.path.delete(pathId = addedFolderId, token = token, recursive = True)
 
 
-el.path.editPublicAccess(pathId = folderId, token = token, access={'accessLevel':0}, hidden = False)
-el.path.editPublicAccess(pathId = folderId, token = token, access= {'accessLevel':100}, hidden = True)
+el.path.editPublicAccess(pathId = folderId, token = token, access={'accessTier':'none'}, hidden = False)
+el.path.editPublicAccess(pathId = folderId, token = token, access= {'accessTier':'view'}, hidden = True)
 
 folderId = '58f62140-5aad-44b0-b6dc-996a9a84a601'
-el.path.editPublicAccess(pathId = folderId, token = token, access= {'accessLevel':100}, hidden = True, recursive=True)
+el.path.editPublicAccess(pathId = folderId, token = token, access= {'accessTier':'view'}, hidden = True, recursive=True)
 
 while True:
     r = el.path.folder.listFolder(pathId= '4a46947c-eb49-435d-af79-71d238df0bc5', listAll=True, token = token)['result']
@@ -114,7 +115,7 @@ el.path.favorite(folderId, token=token)
 el.path.unfavorite(folderId, token=token)
 
 ###invites
-inviteId =  el.path.invite.send(pathId = folderId, token=token, userId = daanId, access = {'accessLevel': 200, 'processingUnits':10000})['id']
+inviteId =  el.path.invite.send(pathId = folderId, token=token, userId = daanId, access = {'accessTier': 'view+', 'processingUnits':10000})['id']
 
 el.path.invite.getPathInvites(folderId, token)
 
@@ -124,12 +125,12 @@ el.path.invite.getYourInvites(daan_token)
 el.path.invite.revoke(pathId = folderId, inviteId = inviteId, token = token)
 
 
-inviteId =  el.path.invite.send(pathId = folderId, token=token, userId = daanId, access = {'accessLevel': 200, 'processingUnits':10000})['id']
+inviteId =  el.path.invite.send(pathId = folderId, token=token, userId = daanId, access = {'accessTier': 'view+', 'processingUnits':10000})['id']
 
 el.path.invite.decline(folderId, inviteId, daan_token)
 
 
-inviteId =  el.path.invite.send(pathId = folderId, token=token, userId = daanId, access = {'accessLevel': 200, 'processingUnits':10000})['id']
+inviteId =  el.path.invite.send(pathId = folderId, token=token, userId = daanId, access = {'accessTier': 'view+', 'processingUnits':10000})['id']
 el.path.invite.accept(folderId, inviteId, daan_token)
 
 ##members
@@ -138,7 +139,7 @@ members = el.path.member.get(folderId, token, memberType = ['direct'])
 
 daanMemberId = [m['user']['id'] for m in members if m['user']['username'] == 'daan'][0]
 
-el.path.member.edit(pathId = folderId, userId = daanMemberId, access = {'accessLevel' : 200} ,token = token)
+el.path.member.edit(pathId = folderId, userId = daanMemberId, access = {'accessTier' : 'view+'} ,token = token)
 
 el.path.member.delete(folderId, daanMemberId, token)
 
@@ -514,18 +515,22 @@ pathId = '59caf510-bab7-44a8-b5ea-c522cfde4ad7'
 el.path.hashtag.add(pathId = pathId, hashtag = 'xxx', token = token)
 el.path.hashtag.search('x')
 el.path.hashtag.delete(pathId = pathId, hashtag = 'xxx', token = token)
-####views
 
-viewId = el.view.add(pathId = pathId, name = 'temp', persistent = True, layers = [{'type':'ellipsis', 'id':pathId, 'selected':True }, {'type':'base', 'selected':True }], token = token)['id']
+####bookmarks
 
-el.view.get(viewId = viewId)
+import ellipsis as el
+el.apiManager.baseUrl = 'https://acc.api.ellipsis-drive.com/v3'
+token = el.account.logIn('demo_user', 'demo_user')
+pId = '075eb94f-741f-4f4a-8ce5-731c9a72a324'
+bookmark = {'layers':  [{'type':'ellipsis', 'id':pId, 'selected':True }, {'type':'base', 'selected':True }], 'dems':[]}
+bookmarkId = el.path.bookmark.add( name = 'temp',bookmark=bookmark, token = token)['id']
 
-el.view.listViews(token = token)
+info = el.path.bookmark.get(pathId = bookmarkId, token = token)
 
-el.view.edit(viewId = viewId, name = 'temp2', token = token)
+dems = [{'type':'ellipsis', 'id':pId, 'selected':False }]
+el.path.bookmark.edit(pathId = bookmarkId, token = token, dems = dems)
 
-el.view.delete(viewId = viewId, token = token)
-
+el.path.trash(pathId= bookmarkId, token = token)
 
 
 

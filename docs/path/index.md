@@ -9,6 +9,7 @@ vector/index
 pointCloud/index
 folder/index
 file/index
+bookmark/index
 invite/index
 hashtag/index
 member/index
@@ -74,7 +75,7 @@ Update the public access of a path.
 
 **Optional arguments**
 
-- access (dictionary, with key accessLevel of type int)
+- access (dictionary, with key accessTier of type string)
 - hidden (boolean)
 
 ## editMetadata

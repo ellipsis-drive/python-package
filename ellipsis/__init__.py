@@ -4,10 +4,9 @@
 from ellipsis import account
 from ellipsis import user
 from ellipsis import path
-from ellipsis import view
 from ellipsis import util
 
-__version__ = '3.1.45'
+__version__ = '3.1.46'
 
 
 
