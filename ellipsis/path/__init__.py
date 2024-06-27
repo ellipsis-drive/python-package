@@ -9,4 +9,5 @@ from ellipsis.path import usage
 from ellipsis.path import folder
 from ellipsis.path import file
 from ellipsis.path import bookmark
+from ellipsis.path import setUpTask
 

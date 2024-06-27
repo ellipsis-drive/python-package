@@ -14,6 +14,7 @@ invite/index
 hashtag/index
 member/index
 usage/index
+setUpTask/index
 ```
 
 ## search
@@ -163,10 +164,6 @@ Delete a path.
 **Mandatory arguments**
 
 - pathId (uuid)
-
-**Optional arguments**
-
-- recursive (boolean)
 - token (string)
 
 ## recover

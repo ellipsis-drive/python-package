@@ -138,7 +138,7 @@ Get a raster.
 
 **Mandatory arguments**
 
-- extent in WGS84 (a dictionary with properties xMin, xMax, yMin, yMax of type float)
+- extent in the coordinates of the epsg specified (a dictionary with properties xMin, xMax, yMin, yMax of type float)
 - pathId (uuid)
 - timestampId (uuid)
 
@@ -147,6 +147,7 @@ Get a raster.
 - token (string)
 - reproject (boolean) whether to reproject the output raster to the coordiante system of the given extent
 - showProgress (bool) default True
+- epsg (int), epsg code of the coordinate system of the extent. default 3857 (webmercator)
 
 ## getSampledRaster
 

@@ -155,24 +155,12 @@ def recover(pathId, token):
     }, token)
 
 
-def delete(pathId, token, recursive = False):
+def delete(pathId, token):
     pathId = sanitize.validUuid('pathId', pathId, True)
     token = sanitize.validString('token', token, False)
-    recursive = sanitize.validBool('recursive', recursive, True)
     
-    if recursive:
-        info = get(pathId, token)
-        if info['type'] == 'folder':
-            folders = listFolder(pathId = pathId, includeTrashed=True, pathTypes=['folder'], token=token)['result']
-            for f in folders:
-                delete(f['id'], token, True)
-            maps = listFolder(pathId=pathId, pathTypes=['raster','vector','file', 'pointCloud'], includeTrashed=True, token=token)['result']
-            for m in maps:
-                delete(m['id'], token, True)
-        apiManager.delete(f'/path/{pathId}', None, token)            
-    
-    else:
-        return apiManager.delete(f'/path/{pathId}', None, token)
+
+    return apiManager.delete(f'/path/{pathId}', None, token)
 
 def editPublicAccess(pathId, token, access = None, hidden=None, recursive = False):
     pathId = sanitize.validUuid('pathId', pathId, True)

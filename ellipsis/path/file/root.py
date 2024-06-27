@@ -8,20 +8,27 @@ import json
 import pandas as pd
 
 
-def add( filePath, token, parentId = None, publicAccess =None, metadata=None):
+def add(  token, filePath=None, memFile=None, parentId = None, publicAccess =None, metadata=None,name=None):
     token = sanitize.validString('token', token, True)
     parentId = sanitize.validUuid('parentId', parentId, False)
     publicAccess = sanitize.validObject('publicAccess', publicAccess, False)
     metadata = sanitize.validObject('metadata', metadata, False)
+    filePath = sanitize.validString('filePath', filePath, False)
+    name = sanitize.validString('name', name, False)
+    if type(memFile) == type(None) and type(filePath) == type(None):
+        raise ValueError('You need to specify either a filePath or a memFile')
+    if type(memFile) != type(None) and type(name) == type(None):
+        raise ValueError('Parameter name is required when using a memory file')
 
-
-        
     seperator = os.path.sep    
     fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
         
     body = {'name':fileName, 'publicAccess':publicAccess, 'metadata':metadata, 'parentId':parentId}
+    if type(memFile) == type(None):
+        r = apiManager.upload('/path/file' , filePath, body, token, key = 'data')
+    else:
+        r = apiManager.upload('/path/file' , filePath , name, body, token, memfile = memFile)
 
-    r = apiManager.upload('/path/file' , filePath, body, token, key = 'data')
     return r
 
 
