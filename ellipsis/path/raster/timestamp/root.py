@@ -179,7 +179,7 @@ def getRaster(pathId, timestampId, extent, token = None, showProgress = True, ep
     as_jpg = info['raster']['asJpg']
     num_bands = len(bands)
     dtype = info['raster']['format']
-
+    accessLevel = info['yourAccess']['accessLevel']
     timestamps =  info['raster']['timestamps']
     all_timestamps = [item['id'] for item in timestamps]
     if not timestampId in all_timestamps:
@@ -212,7 +212,7 @@ def getRaster(pathId, timestampId, extent, token = None, showProgress = True, ep
     
     N=0
     w = 256
-    if not skipTar and ((x2_osm - x1_osm) * (y2_osm - y1_osm) > 50 or forceTar):
+    if not skipTar and ((x2_osm - x1_osm) * (y2_osm - y1_osm) > 50 and accessLevel > 100 or forceTar):
         tarZoom = next(item for item in timestamps if item["id"] == timestampId)['tarZoom']
             
         if type(tarZoom) != type(None):

@@ -9,7 +9,11 @@ import pandas as pd
 
 import os
 
-token = el.account.logIn('admin', '')
+file = '/home/daniel/Ellipsis/keys/admin'
+with open(file,'r') as c:
+    password = c.read()
+password = password[0:-1]
+token = el.account.logIn('admin', password)
 
 
 ####################################
@@ -17,9 +21,7 @@ token = el.account.logIn('admin', '')
 #python3 setup.py sdist bdist_wheel
 #twine upload --repository pypi dist/*
 
-token = el.account.logIn(username = 'admin', password='')
 
-el.apiManager.baseUrl = 'https://acc.api.ellipsis-drive.com/v3'
 ##access token
 el.account.accessToken.create(description = 'hoi', accessList = [{'pathId': '46e1e919-8b73-42a3-a575-25c6d45fd93b' , 'access':{'accessTier':'view'}}], token = token)
 tokenId = el.account.accessToken.get(token, listAll = True)['result'][0]['id']
@@ -554,3 +556,25 @@ out = el.util.saveVector(features = sh, targetFile = b)
 
 el.path.vector.timestamp.file.add(pathId = 'c6a341e1-59bf-44f8-a0d7-0962415a8fa2', timestampId= 'ad490f78-0cf0-426e-9238-e0ef803c7371', token = token, fileFormat='gpkg', memFile=out, name = 'test.gpkg')
 
+
+
+###add series
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+import datetime
+layerId = el.path.vector.add(name = 'series test', token = token)['id']
+timestampId = el.path.vector.timestamp.add(pathId = layerId, token = token)['id']
+
+features = gpd.read_file('/home/daniel/Ellipsis/db/testset/buildings_mini')
+
+featureIds = el.path.vector.timestamp.feature.add(pathId = layerId, timestampId=timestampId, features=features, token = token)
+N = 1000
+x = [float(x) for x in np.arange(N)]
+featureId = np.repeat(featureIds[0], N)
+date = np.repeat( datetime.datetime.now(),N)
+seriesData = pd.DataFrame({'date':date, 'featureId': featureId, 'x':x })
+seriesData['x'].values[4] = np.nan
+el.path.vector.timestamp.feature.series.add(pathId = layerId, timestampId = timestampId, uploadAsFile = True, seriesData=seriesData, token=token)
+
+t = pd.read_csv('/home/daniel/Downloads/test.csv')

@@ -74,8 +74,10 @@ def call(method, url, body = None, token = None, crash = True, parseJson = True)
         try:
             r = actualCall(method, url, body, token)
             break
-        except:
+        except Exception as ex:
             print('time out detected, retrying request')
+            print('url', url)
+            print('error',ex)
             time.sleep(WAIT)
             tried = tried +1
     if tried >= RETRIES:
@@ -125,7 +127,8 @@ def upload(url, filePath, body, token, key = 'data', memfile= None):
         conn_file = memfile
 
     payload = MultipartEncoder(fields = {**body, key: (fileName, conn_file, 'application/octet-stream')})
-    token = 'Bearer ' + token
+    if not 'Bearer' in token:
+        token = 'Bearer ' + token
 
     r = requests.post(baseUrl + url, headers = {"Authorization":token, "Content-Type": payload.content_type}, data=payload, verify=False)
 

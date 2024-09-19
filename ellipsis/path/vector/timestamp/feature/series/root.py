@@ -82,17 +82,17 @@ def add(pathId, timestampId, seriesData, token, featureId=None, showProgress = T
             df_sub['value'] = seriesData[c].astype(float)
             dfs_long = dfs_long + [df_sub]
     seriesData_long = pd.concat(dfs_long)
-
     if uploadAsFile:
 
         memfile = BytesIO()
-        seriesData_long.to_csv(memfile)
+        seriesData_long.to_csv(memfile, na_rep='null')
 
         res = apiManager.upload(url = '/path/' + pathId + '/vector/timestamp/' + timestampId + '/feature/series', filePath =  'upload', body= {'name':'upload'}, token = token, key = 'data', memfile= memfile)
         return res
     else:
-        values = seriesData_long.to_dict('records')
+        seriesData_long = seriesData_long.replace({float('nan'): None})
 
+        values = seriesData_long.to_dict('records')
 
         chunks_values = chunks(values)
         N = 0
