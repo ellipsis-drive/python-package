@@ -28,7 +28,7 @@ Retrieve all layers and folders inside a specific folder, and retreive informati
     token = el.account.logIn("username", "password")
 
     info = el.path.get(folderId, token)
-    items = el.path.listPath(folderId, pathTypes = ['folder', 'raster','vector','file'], token = token, listAll = True)
+    items = el.path.folder.listFolder(folderId, pathTypes = ['folder', 'raster','vector','file'], token = token, listAll = True)
 
 Retrieve metadata for a specific layer with id.
 

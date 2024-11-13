@@ -13,6 +13,9 @@ from ellipsis.path import get as getInfo
 
 import datetime
 
+
+
+
 def add(pathId,  token, properties = None, description = None, date ={'from': datetime.datetime.now(), 'to': datetime.datetime.now()}):
 
     pathId = sanitize.validUuid('pathId', pathId, True) 
@@ -150,7 +153,8 @@ def getFeaturesByIds(pathId, timestampId, featureIds, token = None, showProgress
     sh = sh.to_crs('EPSG:' + str(epsg))
     r['result'] = sh
     return r
-    
+
+
 
 def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, token = None, listAll = True, pageStart = None, epsg = 4326, coordinateBuffer = None, onlyIfCenterPointInExtent = False):
     pathId = sanitize.validUuid('pathId', pathId, True) 
