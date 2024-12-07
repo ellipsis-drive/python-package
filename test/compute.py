@@ -5,17 +5,26 @@ import geopandas as gpd
 pathId = '4d695990-ace7-434e-b703-e1d5ae006800'
 timestampid = '098807b0-2280-4cbc-abba-438784b6f867'
 
+
+
 #obtain a token
-token = el.account.logIn('demo_user', 'demo_user')
+token = el.account.logIn('admin', '')
 
-#load the Florida coastline
-coastLine = gpd.read_file('coastLine')['geometry'].values[0]
-
-#buffer the coast line to create a polygon of around 100m
-coastLine = coastLine.buffer(0)
 
 #create a cluster with the vector layer containing all USA houses loaded
-clusterId = el.createCluster(pathId, timestampId, token, projection = 3857)['id']
+layers = [{'pathId':'78cb1955-2910-4ede-9d21-2c6472d0ba71', 'timestampId':'bccf1299-cd42-4dff-bfa5-10fe650dad39' } ]
+clusterId = createCluster(layers = layers, token = token, requirements=['numpy','pandas','geopandas'], nodes=1)['id']
+
+def f(params):
+    return params
+
+res = execute(clusterId, f, token, awaitTillCompleted=True)
+
+terminateCluster(clusterId, token, awaitTillTerminated = True)
+
+
+getClusterInfo(clusterId, token)
+
 
 #wait for cluster to be ready for use
 while True:

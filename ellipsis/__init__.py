@@ -5,8 +5,8 @@ from ellipsis import account
 from ellipsis import user
 from ellipsis import path
 from ellipsis import util
-
-__version__ = '3.1.48'
+from ellipsis import compute
+__version__ = '3.1.50'
 
 
 

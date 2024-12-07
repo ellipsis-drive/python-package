@@ -5,10 +5,27 @@ import time
 import numpy as np
 import pandas as pd
 
+from test.pointCloud import timestampId
+
 el.path.folder.listFolder()
+
+import dill
+with open('/home/daniel/Downloads/nonTrivial.dill', "rb") as dill_file:
+ f = dill.load(dill_file)
+f(r , None, None)
 
 
 import os
+
+token = 'epat_S8uBdcJ8GqjUeh5ycJqXurMKHYnrs5BZT002G4nWWQu6Enl6TrDvtAzK1I9RPQmk'
+file = '/home/daniel/Ellipsis/db/zone0.tif'
+
+
+pathId = 'cc889803-e643-4384-9b73-a89c8f09dd65'
+timestampId = 'cc889803-e643-4384-9b73-a89c8f09dd65'
+el.path.raster.timestamp.file.add(pathId=pathId, timestampId=timestampId, fileFormat='tif', filePath = file, token = token)
+
+
 
 file = '/home/daniel/Ellipsis/keys/admin'
 with open(file,'r') as c:
@@ -53,7 +70,18 @@ setDomains(pathId = pathId, token = daan_token, domains = ['hoi'])
 setDomains(pathId = pathId, token = daan_token, domains = None)
 
 
+####account
+token = logIn('admin', 'k67cFGK1ued6aPP')
 
+layers = [{'pathId':'07c6ad34-9e0b-494f-9c8c-3f5cfbc1b76f', 'timestampId':'7cf1c34b-b863-419f-9dd5-33eb6ab8b2ac'}]
+clusterId = createCluster(layers = layers, token=token, requirements = ['numpy'], nodes = 2)['id']
+
+def f(params):
+    r = params['7cf1c34b-b863-419f-9dd5-33eb6ab8b2ac']['raster']
+    z = np.max(r)
+    return z
+
+out = execute(clusterId=clusterId, f=f, token = token)
 
 
 ###files
@@ -554,7 +582,7 @@ el.path.raster.timestamp.file.add(pathId = 'f3f55c63-4f22-4dac-8d96-cd9a38069ee2
 sh = gpd.read_file('/home/daniel/Ellipsis/db/testset/buildings_mini')
 b = BytesIO()
 out = el.util.saveVector(features = sh, targetFile = b)
-
+el.util.saveRaster()
 el.path.vector.timestamp.file.add(pathId = 'c6a341e1-59bf-44f8-a0d7-0962415a8fa2', timestampId= 'ad490f78-0cf0-426e-9238-e0ef803c7371', token = token, fileFormat='gpkg', memFile=out, name = 'test.gpkg')
 
 

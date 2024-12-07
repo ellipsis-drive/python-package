@@ -116,6 +116,7 @@ def actualCall(method, url, body, token):
     return r
 
 def upload(url, filePath, body, token, key = 'data', memfile= None):
+    body['debug'] = True
     body = filterNone(body, toString=True)
 
     seperator = os.path.sep

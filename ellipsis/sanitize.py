@@ -81,7 +81,7 @@ def validString(name, value, required):
         return
 
     if type(value) != type('x'):
-        raise ValueError(name + 'must be of type string')
+        raise ValueError(name + ' must be of type string')
     return(value)
 
 def validShapely(name, value, required):
@@ -315,6 +315,26 @@ def validFloatArray(name, value, required):
     value = [float(x) for x in value]
 
     return value
+
+
+def validDictArray(name, value, required):
+    if not required and type(value) == type(None):
+        return
+
+    try:
+        value = list(value)
+
+    except:
+        raise ValueError(name + ' must be an iterable')
+
+    types = np.array([(not 'dict' in str(type(x)))  for x in value])
+
+    if np.sum(types) > 0:
+        raise ValueError(name + ' must be a list of dictionaries')
+
+
+    return value
+
 
 
 def validIntArray(name, value, required):

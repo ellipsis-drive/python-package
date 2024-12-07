@@ -12,6 +12,15 @@ def add( name, token, parentId = None, publicAccess =None, metadata=None):
 
     return apiManager.post('/path/vector', body, token)
 
+def editRendering(pathId, maxZoom, token):
+    token = sanitize.validString('token', token, True)
+    pathId = sanitize.validUuid('parentId', pathId, True)
+    maxZoom = sanitize.validInt('maxZoom', maxZoom, True)
+
+    body = {"method":"vector tiles","parameters":{"zoom":maxZoom,"mb":2,"step":1000,"amount":1000},"centerPointOnly":False,"lod":6}
+    r = apiManager.put('/path/' + pathId + '/vector/renderOptions' , body, token)
+    return r
+
 
 def editFilter(pathId, propertyFilter, token):
     pathId = sanitize.validUuid('pathId', pathId, True) 

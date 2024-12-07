@@ -25,6 +25,18 @@ Login to your account.
 
 Returns a token.
 
+## getInfo
+
+    ellipsis.account.getInfo()
+
+Fet information of your account.
+
+**Mandatory arguments**
+
+- token (string), your token
+
+Returns a dictionary with additional information.
+
 ## listRoot
 
     ellipsis.account.listRoot()

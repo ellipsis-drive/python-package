@@ -24,6 +24,15 @@ def logIn(username, password, validFor = None):
 
         return(token)
 
+
+def getInfo(token):
+    token = sanitize.validString('token', token, True)
+
+    r = apiManager.get( '/account', body={}, token=token)
+
+
+    return r
+
 def listRoot(rootName, token, pathTypes= None, pageStart = None, listAll = True):
     token = sanitize.validString('token', token, True)
     rootName = sanitize.validString('rootName', rootName, True)
