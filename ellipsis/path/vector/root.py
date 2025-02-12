@@ -31,5 +31,15 @@ def editFilter(pathId, propertyFilter, token):
     r = apiManager.post('/path/' + pathId + '/vector/filter' , body, token)
     return r
 
+def computeAllVectorTiles(pathId, timestampId, token):
+    pathId = sanitize.validUuid('pathId', pathId, True)
+    timestampId = sanitize.validUuid('timestampId', timestampId, True)
+    token = sanitize.validString('token', token, True)
+
+    r = apiManager.post('/path/' + pathId + '/vector/timestamp/' + timestampId + '/precompute/completeVectorTile' , {}, token)
+
+    return r
+
+
 
 

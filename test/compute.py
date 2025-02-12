@@ -1,52 +1,73 @@
 import ellipsis as el
-import pandas as pd
-import geopandas as gpd
-#pathId and timestampId of the vector layer to analyse
-pathId = '4d695990-ace7-434e-b703-e1d5ae006800'
-timestampid = '098807b0-2280-4cbc-abba-438784b6f867'
+
+token = el.account.logIn('daan', 'Brooksrange24')
 
 
-
-#obtain a token
-token = el.account.logIn('admin', '')
-
-
-#create a cluster with the vector layer containing all USA houses loaded
-layers = [{'pathId':'78cb1955-2910-4ede-9d21-2c6472d0ba71', 'timestampId':'bccf1299-cd42-4dff-bfa5-10fe650dad39' } ]
-clusterId = createCluster(layers = layers, token = token, requirements=['numpy','pandas','geopandas'], nodes=1)['id']
+requirements = ['rasterio']
+nodes = 2
+#drought 'c80a4d58-16a5-4fe8-9ebc-3adcdd7d5d54'
+#locations 'af13078d-67ed-42a9-9b39-6e67cfb2c33f'
+layers = [{'pathId':'c80a4d58-16a5-4fe8-9ebc-3adcdd7d5d54', 'timestampId':'b90d8f74-60a4-4bd5-8419-afad0504085f'},{'pathId':'af13078d-67ed-42a9-9b39-6e67cfb2c33f', 'timestampId':'77b2ca83-e22b-472e-a09d-02c170e097c5'} ]
+computeId1 = el.compute.createCompute(layers = layers, token=token, nodes = nodes,interpreter='python3.12', requirements = requirements)['id']
 
 def f(params):
-    return params
+    from rasterio.io import MemoryFile
+    r = params['b90d8f74-60a4-4bd5-8419-afad0504085f']['raster']
+    sh = params['77b2ca83-e22b-472e-a09d-02c170e097c5']['vector']
+    transform = params['b90d8f74-60a4-4bd5-8419-afad0504085f']['transform']
+    extent = params['b90d8f74-60a4-4bd5-8419-afad0504085f']['extent']
 
-res = execute(clusterId, f, token, awaitTillCompleted=True)
+    r = r.astype('float32')
 
-terminateCluster(clusterId, token, awaitTillTerminated = True)
+    memfile =  MemoryFile()
+
+    dataset = memfile.open( driver='GTiff', dtype='float32', height=r.shape[1], width=r.shape[2], count = r.shape[0], crs= 'EPSG:3857', transform=transform)
+    dataset.write(r)
+
+    values = list(dataset.sample([p for p in zip(sh.bounds['minx'].values, sh.bounds['miny'].values)]))
+    memfile.close()
+
+    values = [v[0] for v in values][0]
+    return values
+
+r = el.compute.execute(computeId=computeId1, token=token, f=f)
+print(r)
+
+def f(params):
+    raise ValueError('nice')
 
 
-getClusterInfo(clusterId, token)
+el.compute.terminateAll(token=token)
 
 
-#wait for cluster to be ready for use
-while True:
-    clusters = el.listClusters(token)
-    cluster = [c for c in clusters if c['id'] == clusterId]
-    if cluster['status'] == 'active':
-        break
+requirements = ['rasterio', 'ellipsis']
+nodes = 2
+#drought 'c80a4d58-16a5-4fe8-9ebc-3adcdd7d5d54'
+#locations 'af13078d-67ed-42a9-9b39-6e67cfb2c33f'
+layers = [{'pathId':'c80a4d58-16a5-4fe8-9ebc-3adcdd7d5d54', 'timestampId':'b90d8f74-60a4-4bd5-8419-afad0504085f'},{'pathId':'af13078d-67ed-42a9-9b39-6e67cfb2c33f', 'timestampId':'77b2ca83-e22b-472e-a09d-02c170e097c5'} ]
+computeId2 = createCompute(layers = layers, token=token, nodes = nodes,interpreter='python3.12', requirements = requirements, largeResult=True)['id']
 
 
-#funciton to run
-def f(coastLine):
-    #find all houses along the coastline
-    sh_intersect = sh[sh.intersects(coastLine)]
-    sh_stone = sh_intersect[sh_intersect['material'] == 'stone']
-    return sh_stone
+def f(params):
+    from ellipsis.util import saveRaster
+    from rasterio.io import MemoryFile
+    from io import BytesIO
 
-#execute the funciton on the cluster
-results = el.execute(clusterId, f, params= (coastLine,), token = token):
+    r = params['b90d8f74-60a4-4bd5-8419-afad0504085f']['raster']
+    transform = params['b90d8f74-60a4-4bd5-8419-afad0504085f']['transform']
 
-#append the list of results to get one geopandas dataframe
-all_stone_houses_along_florida_coast = pd.append(results)
+    r = r.astype('float32')
 
-print('All stone houses on the Florida coast line', all_stone_houses_along_florida_coast)
+    dataset = saveRaster(r, epsg=3857, targetFile = BytesIO(), transform=transform)
+    return dataset
+
+
+res = execute(computeId=computeId2, token=token, f=f)
+
+url = '/compute/8e7dc023-69d2-4c7f-84f7-eddecb82a37f/file/b3968970-74bb-46cb-a715-472aea67f483'
+downloadFile(url, '/home/daniel/Downloads/out.tif', token)
+
+terminateAll(token=token)
+
 
 

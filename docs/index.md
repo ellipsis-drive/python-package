@@ -119,6 +119,7 @@ account/index
 user/index
 path/index
 util/index
+compute/index
 ```
 
 &nbsp;

@@ -1,5 +1,6 @@
 from ellipsis.path.vector.root  import editFilter
 from ellipsis.path.vector.root  import add
+from ellipsis.path.vector.root  import editRendering
 
 
 from ellipsis.path.vector import timestamp

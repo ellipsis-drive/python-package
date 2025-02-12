@@ -307,7 +307,7 @@ el.path.delete(mapId, admin_token)
 ##raster information retrieval
 
 import ellipsis as el
-token = el.account.logIn('admin', 'aEUZXm4jzXW6GnQHUyrl')
+token = el.account.logIn('demo_user', 'demo_user')
 
 
 mapId = '0ce1a67a-3d10-4970-967b-c8880e3c7d67'
@@ -549,7 +549,6 @@ el.path.hashtag.delete(pathId = pathId, hashtag = 'xxx', token = token)
 ####bookmarks
 
 import ellipsis as el
-el.apiManager.baseUrl = 'https://acc.api.ellipsis-drive.com/v3'
 token = el.account.logIn('demo_user', 'demo_user')
 pId = '075eb94f-741f-4f4a-8ce5-731c9a72a324'
 bookmark = {'layers':  [{'type':'ellipsis', 'id':pId, 'selected':True }, {'type':'base', 'selected':True }], 'dems':[]}
@@ -607,3 +606,26 @@ seriesData['x'].values[4] = np.nan
 el.path.vector.timestamp.feature.series.add(pathId = layerId, timestampId = timestampId, uploadAsFile = True, seriesData=seriesData, token=token)
 
 t = pd.read_csv('/home/daniel/Downloads/test.csv')
+
+
+import ellipsis as el
+pathId = '3a5351e8-0333-47c6-9124-06b9971c9f99'
+timestampId = '78c9a95a-57a7-4db6-a029-33c85a3f75e3'
+
+token = el.account.logIn('demo_user', 'demo_user')
+
+#wijzig alle namen binnen een extent
+
+#haal de huidige features op
+extent = {'xMin':2, 'xMax':6, 'yMin':53, 'yMax':54}
+features = el.path.vector.timestamp.getFeaturesByExtent(pathId, timestampId, extent)['result']
+featuresIds = features['id'].values
+#update de features hoe je wil
+features['bottum'] = 'up'
+#submit de aangepaste features
+el.path.vector.timestamp.feature.edit(pathId, timestampId, featureIds, token, newFeatures)
+
+import ellipsis as el
+r = el.path.raster.timestamp.getRaster(pathId = '07125c90-bfde-4036-b85e-b1fdee861ca6', timestampId= 'aa23ec66-91bb-4276-a98c-1b45b6a962fb', extent= {'xMin':70.75458, 'yMin':29.17649 , 'xMax':81.69791, 'yMax': 31.97394 }, epsg=4326)
+
+el.util.plotRaster(r['raster'])

@@ -140,7 +140,7 @@ def upload(url, filePath, body, token, key = 'data', memfile= None):
         raise ValueError(r.text)
     return r.json()
 
-def download(url, filePath, token = None, memfile = None):
+def download(url, filePath=None, token = None, memfile = None):
     if type(token) == type(None):
         with requests.get(baseUrl + url, stream=True) as r:
             r.raise_for_status()

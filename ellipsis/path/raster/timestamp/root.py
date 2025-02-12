@@ -6,7 +6,6 @@ from ellipsis.util.root import reprojectRaster
 from ellipsis.path.raster.timestamp.util import constructImage
 from ellipsis.path.raster.timestamp.util import cutOfTilesPerZoom
 
-from rasterio.io import MemoryFile
 from skimage.transform import resize
 import json
 import numpy as np
@@ -31,6 +30,8 @@ def getSampledRaster(pathId, timestampId, extent, width, height, epsg=3857, toke
     epsg = sanitize.validInt('epsg', epsg, True)
 
     res = getActualExtent(extent['xMin'], extent['xMax'], extent['yMin'], extent['yMax'], 'EPSG:' + str(epsg))
+    #res = getActualExtent(minx = extentWeb['xMin'], maxx = extentWeb['xMax'], miny = extentWeb['yMin'], maxy = extentWeb['yMax'], crs = 'EPSG:3857', out_crs = 4326)
+    #extent = res['message']
 
     if res['status'] == '400':
         raise ValueError('Invalid epsg and extent combination')
@@ -46,7 +47,7 @@ def getSampledRaster(pathId, timestampId, extent, width, height, epsg=3857, toke
 
 
     r = tifffile.imread(BytesIO(r.content))
-
+    #np.unique(r)
     r = np.transpose(r, [2,0,1])
 
 
