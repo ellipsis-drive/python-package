@@ -329,8 +329,8 @@ def getRaster(pathId, timestampId, extent, token = None, showProgress = True, ep
         y_index = tileY - y1_osm
         
         r = iterate(fetch, 0, tileX, tileY)
+        r_total[0:r.shape[0],y_index*w:(y_index+1)*w,x_index*w:(x_index+1)*w] = r
 
-        r_total[:,y_index*w:(y_index+1)*w,x_index*w:(x_index+1)*w] = r
         I = I + 1
         if showProgress:
             loadingBar(I, len(tiles))
