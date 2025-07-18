@@ -7,7 +7,6 @@
 **Mandatory arguments**
 
 - pathId (uuid)
-- method (string)
 - parameters (object), See https://docs.ellipsis-drive.com/developers/api-v3/path-vector/styles/add-style for how to format the parameters
 - token (string)
 
@@ -27,7 +26,6 @@
 
 **Optional arguments**
 
-- method (string)
 - parameters (object)
 - token (string)
 - default (boolean)

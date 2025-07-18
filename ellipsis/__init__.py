@@ -6,7 +6,7 @@ from ellipsis import user
 from ellipsis import path
 from ellipsis import util
 from ellipsis import compute
-__version__ = '3.2.1'
+__version__ = '3.2.7'
 
 
 

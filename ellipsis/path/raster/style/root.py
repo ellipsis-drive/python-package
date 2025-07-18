@@ -1,15 +1,17 @@
 from ellipsis import apiManager
 from ellipsis import sanitize
 
-def add(pathId, name, method, parameters, token, default=True):
+def add(pathId, name, parameters, token, default=True, method = None):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)    
-    method = sanitize.validString('method', method, True)    
+    method = sanitize.validString('method', method, False)
     name = sanitize.validString('name', name, True)    
     default = sanitize.validBool('default', default, True)    
     parameters = sanitize.validObject('parameters', parameters, True)
-
-    body = {'name':name, 'method': method, 'parameters':parameters, 'default':default}
+    if type(method) == type(None):
+        body = {'name':name, 'parameters':parameters, 'default':default}
+    else:
+        body = {'name':name, 'method': method, 'parameters':parameters, 'default':default}
     r = apiManager.post('/path/' + pathId + '/raster/style', body, token)
     return r
 
@@ -29,7 +31,6 @@ def edit(pathId, styleId, method, parameters, token, name=None, default = None):
     method = sanitize.validString('method', method, True)    
     parameters = sanitize.validObject('parameters', parameters, True)
     default = sanitize.validBool('default', default, False)    
-    default = sanitize.validString('name', name, False)
 
     body = {'method': method, 'parameters':parameters, 'default':default, 'name':name}
     r = apiManager.patch('/path/' + pathId + '/raster/style/' + styleId, body, token)

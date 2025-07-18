@@ -10,8 +10,9 @@ from ellipsis.path.raster.timestamp.file import add as addFile
 from ellipsis.path.raster.timestamp import activate
 from io import BytesIO
 
-def createCompute(layers, token, nodes=None, interpreter='python3.12', requirements= [], awaitTillStarted = True, largeResult = False):
+def createCompute(layers, token, files = None, nodes=None, interpreter='python3.12', requirements= [], awaitTillStarted = True, largeResult = False):
     layers = sanitize.validDictArray('layers', layers, True)
+    files = sanitize.validUuidArray('files', files, False)
     token = sanitize.validString('token', token, True)
     nodes = sanitize.validInt('nodes', nodes, False)
     interpreter = sanitize.validString('interpreter', interpreter, True)
@@ -25,11 +26,12 @@ def createCompute(layers, token, nodes=None, interpreter='python3.12', requireme
 
     requirements = "\n".join(requirements)
 
-    body = {'layers':layers, 'interpreter':interpreter, 'nodes':nodes, 'requirements':requirements, 'largeResult': largeResult}
+    body = {'layers':layers, 'files':files, 'interpreter':interpreter, 'nodes':nodes, 'requirements':requirements, 'largeResult': largeResult}
     r = apiManager.post('/compute', body, token)
 
     computeId = r['id']
     while awaitTillStarted:
+        print('waiting')
         res = listComputes(token=token)['result']
         r = [x for x in res if x['id'] == computeId][0]
         if r['status'] == 'available':
@@ -50,14 +52,16 @@ def execute(computeId, f, token, awaitTillCompleted=True):
         raise ValueError('parameter f must be a function')
 
     f_bytes = dill.dumps(f)
-    f_string = base64.b64encode(f_bytes)
-
+    f_string = base64.b64encode( f_bytes )
+    f_string = str(f_string)[2: -1]
     body = { 'file':f_string}
+
     apiManager.post('/compute/' + computeId + '/execute', body, token)
 
     while awaitTillCompleted:
         res = listComputes(token=token)['result']
         r = [x for x in res if x['id'] == computeId][0]
+        print('waiting')
         if r['status'] == 'completed':
             break
         time.sleep(1)
@@ -79,7 +83,7 @@ def parseResults(r):
 
     return results
 
-def terminatecompute(computeId, token, awaitTillTerminated = True):
+def terminateCompute(computeId, token, awaitTillTerminated = True):
     computeId = sanitize.validUuid('computeId', computeId, True)
     token = sanitize.validString('token', token, True)
     sanitize.validBool('awaitTillTerminated',awaitTillTerminated, True)
@@ -145,14 +149,27 @@ def addToLayer(response, pathId, timestampId, token):
     token = sanitize.validString('token', token, True)
 
     for url in response:
-        memfile = downloadFile(url,  token)
-        addFile(pathId = pathId, timestampId=timestampId, token = token, fileFormat='tif', memFile=memfile, name='out.tif')
+        print('fetching file ' + url.split('/')[-1])
+        memfile = BytesIO()
+        memfile = downloadFile(url,  token, memfile=memfile)
+        print('read file ' + url.split('/')[-1])
+        print('adding file ' + url.split('/')[-1])
+        addFile(pathId = pathId, timestampId=timestampId, token = token, fileFormat='tif', memFile=memfile, name= url.split('/')[-1] + '.tif' )
+        print('file ' + url.split('/')[-1] + ' added to layer')
     activate(pathId=pathId, timestampId=timestampId, token=token)
+    print('layer can now be found at ' + apiManager.baseUrl + '/drive/me?pathId=' + pathId )
 
 
 
-def downloadFile(url,  token):
-    memfile = BytesIO()
-    apiManager.download(url = url, filePath='', memfile=memfile, token = token)
-    memfile.seek(0)
-    return memfile
+def downloadFile(url,  token, filePath = None, memfile = None):
+
+    url = sanitize.validString('url', url, True)
+    token = sanitize.validString('token', token, True)
+    filePath = sanitize.validString('filePath', filePath, False)
+    if memfile == None and filePath == None:
+        raise ValueError('Either memfile or filePath is required')
+
+    apiManager.download(url = url, filePath=filePath, memfile=memfile, token = token)
+
+    if memfile != None:
+        return memfile

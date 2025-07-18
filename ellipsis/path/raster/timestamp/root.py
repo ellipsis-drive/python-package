@@ -381,6 +381,7 @@ def analyse(pathId, timestampIds, geometry, returnType= 'all', approximate=True,
     return r
 
 
+
 def add(pathId, token, description= None, date ={'from': datetime.datetime.now(), 'to': datetime.datetime.now()}):
     
 

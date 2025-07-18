@@ -3,14 +3,16 @@ from ellipsis import sanitize
 
 
 
-def add(pathId, name, method, parameters, token, default = True):
+def add(pathId, name, parameters, token, default = True, method = None):
     pathId = sanitize.validUuid('pathId', pathId, True) 
-    method = sanitize.validString('method', method, True)
+    method = sanitize.validString('method', method, False)
     parameters = sanitize.validObject('parameters', parameters, True)
     token = sanitize.validString('token', token, True)
     default = sanitize.validBool('default', default, True)
-
-    body = {'name': name, 'default':default, 'method': method, 'parameters':parameters}
+    if type(method) == type(None):
+        body = {'name': name, 'default':default,  'parameters':parameters}
+    else:
+        body = {'name': name, 'default':default, 'method': method, 'parameters':parameters}
 
     r = apiManager.post('/path/' + pathId + '/vector/style', body, token)
     return r

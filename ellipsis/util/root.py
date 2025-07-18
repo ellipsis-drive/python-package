@@ -21,8 +21,8 @@ import multiprocessing
 import warnings
 import uuid
 import shapely
-from shapely.ops import cascaded_union
 
+from io import BytesIO
 
 from ellipsis import sanitize
 from rasterio.warp import reproject as warp, Resampling, calculate_default_transform
@@ -487,7 +487,7 @@ def cut(sh, bounds, tile, chosen):
             collections = np.array(['collection' in str(type(x)) for x in sh_intersects['geometry']])
             geometryCollections = sh_intersects['geometry'][collections].values
     
-            newGeometries = [ cascaded_union([geometry for geometry in collection if chosen in str(type(geometry))]) for collection in geometryCollections   ]
+            newGeometries = [ shapely.ops.cascaded_union([geometry for geometry in collection if chosen in str(type(geometry))]) for collection in geometryCollections   ]
     
             sh_intersects['geometry'][collections] = newGeometries
             

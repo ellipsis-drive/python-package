@@ -1,1 +1,1 @@
-from ellipsis.compute.root import createCompute, listComputes, execute, terminatecompute, terminateAll, addToLayer
+from ellipsis.compute.root import createCompute, listComputes, execute, terminateCompute, terminateAll, addToLayer

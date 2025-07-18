@@ -22,7 +22,8 @@ def add(  token, filePath=None, memFile=None, parentId = None, publicAccess =Non
 
     seperator = os.path.sep    
     fileName = filePath.split(seperator)[len(filePath.split(seperator))-1 ]
-        
+    if len(fileName) > 64:
+        fileName = fileName[0:63]
     body = {'name':fileName, 'publicAccess':publicAccess, 'metadata':metadata, 'parentId':parentId}
     if type(memFile) == type(None):
         r = apiManager.upload('/path/file' , filePath, body, token, key = 'data')
