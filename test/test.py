@@ -7,6 +7,26 @@ import pandas as pd
 
 from test.pointCloud import timestampId
 
+
+
+el.apiManager.baseUrl = 'https://api.ellipsis-drive.com/v3'
+
+token = el.account.logIn('demo_user', 'demo_user')
+extent = {"xMin":-76.05911142368953,"yMin":39.24727589554888,"xMax":-76.05244635418123,"yMax":39.25152648073572}
+mask = 'band1 < 150'
+el.path.raster.timestamp.order.add(pathId = 'a2ae590c-d8c3-4842-8869-7b06ccb2175f', timestampId = '52c0b1be-a19f-441a-bfca-b87df936b3ea', token= token, extent = extent, epsg=4326, mask = mask)
+
+
+s
+
+
+
+
+
+
+
+
+
 el.path.folder.listFolder()
 
 import dill

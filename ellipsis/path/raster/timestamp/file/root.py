@@ -6,7 +6,7 @@ import os
 import numpy as np
 import geopandas as gpd
 
-def add(pathId, timestampId, token, fileFormat, filePath=None, memFile = None, epsg = None, noDataValue = None, mosaicPriority = None, name = None):
+def add(pathId, timestampId, token, fileFormat, filePath=None, memFile = None, epsg = None, noDataValue = None, mosaicPriority = None, name = None, remoteInfo= None):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True) 
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
@@ -16,11 +16,12 @@ def add(pathId, timestampId, token, fileFormat, filePath=None, memFile = None, e
     epsg = sanitize.validInt('epsg', epsg, False)    
     fileFormat = sanitize.validString('fileFormat', fileFormat, True)    
     mosaicPriority = sanitize.validString('mosaicPriority', mosaicPriority, False)    
+    remoteInfo = sanitize.validObject('remoteInfo', remoteInfo, False)
 
-    if type(memFile) == type(None) and type(filePath) == type(None):
+    if type(memFile) == type(None) and type(filePath) == type(None) and type(remoteInfo) == type(None):
         raise ValueError('You need to specify either a filePath or a memFile')
 
-    if type(memFile) != type(None) and type(name) == type(None):
+    if (type(memFile) != type(None) or type(remoteInfo) != type(None) ) and type(name) == type(None):
         raise ValueError('Parameter name is required when using a memory file')
 
     if type(name ) == type(None):
@@ -29,11 +30,13 @@ def add(pathId, timestampId, token, fileFormat, filePath=None, memFile = None, e
     else:
         fileName = name
 
-    body = {'name':fileName, 'epsg':epsg, 'noDataValue': noDataValue, 'format':fileFormat, 'mosaicPriority':mosaicPriority}
-    if type(memFile) == type(None):
+    body = {'name':fileName, 'epsg':epsg, 'noDataValue': noDataValue, 'format':fileFormat, 'mosaicPriority':mosaicPriority, 'remoteInfo':remoteInfo}
+    if type(filePath) != type(None):
         r = apiManager.upload('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file' , filePath, body, token)
-    else:
+    elif type(memFile) != type(None) :
         r = apiManager.upload('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file' , name, body, token, memfile = memFile)
+    else:
+        r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file', body, token)
 
     return r
 

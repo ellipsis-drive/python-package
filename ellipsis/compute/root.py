@@ -44,18 +44,21 @@ def createCompute(layers, token, files = None, nodes=None, interpreter='python3.
     return {'id':computeId}
 
 
-def execute(computeId, f, token, awaitTillCompleted=True):
+def execute(computeId, f, token, awaitTillCompleted=True, writeToLayer = None):
     computeId = sanitize.validUuid('computeId', computeId, True)
     token = sanitize.validString('token', token, True)
+    writeToLayer = sanitize.validObject('writeToLayer', writeToLayer, False)
+    awaitTillCompleted = sanitize.validBool('awaitTillCompleted', awaitTillCompleted, False)
 
     if str(type(f)) != "<class 'function'>":
         raise ValueError('parameter f must be a function')
-
+    if type(writeToLayer) != type(None):
+        if not 'file' in writeToLayer:
+            writeToLayer['file'] = {'format':'tif'}
     f_bytes = dill.dumps(f)
     f_string = base64.b64encode( f_bytes )
     f_string = str(f_string)[2: -1]
-    body = { 'file':f_string}
-
+    body = { 'file':f_string, 'writeToLayer':writeToLayer}
     apiManager.post('/compute/' + computeId + '/execute', body, token)
 
     while awaitTillCompleted:
@@ -64,6 +67,8 @@ def execute(computeId, f, token, awaitTillCompleted=True):
         print('waiting')
         if r['status'] == 'completed':
             break
+        if r['status'] == 'errored':
+            raise ValueError(str(r['message']))
         time.sleep(1)
 
     for x in r['result']:

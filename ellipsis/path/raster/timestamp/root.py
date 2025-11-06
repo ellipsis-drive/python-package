@@ -382,15 +382,14 @@ def analyse(pathId, timestampIds, geometry, returnType= 'all', approximate=True,
 
 
 
-def add(pathId, token, description= None, date ={'from': datetime.datetime.now(), 'to': datetime.datetime.now()}):
-    
+def add(pathId, token, description= None, date ={'from': datetime.datetime.now(), 'to': datetime.datetime.now()}, remote=False):
 
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)  
     date = sanitize.validDateRange('date', date, True)    
     description = sanitize.validString('description', description, False)    
-
-    body = { 'date': date, 'description': description}    
+    remote = sanitize.validBool('remote', remote, False)
+    body = { 'date': date, 'description': description, 'remote':remote}
     r = apiManager.post('/path/' + pathId + '/raster/timestamp'  , body, token)
     return r
     
