@@ -190,7 +190,6 @@ setDomains(pathId = pathId, token = daan_token, domains = None)
 
 
 ####account
-token = logIn('admin', 'k67cFGK1ued6aPP')
 
 layers = [{'pathId':'07c6ad34-9e0b-494f-9c8c-3f5cfbc1b76f', 'timestampId':'7cf1c34b-b863-419f-9dd5-33eb6ab8b2ac'}]
 clusterId = createCluster(layers = layers, token=token, requirements = ['numpy'], nodes = 2)['id']
