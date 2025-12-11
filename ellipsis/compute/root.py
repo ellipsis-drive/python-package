@@ -1,6 +1,6 @@
-import dill
-import base64
 import time
+import inspect
+import json
 
 from ellipsis.util.root import recurse
 from ellipsis import sanitize
@@ -55,10 +55,16 @@ def execute(computeId, f, token, awaitTillCompleted=True, writeToLayer = None):
     if type(writeToLayer) != type(None):
         if not 'file' in writeToLayer:
             writeToLayer['file'] = {'format':'tif'}
-    f_bytes = dill.dumps(f)
-    f_string = base64.b64encode( f_bytes )
-    f_string = str(f_string)[2: -1]
-    body = { 'file':f_string, 'writeToLayer':writeToLayer}
+
+    f_text =  inspect.getsource(f)
+    f_name = f_text.split('(')[0].replace('def', '').replace(' ', '')
+    f_text = f_text.replace('\n', '\n  ')
+    f_text = ' ' + f_text
+
+    file = 'def userFunction(params):\n' + f_text + '\n return ' + f_name + '(params)'
+
+    body = { 'file':file, 'writeToLayer':writeToLayer}
+
     apiManager.post('/compute/' + computeId + '/execute', body, token)
 
     while awaitTillCompleted:
@@ -73,7 +79,7 @@ def execute(computeId, f, token, awaitTillCompleted=True, writeToLayer = None):
 
     for x in r['result']:
         if x['type'] == 'exception':
-            raise x['value']
+            raise ValueError( x['value'])
 
 
     values = [ '/compute/' + computeId + '/file/'+ x['value'] if x['type'] == 'file' else x['value'] for x in r['result']]
@@ -82,9 +88,12 @@ def execute(computeId, f, token, awaitTillCompleted=True, writeToLayer = None):
 def parseResults(r):
     results = []
     for x in r:
-        x = base64.b64decode(x)
-        x = dill.loads(x)
-        results = results + x
+        arr = []
+        for y in x:
+            if y['type'] != 'exception':
+                y['value'] = json.loads(y['value'])
+            arr.append(y)
+        results = results + arr
 
     return results
 

@@ -1,27 +1,126 @@
 import ellipsis as el
-import datetime
-import os
-import time
-import numpy as np
-import pandas as pd
 
-from test.pointCloud import timestampId
-
-
-
-el.apiManager.baseUrl = 'https://api.ellipsis-drive.com/v3'
 
 token = el.account.logIn('demo_user', 'demo_user')
-extent = {"xMin":-76.05911142368953,"yMin":39.24727589554888,"xMax":-76.05244635418123,"yMax":39.25152648073572}
-mask = 'band1 < 150'
-el.path.raster.timestamp.order.add(pathId = 'a2ae590c-d8c3-4842-8869-7b06ccb2175f', timestampId = '52c0b1be-a19f-441a-bfca-b87df936b3ea', token= token, extent = extent, epsg=4326, mask = mask)
+
+requirements = ['tensorflow', 'keras']
+nodes = 1
+
+layers = [ {'pathId':'2e7240df-5e3e-4c90-913f-042514f31b36', 'timestampId':'4d023723-95f7-4f71-8861-b8bf1b1aeb85'}]
+files = ['19d8fbd5-bf8a-4f8c-a377-d1bd5daac845']
+
+computeId = el.compute.createCompute(layers = layers, files = files, token=token, nodes = nodes,interpreter='python3.12', requirements = requirements, largeResult=False)['id']
+
+el.compute.terminateAll(token=token)
+
+model_json = model.to_json()
+import tensorflow as tf
+
+model = tf.keras.models.model_from_json(model_json)
 
 
-s
+model.predict(x = 'hoi')
+
+keras.mod
+
+
+def f(params):
+    file = params['19d8fbd5-bf8a-4f8c-a377-d1bd5daac845']
+    return str(type(file))
+    import keras
+    from io import BytesIO
+
+    loaded_model = keras.saving.load_model(file)
+
+BytesIO()
+
+import keras
+c = open('/home/daniel/Downloads/model.keras', 'rb')
+model = keras.saving.load_model(c.read())
+
+
+model = keras.saving.load_model('/home/daniel/Downloads/model.keras')
+model.predict()
+
+import h5py
+
+f = with open(x, 'r') as f:
+    print(f)
+    model = keras.saving.load_model(f)
+
+model = keras.layers.TFSMLayer(x, call_endpoint="serving_default")
+
+
+res = el.compute.execute(computeId=computeId, f=f, token=token)
 
 
 
 
+
+import io
+from tensorflow.python.keras.saving import hdf5_format
+
+bytes_file = io.BytesIO()
+with h5py.File(bytes_file, 'w') as f:
+    hdf5_format.save_weights_to_hdf5_group(f, self.layers)
+weight_bytes = bytes_file.getvalue()
+
+
+
+
+
+
+
+
+
+
+
+import json
+import pandas as pd
+import geopandas as gpd
+
+sh = [gpd.GeoDataFrame.from_features(json.loads(x)) for x in res]
+sh = pd.concat(sh)
+sh.head()
+
+sh.plot()
+
+import matplotlib.pyplot as plt
+figure, ax = plt.subplots()
+sh.plot(ax=ax)
+figure.savefig("/home/daniel/Downloads/geopandas.png")
+
+el.compute.terminateAll(token = token)
+try:
+    raise Exception('hoi')
+except Exception as e:
+    print(e)
+
+
+gpd.GeoDataFrame.from_features(res[0])
+
+
+#execute the function on serverside
+r = el.compute.execute(computeId=computeId1, token=token, f=f)
+
+#print the download links for the created files
+print(r)
+
+#terminate all open environments on the server
+el.compute.terminateCompute(computeId=computeId, token=token)
+el.compute.terminateAll(token)
+
+
+
+
+
+
+def user_function(params):
+    def f(params):
+        import numpy as np
+        r = params['3765bc1a-e998-42bc-9a02-21e5bf5b9d74']['raster']
+        return np.max(r)
+return f(params)
 
 
 

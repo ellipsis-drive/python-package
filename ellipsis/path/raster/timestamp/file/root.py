@@ -21,8 +21,11 @@ def add(pathId, timestampId, token, fileFormat, filePath=None, memFile = None, e
     if type(memFile) == type(None) and type(filePath) == type(None) and type(remoteInfo) == type(None):
         raise ValueError('You need to specify either a filePath or a memFile')
 
-    if (type(memFile) != type(None) or type(remoteInfo) != type(None) ) and type(name) == type(None):
+    if type(memFile) != type(None)   and type(name) == type(None):
         raise ValueError('Parameter name is required when using a memory file')
+    if type(remoteInfo) != type(None)   and type(name) == type(None):
+        raise ValueError('Parameter name is required when using a remote file')
+
 
     if type(name ) == type(None):
         seperator = os.path.sep
@@ -36,7 +39,7 @@ def add(pathId, timestampId, token, fileFormat, filePath=None, memFile = None, e
     elif type(memFile) != type(None) :
         r = apiManager.upload('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file' , name, body, token, memfile = memFile)
     else:
-        r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file', body, token)
+        r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file?remote=true', body, token)
 
     return r
 
@@ -47,7 +50,7 @@ def get(pathId, timestampId, token, pageStart= None, listAll = True):
     pageStart = sanitize.validObject('pageStart', pageStart, False) 
 
     def f(body):
-        r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file', body, token)    
+        r = apiManager.get('/path/' + pathId + '/raster/timestamp/' + timestampId + '/file', body, token)
         for i in np.arange( len(r['result'])):
             if 'info' in r['result'][i].keys() and 'bounds' in r['result'][i]['info'].keys() and type(r['result'][i]['info']['bounds']) != type(None):
                 r['result'][i]['info']['bounds'] = gpd.GeoDataFrame.from_features([{'id': 0, 'properties':{}, 'geometry':r['result'][i]['info']['bounds']}]).unary_union
