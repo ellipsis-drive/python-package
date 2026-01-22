@@ -1,4 +1,4 @@
-# Compute (Beta release)
+# Compute
 
 ## createCompute
 
