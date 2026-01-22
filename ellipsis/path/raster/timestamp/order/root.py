@@ -16,8 +16,7 @@ def add(pathId, timestampId, token, extent = None, epsg=4326, mask = None):
     epsg = sanitize.validInt('epsg', epsg, True)
     mask = sanitize.validString('mask', mask, False)
     body = {'extent':extent, 'epsg':epsg, 'mask':mask}
-    print(body,'/path/' + pathId + '/raster/timestamp/' + timestampId + '/order', token )
-    r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/order', body, token)    
+    r = apiManager.post('/path/' + pathId + '/raster/timestamp/' + timestampId + '/order', body, token)
 
     return r
 

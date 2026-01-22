@@ -18,6 +18,7 @@ Creates a compute environment.
 - requirements (list), a list with Python package names you wish to be available in your environment.
 - awaitTillStarted (boolean), a boolean indicating whether to halt till the environment is available (default True).
 - largeResult (boolean), whether the functions you will run on the environment will return a memory file or a simple Python object. If false object may not exceed 2mb. (default False)
+- enableGpu (boolean), whether to use the GPU to execute given functions. (default False)
 
 ## execute
 
@@ -33,6 +34,7 @@ Executes a Python function on the created environment in a parallelized fashion 
 
 **Optional arguments**
 - awaitTillCompleted (boolean), a boolean indicating whether to halt till the function has executed.
+- writeToLayer (dict), a dictionary with pathId and timestampId indicating to what layer and timestamp to add the result.
 
 ## terminateCompute
 

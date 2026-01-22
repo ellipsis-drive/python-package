@@ -10,7 +10,7 @@ from ellipsis.path.raster.timestamp.file import add as addFile
 from ellipsis.path.raster.timestamp import activate
 from io import BytesIO
 
-def createCompute(layers, token, files = None, nodes=None, interpreter='python3.12', requirements= [], awaitTillStarted = True, largeResult = False):
+def createCompute(layers, token, files = None, nodes=None, interpreter='python3.12', requirements= [], awaitTillStarted = True, largeResult = False, enableGpu=False):
     layers = sanitize.validDictArray('layers', layers, True)
     files = sanitize.validUuidArray('files', files, False)
     token = sanitize.validString('token', token, True)
@@ -18,6 +18,7 @@ def createCompute(layers, token, files = None, nodes=None, interpreter='python3.
     interpreter = sanitize.validString('interpreter', interpreter, True)
     requirements = sanitize.validStringArray('requirements', requirements, False)
     largeResult = sanitize.validBool('largeResult', largeResult, True)
+    enableGpu = sanitize.validBool('enableGpu', enableGpu, True)
     if type(nodes) == type(None):
         info = getInfo(token=token)
         nodes = info['plan']['maxComputeNodes']
@@ -26,12 +27,11 @@ def createCompute(layers, token, files = None, nodes=None, interpreter='python3.
 
     requirements = "\n".join(requirements)
 
-    body = {'layers':layers, 'files':files, 'interpreter':interpreter, 'nodes':nodes, 'requirements':requirements, 'largeResult': largeResult}
+    body = {'layers':layers, 'files':files, 'interpreter':interpreter, 'nodes':nodes, 'requirements':requirements, 'largeResult': largeResult, 'enableGpu':enableGpu}
     r = apiManager.post('/compute', body, token)
 
     computeId = r['id']
     while awaitTillStarted:
-        print('waiting')
         res = listComputes(token=token)['result']
         r = [x for x in res if x['id'] == computeId][0]
         if r['status'] == 'available':
@@ -70,7 +70,6 @@ def execute(computeId, f, token, awaitTillCompleted=True, writeToLayer = None):
     while awaitTillCompleted:
         res = listComputes(token=token)['result']
         r = [x for x in res if x['id'] == computeId][0]
-        print('waiting')
         if r['status'] == 'completed':
             break
         if r['status'] == 'errored':
@@ -90,8 +89,8 @@ def parseResults(r):
     for x in r:
         arr = []
         for y in x:
-            if y['type'] != 'exception':
-                y['value'] = json.loads(y['value'])
+            if y['type'] != 'exception' and y['type'] != 'upload':
+                    y['value'] = json.loads(y['value'])
             arr.append(y)
         results = results + arr
 
@@ -163,15 +162,10 @@ def addToLayer(response, pathId, timestampId, token):
     token = sanitize.validString('token', token, True)
 
     for url in response:
-        print('fetching file ' + url.split('/')[-1])
         memfile = BytesIO()
         memfile = downloadFile(url,  token, memfile=memfile)
-        print('read file ' + url.split('/')[-1])
-        print('adding file ' + url.split('/')[-1])
         addFile(pathId = pathId, timestampId=timestampId, token = token, fileFormat='tif', memFile=memfile, name= url.split('/')[-1] + '.tif' )
-        print('file ' + url.split('/')[-1] + ' added to layer')
     activate(pathId=pathId, timestampId=timestampId, token=token)
-    print('layer can now be found at ' + apiManager.baseUrl + '/drive/me?pathId=' + pathId )
 
 
 

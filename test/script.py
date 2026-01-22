@@ -3,7 +3,6 @@ import ellipsis as el
 el.apiManager.baseUrl =  'https://api.tnc.ellipsis-drive.com/v3'
 
 
-token = el.account.logIn('daan', 'Brooksrange24')
 
 pageStart = '0ebcf770-5806-469a-a91e-55e8c69bc05d'
 

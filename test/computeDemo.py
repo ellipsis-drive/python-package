@@ -9,7 +9,6 @@ from test.pointCloud import timestampId
 
 from test.compute import computeId1
 
-token = el.account.logIn('daan', 'Brooksrange24')
 
 
 requirements = ['rasterio']

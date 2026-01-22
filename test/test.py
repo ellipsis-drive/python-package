@@ -1,17 +1,54 @@
 import ellipsis as el
 
+el.apiManager.baseUrl =  'https://acc.api.ellipsis-drive.com/v3'
 
-token = el.account.logIn('demo_user', 'demo_user')
 
-requirements = ['tensorflow', 'keras']
+
+
+requirements = [ 'numpy']
+
 nodes = 1
+interpreter='python3.12'
+layers = [{'pathId':'ea854f7d-7adf-4a4e-9b93-b6ca58c9e9dc', 'timestampId':'e945fe03-bcfc-4d3f-ab10-4d117006d609'} ]
+computeId = el.compute.createCompute(layers = layers, token=token, nodes = nodes,interpreter=interpreter, requirements = requirements)['id']
 
-layers = [ {'pathId':'2e7240df-5e3e-4c90-913f-042514f31b36', 'timestampId':'4d023723-95f7-4f71-8861-b8bf1b1aeb85'}]
-files = ['19d8fbd5-bf8a-4f8c-a377-d1bd5daac845']
+def f(params):
+    import numpy as np
+    r = params['e945fe03-bcfc-4d3f-ab10-4d117006d609']['raster'] #this is a 4096 by 4096 numpy array containing a buffer with respect to other shards
 
-computeId = el.compute.createCompute(layers = layers, files = files, token=token, nodes = nodes,interpreter='python3.12', requirements = requirements, largeResult=False)['id']
+    return np.max(r)
+
+r = el.compute.execute(computeId=computeId, token=token, f=f)
+
+print(r)
 
 el.compute.terminateAll(token=token)
+
+
+
+
+
+
+requirements = ['ellipsis']
+nodes = 1
+
+layers = [ {'pathId':'ad48c96c-1a6a-4f54-8bac-c87246c5f4da', 'timestampId':'abb7a900-c361-4583-b93f-e7399bdde779'}]
+files = []
+
+computeId = el.compute.createCompute(layers = layers, files = files, token=token, nodes = nodes,interpreter='python3.12', requirements = requirements, largeResult=True)['id']
+
+def f(params):
+    import ellipsis as el
+    from io import BytesIO
+    r = params['abb7a900-c361-4583-b93f-e7399bdde779']['raster']
+    transform = params['abb7a900-c361-4583-b93f-e7399bdde779']['transform']
+    b = BytesIO()
+    d = el.util.saveRaster(r=r, epsg= 3857, transform = transform, targetFile = b)
+
+    return d
+
+execute(computeId, f, token, writeToLayer={'pathId':'9e96aea4-03fa-4b29-aeed-84d97106d975', 'timestampId':'c105535d-a8b5-4b1b-b59c-ecce0ea3e648' })
+
 
 model_json = model.to_json()
 import tensorflow as tf
