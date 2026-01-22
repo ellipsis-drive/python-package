@@ -24,7 +24,7 @@ Creates a compute environment.
 
     ellipsis.compute.execute()
 
-Executes a Python function on the created environment in a parallelized fashion over all nodes
+Executes a Python function on the created environment in a parallelized fashion over all the nodes
 
 **Mandatory arguments**
 
