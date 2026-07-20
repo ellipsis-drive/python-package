@@ -11,6 +11,8 @@ Order a download.
 - token (string)
 - pathId (uuid)
 - timestampId (uuid)
+
+**Optional arguments**
 - extent (dictionary, with properties xMin, xMax, yMin and yMax of type float)
 
 ## get

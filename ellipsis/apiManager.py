@@ -6,7 +6,7 @@ import time
 from requests_toolbelt import MultipartEncoder
 
 baseUrl = 'https://api.ellipsis-drive.com/v3'
-
+appUrl = 'https://app.ellipsis-drive.com'
 
 def filterNone(body, toString= False):
     if type(body) == type(None):
@@ -40,7 +40,6 @@ def get(url, body = None, token = None, crash = True, parseJson = True):
     body = urllib.parse.urlencode(body)
 
     url = url + '?' + body
-
     r = call( method = requests.get, url = url, body = None, token = token, crash = crash, parseJson = parseJson )
 
 

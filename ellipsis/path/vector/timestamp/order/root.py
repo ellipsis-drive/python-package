@@ -6,7 +6,7 @@ def get(token):
     r = apiManager.get('/path/vector/timestamp/order', None, token)
     return r
 
-def add(pathId, timestampId, token, extent = None, fileFormat = 'geojson', epsg = 4326):
+def add(pathId, timestampId, token, extent=None, fileFormat = 'geojson', epsg = 4326):
     
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)

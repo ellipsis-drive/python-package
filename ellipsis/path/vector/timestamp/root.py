@@ -33,8 +33,11 @@ def getLocationInfo(pathId, timestampId, locations, epsg = 4326, token= None):
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
     token = sanitize.validString('token', token, False)
     epsg = sanitize.validInt('epsg', epsg, True)
+    locations = sanitize.validList('locations', locations, True)
+    if len(locations) > 100:
+        raise ValueError('can get information for only 100 locations at a time')
     body = {'locations':locations,'epsg':epsg}
-    r = apiManager.post('/path/' + pathId + '/vector/timestamp/' + timestampId + '/location', body, token)
+    r = apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/location', body, token)
     return r
 
 def edit(pathId, timestampId, token, description=None, date=None):
@@ -128,14 +131,13 @@ def getFeaturesByIds(pathId, timestampId, featureIds, token = None, showProgress
 
     id_chunks = chunks(featureIds, 10)
 
-    r = {'size': 0 , 'result': [], 'nextPageStart' : None}
-    ids = id_chunks[0]
+    r = {'size': 0 , 'result': {'type':'featureCollection', 'features':[]}, 'nextPageStart' : None}
     i=0
     for ids in id_chunks:
         body = {'geometryIds': ids}
         r_new = apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/featuresByIds' , body, token)
         
-        r['result'] = r['result'] + r_new['result']['features']
+        r['result']['features'] = r['result']['features'] + r_new['result']['features']
         r['size'] = r['size'] + r_new['size']
         if len(id_chunks) >0 and showProgress:
             loadingBar(i*10 + len(ids),len(featureIds))
@@ -156,15 +158,16 @@ def getFeaturesByIds(pathId, timestampId, featureIds, token = None, showProgress
 
 
 
-def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, token = None, listAll = True, pageStart = None, epsg = 4326, coordinateBuffer = None, onlyIfCenterPointInExtent = False):
-    pathId = sanitize.validUuid('pathId', pathId, True) 
+def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, token = None, listAll = True, pageStart = None, epsg = 4326, pageSize=None, coordinateBuffer = None, onlyIfCenterPointInExtent = False):
+    pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True) 
     token = sanitize.validString('token', token, False)
     extent = sanitize.validBounds('extent', extent, True)
     propertyFilter = sanitize.validObject('propertyFilter', propertyFilter, False)
     listAll = sanitize.validBool('listAll', listAll, True)
     epsg = sanitize.validInt('epsg', epsg, True)
-    pageStart = sanitize.validObject('pageStart', pageStart, False) 
+    pageStart = sanitize.validObject('pageStart', pageStart, False)
+    pageSize = sanitize.validInt('pageSize', pageSize, False)
     coordinateBuffer = sanitize.validFloat('coordinateBuffer', coordinateBuffer, False) 
     if str(type(coordinateBuffer)) == str(type(None)):
         if onlyIfCenterPointInExtent:
@@ -190,7 +193,7 @@ def getFeaturesByExtent(pathId, timestampId, extent, propertyFilter = None, toke
     extent_new['yMax'] = min(85, extent['yMax'] + coordinateBuffer)
 
 
-    body = {'pageStart': pageStart, 'propertyFilter':propertyFilter, 'extent':extent_new}
+    body = {'pageStart': pageStart, 'propertyFilter':propertyFilter, 'extent':extent_new, 'pageSize':pageSize}
 
     def f(body):
         return apiManager.get('/path/' + pathId + '/vector/timestamp/' + timestampId + '/featuresByExtent' , body, token)

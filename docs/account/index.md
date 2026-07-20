@@ -7,6 +7,20 @@ maxdepth: 2
 ---
 accessToken/index
 ```
+## browserLogIn
+
+    ellipsis.account.browserLogIn()
+
+Opens to browser to login. When completed the function will return a user token.
+
+**Mandatory arguments**
+
+
+**Optional arguments**
+
+
+Returns a token.
+
 
 ## logIn
 

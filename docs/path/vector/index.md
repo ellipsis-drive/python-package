@@ -46,5 +46,7 @@ Updates the rendering settings in the viewer
 **Mandatory arguments**
 
 - pathId (uuid) id of the vector to edit
-- maxZoom (int) The max zoomlevel of the layer
 - token (string), your token
+**Optional arguments**
+- maxZoom (int) The max zoomlevel of the layer
+- properties (array of strings) the order in which the properties should visually appear.

@@ -18,6 +18,9 @@ def validUuid(name, value, required):
         raise ValueError(name + ' must be of type string and be a uuid')
     return(value)
 
+
+
+
 def validResolution(name, value, required):
     if not required and type(value) == type(None):
         return
@@ -161,7 +164,8 @@ def validNumpyArray(name, value, required):
 def validList(name, value, required):
     if not required and type(value) == type(None):
         return
-
+    if 'numpy' in str(type(value)):
+        value = value.tolist()
     try:
         value = list(value)
 

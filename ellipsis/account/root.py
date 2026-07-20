@@ -1,7 +1,13 @@
 from ellipsis import apiManager
 from ellipsis import sanitize
+from ellipsis.apiManager import appUrl
 from ellipsis.util.root import recurse
 import requests
+import http.server
+import socketserver
+import webbrowser
+from urllib.parse import urlparse, parse_qs
+import uuid
 
 def logIn(username, password, validFor = None):
 
@@ -23,6 +29,43 @@ def logIn(username, password, validFor = None):
         token = r['token']
 
         return(token)
+
+def browserLogin():
+    PORT = 8765
+
+    class CallbackHandler(http.server.BaseHTTPRequestHandler):
+        token_result = None  # class variable
+
+        def do_GET(self):
+            parsed = urlparse(self.path)
+
+            if parsed.path == "/callback":
+                params = parse_qs(parsed.query)
+                self.__class__.token_result = params.get("token", [None])[0]
+
+                self.send_response(200)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+                self.wfile.write(b"<h1>Login successful. You can close this tab.</h1>")
+            else:
+                self.send_response(404)
+                self.end_headers()
+
+        # suppress logging to console
+        def log_message(self, format, *args):
+            return
+
+    with socketserver.TCPServer(("127.0.0.1", PORT), CallbackHandler) as httpd:
+        authenticateState = str(uuid.uuid1())
+
+        print("Opening browser, please login...")
+        webbrowser.open(f"{appUrl}/login?application=true")
+
+        while CallbackHandler.token_result is None:
+            httpd.handle_request()  # waits for next GET
+
+    return CallbackHandler.token_result
+
 
 
 def getInfo(token):

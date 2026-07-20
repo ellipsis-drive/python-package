@@ -1,5 +1,6 @@
 from ellipsis import apiManager
 from ellipsis import sanitize
+from ellipsis.path import get as getPath
 
 def add( name, token, parentId = None, publicAccess =None, metadata=None):
     name = sanitize.validString('name', name, True)
@@ -12,12 +13,31 @@ def add( name, token, parentId = None, publicAccess =None, metadata=None):
 
     return apiManager.post('/path/vector', body, token)
 
-def editRendering(pathId, maxZoom, token):
+def editRendering(pathId, token, maxZoom=None, properties=None):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('parentId', pathId, True)
-    maxZoom = sanitize.validInt('maxZoom', maxZoom, True)
+    maxZoom = sanitize.validInt('maxZoom', maxZoom, False)
+    properties = sanitize.validStringArray('properties', properties, False)
 
-    body = {"method":"vector tiles","parameters":{"zoom":maxZoom,"mb":2,"step":1000,"amount":1000},"centerPointOnly":False,"lod":6}
+    info = getPath(pathId=pathId, token=token)
+    definedProperties = [p for p in info['vector']['properties'] if not p['trashed'] ]
+    renderOptions = info['vector']['renderOptions']
+    if type(renderOptions) != type(None):
+        if type(maxZoom) != type(None):
+            renderOptions['parameters']['zoom'] = maxZoom
+        if type(properties) != type(None):
+            submitProperties = []
+            for p in properties:
+                newP = None
+                for pr in definedProperties:
+                    if pr['name'] == p:
+                        newP = pr
+                if type(newP) == type(None):
+                    raise ValueError('property ', p , ' does not exist for this layer')
+                submitProperties = submitProperties + [newP]
+            renderOptions['properties'] = submitProperties
+
+    body = renderOptions
     r = apiManager.put('/path/' + pathId + '/vector/renderOptions' , body, token)
     return r
 

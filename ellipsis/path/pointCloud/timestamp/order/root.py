@@ -12,7 +12,7 @@ def add(pathId, timestampId, token, extent = None, epsg=4326):
     token = sanitize.validString('token', token, True)
     pathId = sanitize.validUuid('pathId', pathId, True)
     timestampId = sanitize.validUuid('timestampId', timestampId, True)
-    extent = sanitize.validBounds('extent', extent, True)
+    extent = sanitize.validBounds('extent', extent, False)
     epsg = sanitize.validInt('epsg', epsg, True)
 
     body = {'extent':extent, 'epsg':epsg}
