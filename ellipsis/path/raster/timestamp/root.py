@@ -1,7 +1,7 @@
 from ellipsis import sanitize
 from ellipsis.util.root import getActualExtent
 from ellipsis import apiManager
-from ellipsis.util import loadingBar
+from ellipsis.util import loadingBar, chunks
 from ellipsis.util.root import reprojectRaster
 from ellipsis.path.raster.timestamp.util import constructImage
 from ellipsis.path.raster.timestamp.util import cutOfTilesPerZoom
@@ -13,7 +13,6 @@ from io import BytesIO
 import rasterio
 import math
 import tifffile
-from PIL import Image
 import geopandas as gpd
 import datetime
 import pandas as pd
@@ -354,13 +353,14 @@ def getRaster(pathId, timestampId, extent, token = None, showProgress = True, ep
         return reprojectRaster(r = r_total, sourceExtent = mercatorExtent, targetExtent = extent, targetWidth=r_total.shape[2], targetHeight=r_total.shape[1], sourceEpsg = 3857, targetEpsg= epsg, interpolation = 'nearest')
 
 
-def analyse(pathId, timestampIds, geometry, returnType= 'all', approximate=True, token = None, epsg = 4326):
+def analyse(pathId, timestampIds, geometry, returnType= 'all', approximate=True, token = None, epsg = 4326, showProgress = True):
     token = sanitize.validString('token', token, False)
     pathId = sanitize.validUuid('pathId', pathId, True)    
     timestampIds = sanitize.validUuidArray('timestampIds', timestampIds, True)    
     approximate = sanitize.validBool(approximate, approximate, True)    
     geometry = sanitize.validShapely('geometry', geometry, True)
     returnType = sanitize.validString('returnType', returnType, True)
+    showProgress = sanitize.validBool('showProgress', showProgress, True)
 
     temp = gpd.GeoDataFrame({'geometry':[geometry]})
     temp.crs = 'EPSG:' + str(epsg)
@@ -375,10 +375,21 @@ def analyse(pathId, timestampIds, geometry, returnType= 'all', approximate=True,
     except:
         raise ValueError('geometry must be a shapely geometry')
 
+    timestampIds_chunks = chunks(timestampIds, 45)
+    r_total = []
+    I=0
+    for timestampIds_sub in timestampIds_chunks:
 
-    body = {'timestampIds':timestampIds, 'geometry':geometry, 'approximate':approximate, returnType:returnType}
-    r = apiManager.get('/path/' + pathId + '/raster/timestamp/analyse', body, token)
-    return r
+        body = {'timestampIds':timestampIds_sub, 'geometry':geometry, 'approximate':approximate, returnType:returnType}
+
+        r = apiManager.get('/path/' + pathId + '/raster/timestamp/analyse', body, token)
+
+        r_total = r_total + r
+        I=I+1
+        if showProgress:
+            loadingBar(I, len(timestampIds_chunks))
+
+    return r_total
 
 
 

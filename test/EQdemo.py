@@ -1,45 +1,41 @@
 import ellipsis as el
-import pandas as pd
+token = el.account.logIn('YOUR_USERNAME', 'YOUR_PASSWORD')
+layer = {'id'}
 
-token = el.account.logIn('demo_user', 'demo_user')
+requirements = ['ellipsis', 'numpy','keras']
+nodes = 4
+layers = [ {'pathId':layer['id'], 'timestampId': t['id']} for t in layer['raster']['timestamps']]
+el.compute.createCompute(layers = layers, token=token, nodes = 4, interpreter='python3.12', requirements = requirements)
 
 
 
-
-change_detection_pathId = '09e66753-efaa-457e-8316-074a842cac86'
-change_detection_timestampId = '8881e53f-195a-48c1-8886-30f72612ac2b'
-
-buildings_pathId = '967f5d06-ab32-4812-baab-04411730238a'
-buildings_timestampId = 'f3a8a95e-811d-4bb5-8f7b-b024f0d2da96'
 
 
 
 def f(params):
-    change_detection_timestampId = '8881e53f-195a-48c1-8886-30f72612ac2b'
-    buildings_timestampId = 'f3a8a95e-811d-4bb5-8f7b-b024f0d2da96'
+    from io import BytesIO
+    import ellipsis as el
+    import numpy as np
 
-    buildings_gpd = params[buildings_timestampId]['vector']
-    change_detection_gpd = params[change_detection_timestampId]['vector']
+    r = params['523caede-9f96-49fa-a855-3e546bcd365d']['raster']
+    extent = params['523caede-9f96-49fa-a855-3e546bcd365d']['extent']
 
-    change_detection_union = change_detection_gpd.unary_union
+    ndvi = (r[7,:,:] - r[3,:,:])/(r[3,:,:] + r[7,:,:])
+    ndvi = np.expand_dims(ndvi, axis = 0)
 
-    buildings_gpd = buildings_gpd[buildings_gpd.intersects(change_detection_union)]
+    b = BytesIO()
+    memfile = el.util.saveRaster(ndvi, 3857, b, extent = extent)
 
-    return buildings_gpd
+    return memfile
 
-layers = [{'pathId': change_detection_pathId, 'timestampId': change_detection_timestampId}, {'pathId': buildings_pathId, 'timestampId': buildings_timestampId}]
-requirements = []
-nodes = 4
-interpreter='python3.12'
-computeId = el.compute.createCompute(layers=layers, interpreter=interpreter, nodes=nodes, requirements=requirements, token = token)['id']
-res = el.compute.execute(computeId=computeId, f=f, token=token)
+computeId = 2
 
-sh = pd.concat(res)
-sh.plot()
-sh.shape
 
-el.compute.terminateAll(token=token)
+el.compute.terminateCompute(computeId=computeId, token=token)
 
-sh.to_file('/home/daniel/Downloads/damaged buildings')
 
-el.path.vector.timestamp.file.a
+
+
+
+
+

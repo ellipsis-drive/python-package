@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ellipsis",
-    version="3.3.9",
+    version="3.3.11",
     author="Daniel van der Maas",
     author_email="daniel@ellipsis-drive.com",
     description="Package to interact with the Ellipsis API",

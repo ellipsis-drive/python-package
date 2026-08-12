@@ -7,6 +7,7 @@ maxdepth: 5
 raster/index
 vector/index
 pointCloud/index
+mesh/index
 folder/index
 file/index
 bookmark/index

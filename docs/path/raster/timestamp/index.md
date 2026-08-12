@@ -12,7 +12,7 @@ file/index
 
     ellipsis.path.raster.timestamp.add()
 
-Add a timestamp to a raster map.
+Add a timestamp to a raster layer.
 
 **Mandatory arguments**
 
@@ -28,7 +28,7 @@ Add a timestamp to a raster map.
 
     ellipsis.path.raster.timestamp.edit()
 
-Edit a timestamp of a raster map.
+Edit a timestamp of a raster layer.
 
 **Mandatory arguments**
 
@@ -45,7 +45,7 @@ Edit a timestamp of a raster map.
 
     ellipsis.path.raster.timestamp.delete()
 
-Delete a timestamp of a raster map.
+Delete a timestamp of a raster layer.
 
 **Mandatory arguments**
 
@@ -81,7 +81,7 @@ Deactivate a timestamp.
 
     ellipsis.path.raster.timestamp.getBounds()
 
-Request to obtain the aggregated data for a certain geometry.
+Request to obtain the geometric bounds of a timestamp.
 
 **Mandatory arguments**
 
